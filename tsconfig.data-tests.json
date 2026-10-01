@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.domain-tests.json",
+  "compilerOptions": { "rootDir": "src" },
+  "include": ["src/domain/**/*.ts", "src/data/**/*.ts"],
+  "exclude": ["src/data/index.ts", "src/data/database/database.ts"]
+}

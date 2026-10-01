@@ -13,6 +13,7 @@
     "expo-linking": "~57.0.11",
     "expo-router": "~57.0.24",
     "expo-splash-screen": "~57.0.9",
+    "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
@@ -34,8 +35,10 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node ./scripts/test-domain.cjs",
-    "test:coverage": "node ./scripts/test-domain.cjs --coverage",
+    "test": "npm run test:domain && npm run test:data",
+    "test:domain": "node ./scripts/test-domain.cjs",
+    "test:data": "node ./scripts/test-data.cjs",
+    "test:coverage": "npm run test:domain -- --coverage && npm run test:data -- --coverage",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

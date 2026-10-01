@@ -2,6 +2,8 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 For progression work, read `docs/GAME_SYSTEM.md` for domain rules, public APIs, and historical-award guarantees. Run `npm test` when changing the domain.
 
+For persistence work, read `docs/ARCHITECTURE.md` for repository APIs, migrations, atomic saves, and recovery policy. Keep SQLite out of `src/domain/` and run `npm test` after data-layer changes.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

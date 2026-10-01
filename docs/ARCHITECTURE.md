@@ -1,0 +1,146 @@
+# Application architecture
+
+## Layers and entry points
+
+- `src/app/`, components and hooks: Expo starter presentation. Persistence is not wired into screens yet.
+- `src/domain/`: pure TypeScript progression. **Never import SQLite, React, React Native or Expo here.**
+- `src/data/index.ts`: application-facing storage API. Future screens call repositories, never SQL.
+- `src/data/database/database.ts`: the only Expo SQLite adapter. Opens a private native connection.
+- `src/data/repositories/`: session/progression and typed settings operations.
+
+Read [GAME_SYSTEM.md](GAME_SYSTEM.md) for game rules and calendar semantics. Persistence does not change them.
+The data validators reuse a few pure domain validation/consistency helpers; no earning formula is replayed on load.
+
+## Public API and startup
+
+```ts
+import { initializeDatabase } from '@/data';
+
+// The caller captures an explicit timestamp, localDate and IANA timeZone.
+const store = await initializeDatabase(asOf);
+const snapshot = store.initialSnapshot;
+const preferences = await store.settings.loadPreferences();
+
+await store.meditations.recordCompletedMeditation(session, createdAt);
+const history = await store.meditations.getMeditationHistory({ limit: 50, offset: 0 });
+const state = await store.meditations.loadProgressionState();
+const laterSnapshot = await store.meditations.getCurrentProgressionSnapshot(laterAsOf);
+await store.settings.savePreferences(updatedPreferences);
+await store.close();
+```
+
+Own one store at application lifecycle level. Initialization configures SQLite, applies migrations,
+restores and validates state, settles complete days to `asOf`, and commits the updated checkpoint.
+`initialSnapshot` describes that completed startup; ask for a new snapshot when time advances.
+`loadProgressionState` reads the persisted cursor without advancing it. Snapshot retrieval commits advancement.
+Repeated opens/requests at the same context do not repeat decay. A returning meditation uses `recordSession`
+and its normal earnings/decay rules.
+
+All timestamps are UTC Unix **milliseconds** (safe integers), durations are whole **seconds**, and
+all XP is integer **centi-XP**. Never persist display-rounded XP. History returns `{ session, createdAt }`
+in descending completion order, with insertion sequence resolving ties; pagination is bounded to 1,000 rows.
+Offset pagination should be refreshed if a new meditation is inserted between pages.
+
+The caller supplies a stable globally unique session ID (use a UUID in the future timer) and a creation
+timestamp at or after completion. The original creation timestamp wins on retry. IDs are opaque nonempty
+strings; SQLite enforces uniqueness within the database. This layer neither creates IDs nor reads a clock.
+Submit completed pending sessions **before** advancing beyond their completion timestamp. Backdated edits,
+overlapping sessions and clock rollback fail explicitly, following the domain's chronological contract.
+
+## Schema and source of truth
+
+The V1 SQL lives in `src/data/database/schema.ts`.
+
+| Table | Meaning / authority |
+| --- | --- |
+| `meditation_sessions` | Immutable session history, original qualification decision/version, creation timestamp and ordering. |
+| `progression_awards` | Immutable incremental receipts, including zero-XP qualifying receipts, fixed-point XP and breakdown. One receipt per qualifying session. |
+| `progression_rules` | Immutable, ordered snapshots of every rules configuration used. |
+| `progression_checkpoint` | Singleton **authoritative continuation state**: current balance, as-of context, settlement cursor, highest achievement, active version, occasions and ledger counts. |
+| `meditation_preferences` | Singleton typed preferences document. |
+| `schema_migrations` | Ordered schema versions and names already applied. |
+
+Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
+session activity. Current rank, consistency and other display fields are domain projections. These values
+are not independently stored balances that can diverge. Occasions are validated against receipt chains
+and session membership on load. Historical rule snapshots, qualification decisions, award timestamps,
+breakdowns and session references remain intact.
+
+**The checkpoint is not a disposable cache.** Receipts alone cannot recover past decay/version-switch
+timing or a historical highest rank after arbitrary rule changes. If an initialized database has a missing
+checkpoint, malformed data, inconsistent ledger or unsupported version, the operation fails with a
+`PersistenceError`; it does not delete data, replay earnings, repair balances, or create a replacement
+checkpoint. Only a genuinely new schema receives empty initial state and defaults. A future recovery tool
+or backup policy must handle damaged databases explicitly. No event journal or automatic repair is included.
+
+## Atomicity and concurrency
+
+Each public operation uses a serialized queue on a private connection. `BEGIN IMMEDIATE` acquires the
+SQLite write lock **before** loading the checkpoint. Session completion then calls the existing domain
+engine and appends only new sessions/receipts/rules, updates the checkpoint, and commits as one transaction.
+Any error rolls back the complete operation. A rollback failure makes the connection unusable until reopened.
+Closing waits for queued operations. Separate connections must also acquire SQLite's writer lock and reload
+the latest checkpoint; no cached balance is used. Lock timeouts surface errors for an explicit retry.
+
+We use explicit transaction SQL because this connection is private and every query is queued; no ambient
+Expo queries can join its transaction. Foreign keys are enabled on that same connection. WAL and FULL
+synchronous mode are requested. Inputs are bound parameters, not interpolated SQL. Duplicate IDs with
+identical session content are no-ops, including after later decay; conflicting content fails. Primary keys,
+unique session-to-award links, foreign keys and append-only UPDATE/DELETE triggers add database protection.
+There is no public raw-award import or generic state-save method.
+
+## Rule versions and validation
+
+`decoders.ts`, `validation.ts`, and `integrity.ts` form the untrusted-row boundary. They check required
+types, finite safe integers, dates, timestamp ranges, duration bounds, session ordering, receipt relationships,
+occasion totals, protected balance bounds, rank identity and checkpoint counts. Invalid/null data is rejected.
+Time-zone identifiers are checked for syntax and retained verbatim; their membership in an IANA database
+and timestamp/date correspondence belong to the capturing timer. The storage layer does not consult the
+device's current zone or remap historical dates. This avoids differences between device tzdb versions.
+
+The explicit supported-rules registry defaults to V1 and checks stored configuration against registered
+definitions, ignoring JSON object key order. Adding a known future version to `supportedRules` does **not**
+activate it. Use `store.meditations.changeRules(version, asOf)` for a deliberate transition: the domain
+settles old decay, preserves old receipts and open-occasion terms, and then activates new rules atomically.
+Retain V1 in future releases. Unknown versions fail explicitly, including when an older app opens newer data.
+An actual new algorithm also requires a domain evaluator as described in GAME_SYSTEM.md.
+
+Validation detects malformed and inconsistent data, not coordinated tampering with otherwise coherent
+values. No cryptographic integrity seal or independent decay journal is claimed.
+
+## Migrations and preferences
+
+`migrations.ts` contains the ordered `MIGRATIONS` list. To add V2, append `{ version: 2, name, sql }`;
+keep released V1 unchanged. Initialization runs outstanding migrations and their markers transactionally,
+together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
+history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
+cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
+The tests demonstrate a sequential V2 addition and transactional DDL rollback. Destructive changes to protected
+history require an explicit migration decision, never disabling triggers during ordinary writes.
+
+Preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
+no periodic gong, ambience volume 0.3 and gong volume 0.5. Durations/intervals are positive integer seconds,
+volumes are finite values in [0, 1], and sound IDs are opaque nonempty strings or null. Future preference
+fields/default changes require a migration for existing rows; corrupt preferences never silently become defaults.
+
+## Verification and limits
+
+- `npm test`: original pure-domain suite plus repository/validation tests using Node 24+ built-in `node:sqlite`.
+- `npm run test:coverage`: both suites with Node coverage. No extra test dependency.
+- Tests compile data/domain code with strict TypeScript and no React/Expo ambient dependencies. The native
+  adapter is checked by the project typecheck and explicit native bundle smoke checks.
+- Real SQLite tests cover disk close/reopen, SQL constraints, rollback at several completion stages,
+  migrations, version transitions, corruption, and decay. They use the same production SQL and repositories.
+- These are **not native Expo runtime tests**. Verify force-close/relaunch, on-device filesystem behavior,
+  busy/error handling, and background/resume on both iOS and Android before connecting a production timer.
+  Bundle/export success is not a signed native build or a device test.
+- Web storage is not configured; Expo SQLite web requires WASM and isolation headers. The unchanged starter
+  can export to web independently. Native persistence takes priority in this milestone.
+
+V1 restores complete history to match the existing domain state model. That favors inspectability over
+large-history optimization; measure multi-year history on devices before introducing incremental hydration.
+The API has stable IDs, timestamped records and a repository boundary where a future optional sync adapter
+could sit. Sync/import conflict resolution and out-of-order historical imports are intentionally absent.
+
+Next milestone: a testable timer/session lifecycle with a reliable completion-save handshake and native
+storage smoke testing, before the final meditation interface or audio work.
