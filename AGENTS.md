@@ -4,6 +4,8 @@ For progression work, read `docs/GAME_SYSTEM.md` for domain rules, public APIs, 
 
 For persistence work, read `docs/ARCHITECTURE.md` for repository APIs, migrations, atomic saves, and recovery policy. Keep SQLite out of `src/domain/` and run `npm test` after data-layer changes.
 
+For Ona UI work, read `docs/ONA_UI.md` for the approved design sources, native flow, timer lifecycle and verification limits. Keep XP calculations and SQL out of screens.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

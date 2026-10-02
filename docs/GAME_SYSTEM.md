@@ -12,7 +12,8 @@ TypeScript: no React, Expo, database, audio, device clock, or implicit time zone
   with its original rules version and achievement time. Later renaming does not rewrite it.
 - **Meditation time:** actual active seconds, including short runs and occasions that earn zero XP.
 
-All application imports should come from `src/domain/progression/index.ts`.
+Progression imports should come from `src/domain/progression/index.ts`. The separate pure timer API lives in
+`src/domain/meditation/timer.ts`; its durable lifecycle is documented in ARCHITECTURE.md.
 
 | File | Responsibility |
 | --- | --- |

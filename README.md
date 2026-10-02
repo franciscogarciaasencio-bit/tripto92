@@ -1,56 +1,38 @@
-# Welcome to your Expo app 👋
+# Ona
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An offline meditation app built with Expo SDK 57, React Native, TypeScript and Expo Router.
+The native Ona flow uses the approved Manrope/light-sand visual design, a silent timer and local SQLite persistence.
 
-## Get started
+## Test on an iPhone
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+cd C:\Users\fga31\Documents\MeditationApp
+npx expo start --clear --go --offline --port 8084
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Use Expo Go on an iPhone on the same Wi-Fi network. Scan the terminal QR code with Camera.
+`--offline` avoids CLI cloud requests while retaining the local connection. Stop a previous server if the port is occupied.
+Use an Expo Go version compatible with the installed SDK. The added SVG and Crypto modules are included in Expo Go.
 
-### Other setup steps
+## Verify
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npm test
+npx tsc --noEmit
+npm run lint
+npx expo export --platform all
+```
 
-## Learn more
+Node 24+ is required for the repository tests' built-in SQLite runner. No additional testing framework is installed.
+An exported web app requires COOP/COEP response headers for SQLite; see the architecture notes for current web dev-mode limits.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Code map
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- `src/app/`: native screens and Expo Router stack.
+- `src/ui/`: approved visual foundations and wave/motion components.
+- `src/application/`: one owned store and the timer/save lifecycle.
+- `src/domain/`: framework-independent timer and versioned progression logic.
+- `src/data/`: migrations, repositories, validation and the only Expo SQLite adapter.
+- [Game rules](docs/GAME_SYSTEM.md), [storage architecture](docs/ARCHITECTURE.md), [Ona UI and design provenance](docs/ONA_UI.md).
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Ambient playback and gongs are not implemented in this milestone. Existing preferences are retained; meditation is silent.

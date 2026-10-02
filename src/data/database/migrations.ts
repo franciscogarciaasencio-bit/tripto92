@@ -6,6 +6,9 @@ import { integer, object, text } from './validation';
 export interface Migration { readonly version: number; readonly name: string; readonly sql: string }
 export const MIGRATIONS: readonly Migration[] = [
   { version: 1, name: 'local_meditation_v1', sql: SCHEMA_V1 },
+  { version: 2, name: 'durable_meditation_timer', sql: `CREATE TABLE meditation_timer (
+    id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1), draft_json TEXT NOT NULL
+  );` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

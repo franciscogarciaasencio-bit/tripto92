@@ -20,6 +20,7 @@ export function createMeditationRepository(database: Transactions, registry: Rul
         const before = await loadState(sql, registry);
         const after = recordSession(before, session);
         if (after !== before) await appendTransition(sql, before, after, created);
+        await sql.run("DELETE FROM meditation_timer WHERE id = 1 AND json_extract(draft_json, '$.id') = ?", [session.id]);
         return getProgressSnapshot(after, after.asOf);
       });
     },

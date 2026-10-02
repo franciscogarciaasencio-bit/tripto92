@@ -1,0 +1,93 @@
+{
+  "viewBox": [
+    0,
+    0,
+    300,
+    128
+  ],
+  "stroke": "#141414",
+  "strokeWidth": 1.5,
+  "linecap": "round",
+  "ranks": [
+    {
+      "id": "monkey_mind",
+      "name": "Monkey Mind",
+      "thresholdXp": 0,
+      "span": 176,
+      "amplitude": 24,
+      "path": "M 62 64 C 93.68 64 97.2 40 121.84 40 C 142.96 40 157.04 88 178.16 88 C 202.8 88 206.32 64 238 64"
+    },
+    {
+      "id": "first_pause",
+      "name": "First Pause",
+      "thresholdXp": 200,
+      "span": 188,
+      "amplitude": 23,
+      "path": "M 56 64 C 89.84 64 93.6 41 119.92 41 C 142.48 41 157.52 87 180.08 87 C 206.4 87 210.16 64 244 64"
+    },
+    {
+      "id": "quiet_spark",
+      "name": "Quiet Spark",
+      "thresholdXp": 650,
+      "span": 200,
+      "amplitude": 22,
+      "path": "M 50 64 C 86 64 90 42 118 42 C 142 42 158 86 182 86 C 210 86 214 64 250 64"
+    },
+    {
+      "id": "steady_breath",
+      "name": "Steady Breath",
+      "thresholdXp": 1500,
+      "span": 212,
+      "amplitude": 21,
+      "path": "M 44 64 C 82.16 64 86.4 43 116.08 43 C 141.52 43 158.48 85 183.92 85 C 213.6 85 217.84 64 256 64"
+    },
+    {
+      "id": "still_pond",
+      "name": "Still Pond",
+      "thresholdXp": 3000,
+      "span": 224,
+      "amplitude": 20,
+      "path": "M 38 64 C 78.32 64 82.8 44 114.16 44 C 141.04 44 158.96 84 185.84 84 C 217.2 84 221.68 64 262 64"
+    },
+    {
+      "id": "clear_sky",
+      "name": "Clear Sky",
+      "thresholdXp": 5500,
+      "span": 236,
+      "amplitude": 19,
+      "path": "M 32 64 C 74.48 64 79.2 45 112.24 45 C 140.56 45 159.44 83 187.76 83 C 220.8 83 225.52 64 268 64"
+    },
+    {
+      "id": "deep_current",
+      "name": "Deep Current",
+      "thresholdXp": 9000,
+      "span": 248,
+      "amplitude": 18,
+      "path": "M 26 64 C 70.64 64 75.6 46 110.32 46 C 140.08 46 159.92 82 189.68 82 C 224.4 82 229.36 64 274 64"
+    },
+    {
+      "id": "quiet_mountain",
+      "name": "Quiet Mountain",
+      "thresholdXp": 14000,
+      "span": 260,
+      "amplitude": 17,
+      "path": "M 20 64 C 66.8 64 72 47 108.4 47 C 139.6 47 160.4 81 191.6 81 C 228 81 233.2 64 280 64"
+    },
+    {
+      "id": "wide_horizon",
+      "name": "Wide Horizon",
+      "thresholdXp": 21000,
+      "span": 272,
+      "amplitude": 16,
+      "path": "M 14 64 C 62.96 64 68.4 48 106.48 48 C 139.12 48 160.88 80 193.52 80 C 231.6 80 237.04 64 286 64"
+    },
+    {
+      "id": "steady_presence",
+      "name": "Steady Presence",
+      "thresholdXp": 30000,
+      "span": 284,
+      "amplitude": 15,
+      "path": "M 8 64 C 59.12 64 64.8 49 104.56 49 C 138.64 49 161.36 79 195.44 79 C 235.2 79 240.88 64 292 64"
+    }
+  ]
+}

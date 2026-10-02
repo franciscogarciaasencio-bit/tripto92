@@ -2,11 +2,15 @@
 
 ## Layers and entry points
 
-- `src/app/`, components and hooks: Expo starter presentation. Persistence is not wired into screens yet.
+- `src/app/`: Ona Expo Router screens, with a headerless stack and no tabs. Screens contain no SQL or XP calculations.
+- `src/ui/`: approved design tokens, typography, outlined controls, wave geometry and launch motion.
+- `src/application/ona-provider.tsx`: owns one database, startup, preferences, timer lifecycle and save/retry handshake.
 - `src/domain/`: pure TypeScript progression. **Never import SQLite, React, React Native or Expo here.**
 - `src/data/index.ts`: application-facing storage API. Future screens call repositories, never SQL.
 - `src/data/database/database.ts`: the only Expo SQLite adapter. Opens a private native connection.
 - `src/data/repositories/`: session/progression and typed settings operations.
+
+Read [ONA_UI.md](ONA_UI.md) for design provenance, the implemented flow and device verification.
 
 Read [GAME_SYSTEM.md](GAME_SYSTEM.md) for game rules and calendar semantics. Persistence does not change them.
 The data validators reuse a few pure domain validation/consistency helpers; no earning formula is replayed on load.
@@ -58,6 +62,7 @@ The V1 SQL lives in `src/data/database/schema.ts`.
 | `progression_rules` | Immutable, ordered snapshots of every rules configuration used. |
 | `progression_checkpoint` | Singleton **authoritative continuation state**: current balance, as-of context, settlement cursor, highest achievement, active version, occasions and ledger counts. |
 | `meditation_preferences` | Singleton typed preferences document. |
+| `meditation_timer` | V2 singleton durable running/paused/pending-completion cursor; removed with the corresponding completion transaction. |
 | `schema_migrations` | Ordered schema versions and names already applied. |
 
 Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
@@ -110,12 +115,13 @@ values. No cryptographic integrity seal or independent decay journal is claimed.
 
 ## Migrations and preferences
 
-`migrations.ts` contains the ordered `MIGRATIONS` list. To add V2, append `{ version: 2, name, sql }`;
-keep released V1 unchanged. Initialization runs outstanding migrations and their markers transactionally,
+`migrations.ts` contains the ordered `MIGRATIONS` list. V2 adds the timer without modifying V1.
+To add V3, append `{ version: 3, name, sql }`; keep released migrations unchanged.
+Initialization runs outstanding migrations and their markers transactionally,
 together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
 history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
 cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
-The tests demonstrate a sequential V2 addition and transactional DDL rollback. Destructive changes to protected
+The tests demonstrate a real V1→V2 upgrade, a future sequential V3 addition and transactional DDL rollback. Destructive changes to protected
 history require an explicit migration decision, never disabling triggers during ordinary writes.
 
 Preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
@@ -132,15 +138,46 @@ fields/default changes require a migration for existing rows; corrupt preference
 - Real SQLite tests cover disk close/reopen, SQL constraints, rollback at several completion stages,
   migrations, version transitions, corruption, and decay. They use the same production SQL and repositories.
 - These are **not native Expo runtime tests**. Verify force-close/relaunch, on-device filesystem behavior,
-  busy/error handling, and background/resume on both iOS and Android before connecting a production timer.
+  busy/error handling, and background/resume on both iOS and Android before production release.
   Bundle/export success is not a signed native build or a device test.
-- Web storage is not configured; Expo SQLite web requires WASM and isolation headers. The unchanged starter
-  can export to web independently. Native persistence takes priority in this milestone.
+- Web exports include Expo SQLite's WASM worker. `metro.config.js` adds the WASM asset extension;
+  the Router plugin config declares COOP/COEP headers. A separately hosted export also needs those headers.
+  The exported app is tested with real browser SQLite; web SQLite is upstream alpha. On this Windows SDK 57
+  environment, dev-mode web bundling reports a missing worker chunk; production export works. No dependency patch is applied.
 
 V1 restores complete history to match the existing domain state model. That favors inspectability over
 large-history optimization; measure multi-year history on devices before introducing incremental hydration.
 The API has stable IDs, timestamped records and a repository boundary where a future optional sync adapter
 could sit. Sync/import conflict resolution and out-of-order historical imports are intentionally absent.
 
-Next milestone: a testable timer/session lifecycle with a reliable completion-save handshake and native
-storage smoke testing, before the final meditation interface or audio work.
+## Durable timer and completion recovery
+
+`src/domain/meditation/timer.ts` is a pure timer cursor and explicit-zone calendar conversion, independent of React/Expo/SQLite.
+The caller supplies IDs, timestamps and zone. Start/pause/resume retain integer milliseconds; completion floors active and
+paused totals independently to whole seconds, matching the existing session contract. Paused time never earns XP.
+Wall-clock time includes running time while backgrounded or terminated. An expired timer finishes at its calculated deadline,
+not the later reopening time. A paused timer remains paused indefinitely. Clock rollback fails explicitly; there is no guessed repair.
+
+`store.timer.load()` / `.save(draft)` validate and serialize the one pending practice. Identity and target cannot change;
+the zone can change only once when an observed completion captures its completion zone,
+and a finished pending payload cannot be edited. The application serializes user operations, disables duplicate submissions,
+and persists phase transitions before acknowledging them. A save failure retains the exact finished payload in memory for Retry;
+the last successfully saved draft also remains in SQLite. If persisting the finish itself fails and the process dies, recovery uses
+that last durable cursor; an unsaved early-end intent cannot be promised to survive.
+
+During startup, `openStore` restores the draft **before** advancing progression. A finished/expired draft is converted to a session,
+saved via the unchanged progression engine, its receipts appended, its checkpoint updated and its draft deleted in one transaction.
+Then startup advances to the supplied current context. This prevents backdated-completion errors and duplicate decay/XP.
+`initialTimer`, `recoveredSession` and `previousRank` let the provider restore the session/completion screen.
+Normal `recordCompletedMeditation` also deletes a matching draft within its existing atomic transaction; identical retries remain no-ops.
+Application snapshot refreshes are suspended while a timer exists; callers must continue submitting pending completion before
+advancing past its end. There are no new authoritative XP values or changes to award/version semantics.
+
+The timer captures the device's IANA zone at **start** for recovery. Live/early completion captures the device's completion zone,
+as GAME_SYSTEM.md requires. For an endpoint that occurred while backgrounded/terminated, the app cannot know its location:
+recovery deliberately uses the saved practice zone rather than a possibly later travel zone. Completion date is computed at the
+actual endpoint in that explicit zone. A successfully persisted finished payload always retains its original completion zone.
+Stored historical sessions retain their original dates/zones. Intl conversion depends on the host tzdb;
+the progression engine continues to consume explicit historical dates and performs no conversion.
+
+Next: physical-device background/force-close and accessibility verification, then approved audio assets and playback.
