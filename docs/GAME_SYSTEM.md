@@ -153,6 +153,43 @@ window/bonus, grace period, daily decay rate/cap, floor, and rank definitions.
 Precision, completion-day assignment, and settlement semantics are V1 contracts;
 changing those requires an explicit schema/behavior migration.
 
+## Ona's 100 visible levels
+
+`progression/levels.ts` defines a separate display version, `ona_levels_v1`.
+It subdivides each of V1's nine rank intervals into eleven steps. For anchors
+`a` and `b` in integer centi-XP, subdivision `j=0..10` starts at
+`a + floor((b-a)*j/11)`. Append the final 30,000 XP anchor as Level 100.
+There are exactly 100 strictly increasing thresholds, each an inclusive lower
+bound. One centi-XP below a boundary belongs to the preceding level.
+
+| Named stage (original stable rank ID/name) | Levels | Starting XP |
+| --- | --- | --- |
+| Monkey Mind | 1–11 | 0 |
+| First Pause | 12–22 | 200 |
+| Quiet Spark | 23–33 | 650 |
+| Steady Breath | 34–44 | 1,500 |
+| Still Pond | 45–55 | 3,000 |
+| Clear Sky | 56–66 | 5,500 |
+| Deep Current | 67–77 | 9,000 |
+| Quiet Mountain | 78–88 | 14,000 |
+| Wide Horizon | 89–99 | 21,000 |
+| Steady Presence | 100 | 30,000 |
+
+`getLevelProgress(currentProgressionCenti)` returns the number, stage, next
+level and numeric progress. Existing users map from their unchanged **current**
+balance: 80 XP → Level 5; 3,232 XP → Level 46; after the approved break,
+3,040 XP → Level 45. No session, award, earning configuration or achievement
+is migrated/recomputed. Current levels can fall with existing decay. At Level
+100, there is no next threshold and the UI says “Your practice continues.”
+Additional XP and history accumulate normally; displayed levels never exceed 100.
+
+The permanent highest achievement remains the domain's highest **named stage**.
+V1 did not retain an intra-stage peak balance: a historical highest numbered
+level cannot be inferred reliably from lifetime XP. The UI labels the preserved
+achievement as highest stage, without inventing past level peaks. A future highest
+numbered-level achievement would need a deliberate persisted model/migration.
+Display subdivisions are not new earning-rule versions and never alter receipts.
+
 ## Public API and input discipline
 
 - `createProgressionState(asOf, rules?)`: create an empty state, usually once.

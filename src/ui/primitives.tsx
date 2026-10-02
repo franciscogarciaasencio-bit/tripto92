@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, typ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
-export const colors = { background: '#FDFCFB', ink: '#141414', secondary: 'rgba(20,20,20,0.72)', border: 'rgba(20,20,20,0.62)', line: 'rgba(20,20,20,0.18)' };
+export const colors = { background: '#F6F1E7', ink: '#141414', secondary: 'rgba(20,20,20,0.72)', border: 'rgba(20,20,20,0.62)', line: 'rgba(20,20,20,0.18)' };
 const typography = StyleSheet.create({
   body: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeRegular' },
   label: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeMedium' },

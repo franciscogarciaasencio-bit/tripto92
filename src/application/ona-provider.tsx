@@ -2,23 +2,19 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { initializeDatabase, type MeditationStore, type MeditationPreferences } from '@/data';
-import { finishTimer, pauseTimer, practiceContext, resumeTimer, settleTimer, startTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
-import type { MeditationSession, ProgressSnapshot, RankDefinition } from '@/domain/progression';
-import { getProgressSnapshot } from '@/domain/progression';
+import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion } from '@/data';
+import { finishTimer, pauseTimer, practiceContext, resumeTimer, settleTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
+import type { ProgressSnapshot } from '@/domain/progression';
 
 export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
-}
-export interface Completion {
-  readonly session: MeditationSession;
-  readonly previousRank: RankDefinition;
 }
 
 function useApplication() {
   const store = useRef<MeditationStore | null>(null);
   const timer = useRef<TimerDraft | null>(null);
   const locked = useRef(false);
+  const needsReopen = useRef(false);
   const [attempt, setAttempt] = useState(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +22,8 @@ function useApplication() {
   const [draft, setDraft] = useState<TimerDraft | null>(null);
   const [snapshot, setSnapshot] = useState<ProgressSnapshot | null>(null);
   const [preferences, setPreferences] = useState<MeditationPreferences | null>(null);
-  const [completion, setCompletion] = useState<Completion | null>(null);
+  const [completion, setCompletion] = useState<PracticeCompletion | null>(null);
+  const [completedPractices, setCompletedPractices] = useState(0);
   const [hasHistory, setHasHistory] = useState(false);
 
   const acceptDraft = useCallback((next: TimerDraft | null) => {
@@ -48,7 +45,8 @@ function useApplication() {
         setSnapshot(opened.initialSnapshot);
         setPreferences(savedPreferences);
         setHasHistory(history.length > 0);
-        setCompletion(opened.recoveredSession ? { session: opened.recoveredSession, previousRank: opened.previousRank } : null);
+        setCompletion(opened.initialCompletion);
+        setCompletedPractices(opened.initialCompletedPractices);
         setReady(true);
       } catch (failure) {
         if (opened) await opened.close();
@@ -58,8 +56,10 @@ function useApplication() {
     void load();
     return () => {
       disposed = true;
+      const activeStore = store.current;
       store.current = null;
-      if (opened) void opened.close();
+      if (activeStore) void activeStore.close();
+      if (opened && opened !== activeStore) void opened.close();
     };
   }, [attempt, acceptDraft]);
 
@@ -68,21 +68,39 @@ function useApplication() {
     locked.current = true;
     setBusy(true);
     setError(null);
-    try { await work(store.current); return true; }
-    catch (failure) { setError(String(failure)); return false; }
+    try {
+      if (needsReopen.current) {
+        await store.current.close();
+        store.current = await initializeDatabase(currentContext());
+        const reopened = store.current;
+        const savedPreferences = await reopened.settings.loadPreferences();
+        const savedHistory = await reopened.meditations.getMeditationHistory({ limit: 1 });
+        acceptDraft(reopened.initialTimer);
+        setSnapshot(reopened.initialSnapshot);
+        setCompletion(reopened.initialCompletion);
+        setCompletedPractices(reopened.initialCompletedPractices);
+        setHasHistory(savedHistory.length > 0);
+        setPreferences(savedPreferences);
+        needsReopen.current = false;
+        // The durable state resolves an uncertain commit. Do not execute a closure built from the old cursor.
+        return false;
+      }
+      await work(store.current);
+      return true;
+    }
+    catch (failure) { needsReopen.current = needsReopen.current || failure instanceof AggregateError; setError(String(failure)); return false; }
     finally { locked.current = false; setBusy(false); }
-  }, []);
+  }, [acceptDraft]);
 
   const complete = useCallback(async (finished: TimerDraft) => operation(async (database) => {
     acceptDraft(finished);
     // Save the exact payload first. A failed transaction or process death retains it for retry.
     await database.timer.save(finished);
-    const before = await database.meditations.loadProgressionState();
-    const previousRank = getProgressSnapshot(before, before.asOf).currentRank;
     const session = timerSession(finished);
-    const saved = await database.meditations.recordCompletedMeditation(session, Date.now());
-    setSnapshot(saved);
-    setCompletion({ session, previousRank });
+    const saved = await database.meditations.completePractice(session, Date.now());
+    setSnapshot(saved.snapshot);
+    setCompletion(saved.completion);
+    setCompletedPractices(saved.completion.completedPractices);
     setHasHistory(true);
     acceptDraft(null);
   }), [operation, acceptDraft]);
@@ -115,13 +133,14 @@ function useApplication() {
   }, []);
 
   return {
-    ready, busy, error, draft, snapshot, preferences, completion, hasHistory,
+    ready, busy, error, draft, snapshot, preferences, completion, hasHistory, completedPractices,
     retryInitialization: () => { setReady(false); setError(null); setAttempt((value) => value + 1); },
-    async begin(targetSeconds: number) {
+    async begin() {
       return operation(async (database) => {
         if (timer.current) throw new Error('A meditation is already in progress');
+        if (await database.meditations.getPendingCompletion()) throw new Error('Return Home from your saved summary before starting another practice');
         const context = currentContext();
-        const next = startTimer(randomUUID(), targetSeconds, context.timestamp, context.timeZone);
+        const next = startOpenEndedTimer(randomUUID(), context.timestamp, context.timeZone);
         await database.timer.save(next);
         setCompletion(null);
         acceptDraft(next);
@@ -155,11 +174,26 @@ function useApplication() {
       const pending = timer.current;
       return pending?.phase === 'finished' ? complete(pending) : false;
     },
+    async discard() {
+      const pending = timer.current;
+      if (!pending || pending.phase === 'finished') return false;
+      return operation(async (database) => {
+        await database.timer.discard(pending.id);
+        acceptDraft(null);
+        setSnapshot(await database.meditations.getCurrentProgressionSnapshot(currentContext()));
+      });
+    },
     async savePreferences(next: MeditationPreferences) {
       return operation(async (database) => { await database.settings.savePreferences(next); setPreferences(next); });
     },
     history,
-    dismissCompletion: () => { setCompletion(null); setError(null); },
+    async dismissCompletion() {
+      if (!completion) return false;
+      return operation(async (database) => {
+        await database.meditations.acknowledgeCompletion(completion.session.id, Date.now());
+        setCompletion(null);
+      });
+    },
   };
 }
 

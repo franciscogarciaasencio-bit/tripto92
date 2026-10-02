@@ -8,19 +8,19 @@ test('Released migrations run once; recognizing the current schema leaves record
   await save(meditations, session());
   const database = createTransactions(conn);
   const result = await database.transaction((sql) => migrate(sql));
-  assert.deepEqual(result, { previousVersion: 2, version: 2 });
+  assert.deepEqual(result, { previousVersion: 3, version: 3 });
   assert.equal(conn.raw.prepare('SELECT COUNT(*) AS n FROM meditation_sessions').get().n, 1);
 });
 
-test('A future sequential V3 migration adds data without altering V1 history', async (t) => {
+test('A future sequential V4 migration adds data without altering V1 history', async (t) => {
   const { conn, meditations } = await fixture(t);
   await save(meditations, session());
   const before = await meditations.loadProgressionState();
-  const future = [...MIGRATIONS, { version: 3, name: 'fixture_v3', sql: `CREATE TABLE fixture_notes(id TEXT PRIMARY KEY, note TEXT NOT NULL);
+  const future = [...MIGRATIONS, { version: 4, name: 'fixture_v4', sql: `CREATE TABLE fixture_notes(id TEXT PRIMARY KEY, note TEXT NOT NULL);
     INSERT INTO fixture_notes VALUES ('first', 'kept');` }];
   const database = createTransactions(conn);
-  assert.deepEqual(await database.transaction((sql) => migrate(sql, future)), { previousVersion: 2, version: 3 });
-  assert.deepEqual(await database.transaction((sql) => migrate(sql, future)), { previousVersion: 3, version: 3 });
+  assert.deepEqual(await database.transaction((sql) => migrate(sql, future)), { previousVersion: 3, version: 4 });
+  assert.deepEqual(await database.transaction((sql) => migrate(sql, future)), { previousVersion: 4, version: 4 });
   assert.equal(conn.raw.prepare('SELECT note FROM fixture_notes').get().note, 'kept');
   assert.deepEqual(await meditations.loadProgressionState(), before);
   await assert.rejects(database.transaction((sql) => migrate(sql)), (error) => error.code === 'UNSUPPORTED_SCHEMA');
@@ -30,10 +30,10 @@ test('Failed migration rolls back DDL, data, and the migration marker', async (t
   const { conn, meditations } = await fixture(t);
   await save(meditations, session());
   const database = createTransactions(conn);
-  const future = [...MIGRATIONS, { version: 3, name: 'bad_fixture', sql: 'CREATE TABLE rolled_back(id INTEGER); INSERT INTO missing_table VALUES (1);' }];
+  const future = [...MIGRATIONS, { version: 4, name: 'bad_fixture', sql: 'CREATE TABLE rolled_back(id INTEGER); INSERT INTO missing_table VALUES (1);' }];
   await assert.rejects(database.transaction((sql) => migrate(sql, future)), /missing_table/);
   assert.equal(conn.raw.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'rolled_back'").get().n, 0);
-  assert.equal(conn.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n, 2);
+  assert.equal(conn.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n, 3);
   assert.equal((await meditations.loadProgressionState()).lifetimeXpCenti, 8000);
 });
 

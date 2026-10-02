@@ -7,3 +7,4 @@ export type { StoredMeditationSession } from './database/decoders';
 export type { MeditationPreferences } from './preferences';
 export type { MeditationRepository, HistoryQuery } from './repositories/meditation-repository';
 export type { SettingsRepository } from './repositories/settings-repository';
+export type { PracticeCompletion } from './database/completions';

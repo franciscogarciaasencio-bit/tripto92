@@ -9,6 +9,19 @@ export const MIGRATIONS: readonly Migration[] = [
   { version: 2, name: 'durable_meditation_timer', sql: `CREATE TABLE meditation_timer (
     id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1), draft_json TEXT NOT NULL
   );` },
+  { version: 3, name: 'open_ended_practice_and_completion_summary', sql: `
+    UPDATE meditation_timer SET draft_json = json_set(draft_json, '$.mode', 'timed');
+    CREATE TABLE practice_completions (
+      session_id TEXT PRIMARY KEY NOT NULL REFERENCES meditation_sessions(id),
+      before_progression_centi INTEGER NOT NULL CHECK (typeof(before_progression_centi) = 'integer' AND before_progression_centi >= 0),
+      after_progression_centi INTEGER NOT NULL CHECK (typeof(after_progression_centi) = 'integer' AND after_progression_centi >= 0),
+      acknowledged_at INTEGER CHECK (acknowledged_at IS NULL OR (typeof(acknowledged_at) = 'integer' AND acknowledged_at >= 0))
+    );
+    CREATE TRIGGER practice_completions_immutable BEFORE UPDATE OF session_id, before_progression_centi, after_progression_centi ON practice_completions
+      BEGIN SELECT RAISE(ABORT, 'Completion summary is immutable'); END;
+    CREATE TRIGGER practice_completions_no_delete BEFORE DELETE ON practice_completions
+      BEGIN SELECT RAISE(ABORT, 'Completion summary is immutable'); END;
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

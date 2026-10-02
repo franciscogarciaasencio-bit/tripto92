@@ -1,4 +1,4 @@
-import { advanceProgression, createProgressionState, getProgressSnapshot, recordSession } from '../../domain/progression';
+import { advanceProgression, createProgressionState, getProgressSnapshot } from '../../domain/progression';
 import { settleTimer, timerSession } from '../../domain/meditation/timer';
 import type { CalendarContext, ProgressionRules } from '../../domain/progression';
 import { DEFAULT_PREFERENCES } from '../preferences';
@@ -9,6 +9,7 @@ import { createTransactions, type SqlConnection } from './connection';
 import { createRulesRegistry, decodeContext } from './decoders';
 import { migrate } from './migrations';
 import { appendTransition, loadState, writeCheckpoint } from './records';
+import { completedPracticeCount, pendingCompletion, persistCompletion, validateCompletions } from './completions';
 
 /** Internal factory shared by native adapter and real SQLite tests; application code uses initializeDatabase. */
 export async function openStore(connection: SqlConnection, input: CalendarContext, supportedRules?: readonly ProgressionRules[]) {
@@ -32,16 +33,15 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       // Recover a pending completion BEFORE advancing the chronological progression cursor.
       if (draft?.phase === 'finished') {
         recoveredSession = timerSession(draft);
-        const after = recordSession(state, recoveredSession);
-        if (after !== state) await appendTransition(sql, state, after, asOf.timestamp);
-        state = after;
-        await sql.run('DELETE FROM meditation_timer WHERE id = 1');
+        state = await persistCompletion(sql, state, recoveredSession, asOf.timestamp);
       }
       state = advanceProgression(state, asOf);
       await loadPreferences(sql);
       await writeCheckpoint(sql, state);
+      await validateCompletions(sql);
       return { initialSnapshot: getProgressSnapshot(state, asOf), initialTimer: draft?.phase === 'finished' ? null : draft,
-        recoveredSession, previousRank };
+        recoveredSession, previousRank, initialCompletion: await pendingCompletion(sql),
+        initialCompletedPractices: await completedPracticeCount(sql) };
     });
     return {
       meditations: createMeditationRepository(database, registry),

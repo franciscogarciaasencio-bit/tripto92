@@ -7,7 +7,8 @@ export interface TimerDraft {
   readonly startedAt: number;
   /** Start zone while pending; observed completion zone when finished. Unattended recovery keeps the captured start zone. */
   readonly timeZone: string;
-  readonly targetSeconds: number;
+  readonly mode: 'timed' | 'open_ended';
+  readonly targetSeconds: number | null;
   readonly phase: 'running' | 'paused' | 'finished';
   readonly changedAt: number;
   readonly activeMilliseconds: number;
@@ -29,26 +30,37 @@ export function validateTimer(draft: TimerDraft): void {
   for (const value of [draft.startedAt, draft.changedAt, draft.activeMilliseconds, draft.pausedMilliseconds]) {
     if (!Number.isSafeInteger(value) || value < 0) throw new RangeError('Invalid timer timestamp or duration');
   }
-  if (!Number.isSafeInteger(draft.targetSeconds) || draft.targetSeconds < 1 || draft.targetSeconds > 10_800) {
+  if (!['timed', 'open_ended'].includes(draft.mode)) throw new RangeError('Invalid timer mode');
+  if (draft.mode === 'open_ended' ? draft.targetSeconds !== null :
+      (draft.targetSeconds === null || !Number.isSafeInteger(draft.targetSeconds) || draft.targetSeconds < 1 || draft.targetSeconds > 10_800)) {
     throw new RangeError('Timer duration must be 1–180 minutes');
   }
   if (!['running', 'paused', 'finished'].includes(draft.phase)) throw new RangeError('Invalid timer phase');
   if (draft.changedAt < draft.startedAt || draft.activeMilliseconds + draft.pausedMilliseconds !== draft.changedAt - draft.startedAt ||
-      draft.activeMilliseconds > draft.targetSeconds * 1000) throw new RangeError('Inconsistent timer cursor');
+      (draft.targetSeconds !== null && draft.activeMilliseconds > draft.targetSeconds * 1000)) throw new RangeError('Inconsistent timer cursor');
   if (draft.phase === 'finished') {
     if (!['completed', 'ended_early'].includes(draft.completionStatus ?? '')) throw new RangeError('Missing completion status');
-    if ((draft.completionStatus === 'completed') !== (draft.activeMilliseconds === draft.targetSeconds * 1000)) {
+    if (draft.mode === 'open_ended' ? draft.completionStatus !== 'completed' :
+        ((draft.completionStatus === 'completed') !== (draft.activeMilliseconds === (draft.targetSeconds ?? 0) * 1000))) {
       throw new RangeError('Completion status does not match timer activity');
     }
-  } else if (draft.completionStatus !== null || draft.activeMilliseconds >= draft.targetSeconds * 1000) {
+  } else if (draft.completionStatus !== null || (draft.targetSeconds !== null && draft.activeMilliseconds >= draft.targetSeconds * 1000)) {
     throw new RangeError('Unfinished timer is inconsistent');
   }
   practiceContext(draft.changedAt, draft.timeZone); // Reject unknown zones explicitly.
 }
 
 export function startTimer(id: string, targetSeconds: number, timestamp: number, timeZone: string): TimerDraft {
-  const draft: TimerDraft = { id, targetSeconds, startedAt: timestamp, timeZone, changedAt: timestamp,
+  const draft: TimerDraft = { id, mode: 'timed', targetSeconds, startedAt: timestamp, timeZone, changedAt: timestamp,
     activeMilliseconds: 0, pausedMilliseconds: 0, phase: 'running', completionStatus: null };
+  validateTimer(draft);
+  return draft;
+}
+
+/** No target or automatic expiry. Only an explicit Finish creates a completed session. */
+export function startOpenEndedTimer(id: string, timestamp: number, timeZone: string): TimerDraft {
+  const draft: TimerDraft = { id, mode: 'open_ended', targetSeconds: null, startedAt: timestamp, timeZone,
+    changedAt: timestamp, activeMilliseconds: 0, pausedMilliseconds: 0, phase: 'running', completionStatus: null };
   validateTimer(draft);
   return draft;
 }
@@ -59,10 +71,10 @@ function elapsed(draft: TimerDraft, now: number) {
   return now - draft.changedAt;
 }
 
-/** Background/terminated running sessions finish at their deadline, never at the later reopening time. */
+/** Legacy timed sessions finish at their deadline; open-ended sessions retain their running cursor. */
 export function settleTimer(draft: TimerDraft, now: number, completionTimeZone = draft.timeZone): TimerDraft {
   const delta = elapsed(draft, now);
-  if (draft.phase !== 'running' || draft.activeMilliseconds + delta < draft.targetSeconds * 1000) return draft;
+  if (draft.targetSeconds === null || draft.phase !== 'running' || draft.activeMilliseconds + delta < draft.targetSeconds * 1000) return draft;
   practiceContext(draft.changedAt + draft.targetSeconds * 1000 - draft.activeMilliseconds, completionTimeZone);
   return { ...draft, timeZone: completionTimeZone, phase: 'finished', completionStatus: 'completed',
     changedAt: draft.changedAt + draft.targetSeconds * 1000 - draft.activeMilliseconds,
@@ -87,15 +99,22 @@ export function finishTimer(draft: TimerDraft, now: number, completionTimeZone =
   if (settled.phase === 'finished') return settled;
   const delta = elapsed(settled, now);
   practiceContext(now, completionTimeZone);
-  return { ...settled, timeZone: completionTimeZone, phase: 'finished', completionStatus: 'ended_early', changedAt: now,
+  return { ...settled, timeZone: completionTimeZone, phase: 'finished', completionStatus: settled.mode === 'open_ended' ? 'completed' : 'ended_early', changedAt: now,
     activeMilliseconds: settled.activeMilliseconds + (settled.phase === 'running' ? delta : 0),
     pausedMilliseconds: settled.pausedMilliseconds + (settled.phase === 'paused' ? delta : 0) };
 }
 
 export function remainingSeconds(draft: TimerDraft, now: number): number {
   const delta = elapsed(draft, now);
+  if (draft.targetSeconds === null) throw new RangeError('Open-ended practice has no remaining time');
   return Math.max(0, Math.ceil((draft.targetSeconds * 1000 - draft.activeMilliseconds -
     (draft.phase === 'running' ? delta : 0)) / 1000));
+}
+
+export function activeElapsedSeconds(draft: TimerDraft, now: number): number {
+  const delta = elapsed(draft, now);
+  const active = draft.activeMilliseconds + (draft.phase === 'running' ? delta : 0);
+  return Math.floor(Math.min(active, draft.targetSeconds === null ? active : draft.targetSeconds * 1000) / 1000);
 }
 
 export function timerSession(draft: TimerDraft): MeditationSession {

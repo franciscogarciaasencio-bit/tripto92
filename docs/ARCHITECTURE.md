@@ -63,6 +63,7 @@ The V1 SQL lives in `src/data/database/schema.ts`.
 | `progression_checkpoint` | Singleton **authoritative continuation state**: current balance, as-of context, settlement cursor, highest achievement, active version, occasions and ledger counts. |
 | `meditation_preferences` | Singleton typed preferences document. |
 | `meditation_timer` | V2 singleton durable running/paused/pending-completion cursor; removed with the corresponding completion transaction. |
+| `practice_completions` | V3 immutable before/after progression at the completion event, plus first Home acknowledgement. Presentation/recovery metadata, never an authoritative balance. |
 | `schema_migrations` | Ordered schema versions and names already applied. |
 
 Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
@@ -116,12 +117,15 @@ values. No cryptographic integrity seal or independent decay journal is claimed.
 ## Migrations and preferences
 
 `migrations.ts` contains the ordered `MIGRATIONS` list. V2 adds the timer without modifying V1.
-To add V3, append `{ version: 3, name, sql }`; keep released migrations unchanged.
+V3 adds completion metadata and assigns `mode='timed'` to V2 timer JSON; no historical
+session/award/rule/checkpoint/preferences content is rewritten. New open cursors use
+`mode='open_ended'` and a null target. To add V4, append `{ version: 4, name, sql }`;
+keep released migrations unchanged.
 Initialization runs outstanding migrations and their markers transactionally,
 together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
 history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
 cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
-The tests demonstrate a real V1→V2 upgrade, a future sequential V3 addition and transactional DDL rollback. Destructive changes to protected
+The tests demonstrate real V1/V2→V3 upgrades, a future sequential V4 addition and transactional DDL rollback. Destructive changes to protected
 history require an explicit migration decision, never disabling triggers during ordinary writes.
 
 Preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
@@ -155,7 +159,7 @@ could sit. Sync/import conflict resolution and out-of-order historical imports a
 `src/domain/meditation/timer.ts` is a pure timer cursor and explicit-zone calendar conversion, independent of React/Expo/SQLite.
 The caller supplies IDs, timestamps and zone. Start/pause/resume retain integer milliseconds; completion floors active and
 paused totals independently to whole seconds, matching the existing session contract. Paused time never earns XP.
-Wall-clock time includes running time while backgrounded or terminated. An expired timer finishes at its calculated deadline,
+Wall-clock time includes running time while backgrounded or terminated. An expired legacy timed timer finishes at its calculated deadline,
 not the later reopening time. A paused timer remains paused indefinitely. Clock rollback fails explicitly; there is no guessed repair.
 
 `store.timer.load()` / `.save(draft)` validate and serialize the one pending practice. Identity and target cannot change;
@@ -168,7 +172,8 @@ that last durable cursor; an unsaved early-end intent cannot be promised to surv
 During startup, `openStore` restores the draft **before** advancing progression. A finished/expired draft is converted to a session,
 saved via the unchanged progression engine, its receipts appended, its checkpoint updated and its draft deleted in one transaction.
 Then startup advances to the supplied current context. This prevents backdated-completion errors and duplicate decay/XP.
-`initialTimer`, `recoveredSession` and `previousRank` let the provider restore the session/completion screen.
+`initialTimer` and V3's `initialCompletion` restore the session/completion screen;
+`recoveredSession` / `previousRank` remain available for compatibility.
 Normal `recordCompletedMeditation` also deletes a matching draft within its existing atomic transaction; identical retries remain no-ops.
 Application snapshot refreshes are suspended while a timer exists; callers must continue submitting pending completion before
 advancing past its end. There are no new authoritative XP values or changes to award/version semantics.
@@ -180,4 +185,40 @@ actual endpoint in that explicit zone. A successfully persisted finished payload
 Stored historical sessions retain their original dates/zones. Intl conversion depends on the host tzdb;
 the progression engine continues to consume explicit historical dates and performs no conversion.
 
-Next: physical-device background/force-close and accessibility verification, then approved audio assets and playback.
+## Open-ended completion and visible progression (V3)
+
+The open-ended timer never expires. Finish emits `completed`, including short runs;
+eligibility remains five active minutes. `timer.discard(id)` removes only an unfinished
+matching cursor, idempotently, with no session/award. Old timed cursors/history retain
+their original status/deadline semantics. Open running time includes locked/closed time;
+paused time is excluded using explicit wall-clock cursors, not interval ticks.
+
+`meditations.completePractice(session, createdAt)` returns `{ snapshot, completion }`.
+Its transaction appends the session/immutable award, checkpoints progression, captures
+before/after balances **after pre-earning decay**, inserts presentation metadata and
+deletes the matching timer. Startup uses the same `persistCompletion` helper before
+advancing to now. Stable IDs/exact duplicate content keep retries safe. Legacy
+`recordCompletedMeditation` still returns a snapshot for existing callers.
+
+`getCompletedPracticeCount()` queries saved sessions with `status='completed'`.
+The summary's earlier count is also derived from session sequence/history. No counter
+is independently incremented. Short completed sessions count; legacy early-ended
+history retains its XP but is excluded from this completed count.
+
+`getPendingCompletion()` restores an unacknowledged summary without earning again.
+`acknowledgeCompletion(id, explicitTimestamp)` persists the first Home acknowledgement,
+idempotently. Afterwards startup does not replay the summary. New stores expose
+`initialCompletion` and `initialCompletedPractices` alongside the existing startup fields.
+Pre-V3 records are not backfilled with guessed before/after balances or replayed summaries.
+
+Completion metadata is validated against stored incremental award amounts. UPDATE/DELETE
+triggers protect its balances; acknowledgement is the only mutable field. It is not used
+for current XP, lifetime XP, decay or highest achievement. Missing old metadata is valid;
+malformed existing metadata fails explicitly. Missing checkpoint policy remains unchanged.
+One startup query validates metadata; only the pending summary needs derived count queries.
+
+Numbered levels are a pure display projection in `src/domain/progression/levels.ts`.
+See GAME_SYSTEM.md for subdivisions, existing-user mapping and highest-stage semantics.
+No numbered level balance is stored separately. Future sync remains above repositories.
+
+Next: physical-device lifecycle/accessibility verification. Audio remains unimplemented.

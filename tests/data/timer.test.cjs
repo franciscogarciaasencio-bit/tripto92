@@ -66,7 +66,7 @@ test('Corrupt timer fails explicitly instead of erasing or crediting it', async 
   conn.raw.prepare('INSERT INTO meditation_timer VALUES (1, ?)').run('{"id":"bad"}');
   await assert.rejects(store.timer.load(), (error) => error.code === 'INVALID_DATA');
 });
-test('Actual V1 database migrates to V2 without changing historical XP or preferences', async (t) => {
+test('Actual V1 database migrates to current schema without changing historical XP or preferences', async (t) => {
   const filename = disk(t);
   let store = await openStore(connection(filename), context(1));
   const { session, save } = require('./helpers.cjs');
@@ -74,9 +74,9 @@ test('Actual V1 database migrates to V2 without changing historical XP or prefer
   const before = await store.meditations.loadProgressionState();
   const preferences = await store.settings.loadPreferences();
   await store.close();
-  // Produce the exact released V1 shape; V2 only added this empty table and its marker.
+  // Produce the exact released V1 shape, retaining its original immutable history.
   const old = connection(filename);
-  old.raw.exec('DROP TABLE meditation_timer; DELETE FROM schema_migrations WHERE version = 2;');
+  old.raw.exec('DROP TABLE practice_completions; DROP TABLE meditation_timer; DELETE FROM schema_migrations WHERE version >= 2;');
   await old.close();
   store = await openStore(connection(filename), before.asOf);
   assert.deepEqual(await store.meditations.loadProgressionState(), before);

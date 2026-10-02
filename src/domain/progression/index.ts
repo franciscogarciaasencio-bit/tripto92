@@ -9,3 +9,5 @@ export type {
   CentiXp, ProgressionRules, ProgressionState, ProgressionAward, ProgressSnapshot,
   RankDefinition, RankAchievement,
 } from './types';
+export { ONA_LEVELS, LEVELS_VERSION, getLevelProgress } from './levels';
+export type { LevelDefinition } from './levels';

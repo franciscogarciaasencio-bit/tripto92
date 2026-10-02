@@ -1,61 +1,90 @@
 # Ona native interface
 
-## Source of truth
+## Design and code map
 
-Implemented from the approved portable Ona study at:
-`C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/`.
-`HANDOFF.md`, the screen SVGs, opening/rank storyboards, and `wave-spec.json` govern this implementation.
-The preliminary Figma board is incomplete; the portable handoff is the complete specification.
+The approved source remains the portable study at
+`C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/`:
+HANDOFF.md, screen/storyboard SVGs and wave-spec.json. This refinement applies the user's
+explicit changes: warmer sand, open-ended practice, numbered progression and flowing wordmark.
 
-`src/ui/primitives.tsx` contains #FDFCFB surfaces, #141414 ink, exact type sizes, 18-point outlined actions,
-safe-area insets and scrollable/reflowing layouts. No tab bar, cards, gradients, reward counts or blue accents.
-Home stays sparse; Practice and History appear after a saved session. The domain supplies every displayed rank and XP value.
+`src/ui/primitives.tsx` centralizes #F6F1E7 surfaces, #141414 monochrome ink, Manrope
+Regular/Medium, outlined actions and safe-area/reflowing layouts. No tabs, cards, gradients
+or competitive decorations. The unchanged bundled Manrope 4.505 files retain their SIL license.
 
-`assets/ona/wave-spec.json` is copied unchanged from the approved artifacts. Native SVG renders its single three-cubic contour,
-keyed by stable rank ID. Unknown future rank artwork is omitted while its correct domain name remains visible.
-Regular/Medium Manrope static fonts are unmodified files from the author's maintained `googlefonts/manrope` repository
-(`fonts/ttf/manrope-regular.ttf`, `manrope-medium.ttf`), version 4.505, matching the artifact font version.
-Static aliases avoid variable-weight differences on Android. The bundled SIL license must stay with the fonts.
+`assets/ona/wave-spec.json` retains the original ten contours and stable stage IDs.
+`Wave` animates only the session's curve: a 14-second continuous phase with at most 2.4
+viewBox units of movement, preserving tangent continuity. Reanimated shared values/animated
+SVG props run on the UI thread on native, independently of timer calculations or React frame
+updates. Pause/resume ease the displacement over 1.1 seconds. Other waves are static.
+Reduced Motion starts static and responds to changes during practice.
 
-## Implemented flow
+The editable `wordmark.svg` and its native coordinate source `wordmark.json` contain the same
+three medium-stroke letter outlines. Edit both together; a test prevents divergence.
+Intro shows **Ona / Build your meditation habit**, takes 1.2 seconds, can be skipped,
+omits itself for screen readers and uses a short fade for Reduced Motion.
+It mounts once per process, never on background resume. Interface text remains Manrope.
 
-- `/`: cold-launch Ona wordmark, then Meditate. Preferences; returning Practice and History links.
-- `/setup`: saved default duration, 5/10/20/30/60 choices, editable 1–180 minutes, Begin.
-  A session override does not change the saved default.
-- `/session`: elapsed-time countdown, static current-rank wave, Pause / Resume; paused early-end confirmation.
-- `/completion`: only committed success claims completion; failed saves retain payload and offer Retry.
-  Early finishes show actual activity and history confirmation. Home / View practice.
-- `/preferences`: editable persisted default duration; existing audio settings remain intact and are shown honestly as future audio preferences.
-- `/practice`: current rank, wave/theme, next-step fraction, permanent highest rank when different, optional numeric details.
-- `/history`: repository ordering and paginated real records, actual active duration and completion status.
+## Working flow
 
-Launch uses the specified 350/650/450 ms wordmark timing and overlapping 400 ms app fade, tap-to-skip with touch interception,
-and no replay on resume. Screen readers omit it; reduced motion uses a 180 ms ready-screen fade.
-Rank increases use the approved 250 ms rest + 800 ms corresponding-point wave morph, then acknowledgement before ordinary completion.
-Reduced motion immediately shows the new contour and a brief acknowledgement. Stack transitions use quiet 200 ms fades.
-Label/dissolve timing is simplified; no looping movement, bounce, reward sound or XP count-up is introduced.
+- `/`: Meditate persists a new UUID open cursor immediately and opens the session.
+  No setup or target selection. Returning users see completed-history count, current
+  numbered level and a quiet progress line; tapping opens Your practice.
+- `/session`: active time counts UP. Tap time to hide/show without changing the cursor.
+  Pause / Resume and Finish are accessible; paused practice also offers deliberate discard
+  confirmation. Finish is a normal completed session; discard creates no history or XP.
+- `/completion`: successful content appears only after the atomic save commits.
+  **Well done. / You made time for yourself.** Active duration, saved practice count,
+  actual fixed-point award, current level and next-level progress. A short count dissolve
+  and actual before→after level acknowledgement support multiple-level jumps. Zero XP stays zero.
+  Home acknowledges the durable summary before navigating away. Failed saves retain the exact
+  finished payload and offer Retry; uncertain commit/rollback failures reopen the database
+  on Retry and restore durable truth rather than rerunning a stale cursor.
+- `/practice`: numeric level, existing named stage/wave, precise XP remaining,
+  current progression, lifetime XP and permanent highest **stage**. At 100: “Your practice continues.”
+- `/preferences`: ambience choice, gong interval, volumes and explicit Done/save.
+  These are future audio preferences; this version remains silent. The legacy default-duration
+  field survives unchanged in storage but is unused by open-ended practice.
+- `/history`: paginated actual records, captured local days, active durations and statuses.
+  Old timed/early-ended records remain readable.
 
-This milestone is **silent**. The design proposed five sounds but supplied no audio assets. Sound/gong defaults are None;
-setup exposes their absence and preserves existing stored audio preferences. No decorative/fake playback controls are supplied.
-No notifications or background completion sounds. The remaining time is restored from the durable timer rather than JS interval counts.
+## Persistence and interpretation
+
+See ARCHITECTURE.md for V3 migration, atomic completion, pending-summary acknowledgement
+and clock/zone policies. Practice count is derived from saved `status='completed'` sessions,
+including short zero-XP practice. Legacy `ended_early` remains history and can retain XP under
+the unchanged earning rules, but does not count as a completed practice. Discarded drafts do neither.
+
+A running cursor includes wall-clock time while locked/backgrounded/closed; only Pause stops
+active accrual. An open practice has no expiry. Paused drafts remain paused. Finishing captures
+the explicit observed completion zone/date. A finished payload already saved keeps that capture.
+Legacy timed drafts recover their calculated deadlines using their captured practice zone.
+Clock rollback fails explicitly; there is no guessed repair.
+
+A pending saved summary is a continuation of the same completion, including after a crash.
+It does not replay earnings. Once Home is acknowledged, later launches do not replay it.
+No fabricated presentation receipts are backfilled for pre-V3 history.
 
 ## Verification
 
-Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npx expo export --platform all`.
-Node tests exercise the pure timer and production repositories against real SQLite, including V1→V2 migration,
-pending completion rollback, reopening, protected decay and immutable historical awards.
-The exported React Native web app is smoke-tested at phone dimensions with browser SQLite: Home→setup→running→pause→
-early end→completion→Home, real one-minute natural completion, paused reload, saved preferences and history reload.
-These checks do not substitute for physical iOS/Android lifecycle or accessibility testing.
+`npm test`, `npx tsc --noEmit`, `npm run lint`, `npx expo export --platform all`.
+Pure domain tests and real Node SQLite tests cover timing, all 100 level boundaries,
+counting, migrations, receipt preservation, transactions, retries and reopen recovery.
 
-On the iPhone, test normal completion, multiple pauses, lock/unlock, force-close while running/paused, reopen after the deadline,
-larger text, Reduce Motion, VoiceOver, and restarting after saved preferences/history. XP qualification is still five active minutes.
-An empty/native development launch has the plain light background; Expo Go controls its own host launch screen/icon.
+The exported React Native web app is exercised at iPhone dimensions against browser SQLite:
+immediate start, time hide/show, moving curve, pause/resume/reload, Finish, zero-XP saved summary,
+acknowledgement/reopen, history/count, discard and saved preferences. Browser checks also cover
+a qualifying completion using a simulated wall-clock advance, actual multi-level acknowledgement and Reduced Motion.
+They are not physical iOS/Android tests. Export success is not a signed native build.
+
+On iPhone test lock/unlock, force-close running/paused/pending completion, multiple pauses,
+larger text, VoiceOver, Reduce Motion and preferences/history after restart. Native splash
+uses sand in a newly built binary; Expo Go controls its own host launch screen.
 
 ```powershell
 cd C:\Users\fga31\Documents\MeditationApp
-npx expo start --clear --go --offline --port 8084
+npx expo start --clear --go --offline --port 8090
 ```
 
-Offline here disables CLI cloud requests, not local Wi-Fi. Keep computer and iPhone on the same network and scan the terminal QR
-with iPhone Camera to open Expo Go. Stop another server on that port or choose another unused port.
+Keep computer/iPhone on the same Wi-Fi and scan the terminal QR with Camera.
+Offline disables CLI cloud requests, retaining local Wi-Fi. Choose another port if occupied.
+Audio assets and playback remain outside this milestone.

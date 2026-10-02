@@ -9,7 +9,7 @@ function decodeDraft(input: unknown): TimerDraft {
   const draft = value as unknown as TimerDraft;
   try { validateTimer(draft); }
   catch (error) { throw new PersistenceError('INVALID_DATA', `Invalid timer draft: ${String(error)}`); }
-  return { id: draft.id, startedAt: draft.startedAt, timeZone: draft.timeZone, targetSeconds: draft.targetSeconds,
+  return { id: draft.id, mode: draft.mode, startedAt: draft.startedAt, timeZone: draft.timeZone, targetSeconds: draft.targetSeconds,
     phase: draft.phase, changedAt: draft.changedAt, activeMilliseconds: draft.activeMilliseconds,
     pausedMilliseconds: draft.pausedMilliseconds, completionStatus: draft.completionStatus };
 }
@@ -23,6 +23,14 @@ export async function loadTimer(sql: SqlConnection): Promise<TimerDraft | null> 
 
 export function createTimerRepository(database: Transactions) {
   return {
+    async discard(id: string) {
+      const identity = text(id);
+      return database.transaction(async (sql) => {
+        const draft = await loadTimer(sql);
+        requireData(!draft || (draft.id === identity && draft.phase !== 'finished'), 'Cannot discard a different or finished practice');
+        await sql.run("DELETE FROM meditation_timer WHERE id = 1 AND json_extract(draft_json, '$.id') = ?", [identity]);
+      });
+    },
     load: () => database.transaction(loadTimer),
     async save(input: TimerDraft) {
       const draft = decodeDraft(input);
@@ -31,7 +39,7 @@ export function createTimerRepository(database: Transactions) {
         requireData(!current || current.id === draft.id, 'A meditation is already in progress');
         requireData(!current || draft.changedAt >= current.changedAt, 'Timer cursor cannot move backwards');
         if (current) {
-          requireData(current.startedAt === draft.startedAt && current.targetSeconds === draft.targetSeconds,
+          requireData(current.startedAt === draft.startedAt && current.mode === draft.mode && current.targetSeconds === draft.targetSeconds,
             'Timer identity and duration cannot change');
           requireData(current.timeZone === draft.timeZone || (current.phase !== 'finished' && draft.phase === 'finished'),
             'Practice zone can only change when capturing completion');
