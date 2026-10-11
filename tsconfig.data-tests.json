@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.domain-tests.json",
   "compilerOptions": { "rootDir": "src" },
-  "include": ["src/domain/**/*.ts", "src/data/**/*.ts"],
+  "include": ["src/domain/**/*.ts", "src/data/**/*.ts", "src/audio/controller.ts", "src/audio/policy.ts"],
   "exclude": ["src/data/index.ts", "src/data/database/database.ts"]
 }

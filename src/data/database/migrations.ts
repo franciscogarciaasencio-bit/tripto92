@@ -51,6 +51,12 @@ export const MIGRATIONS: readonly Migration[] = [
     );
     INSERT INTO application_preferences VALUES (1, NULL);
   ` },
+  { version: 5, name: 'independent_audio_preferences', sql: `
+    CREATE TABLE audio_preferences (
+      id INTEGER PRIMARY KEY NOT NULL CHECK(id = 1), preferences_json TEXT NOT NULL
+    );
+    INSERT INTO audio_preferences VALUES (1, '{"version":1,"homeEnabled":true,"homeVolume":0.15,"sessionSound":"ocean_music","sessionVolume":0.15,"openingBellEnabled":false,"closingBellEnabled":false}');
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

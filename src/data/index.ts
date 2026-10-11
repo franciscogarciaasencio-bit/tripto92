@@ -1,6 +1,8 @@
 export { initializeDatabase } from './database/database';
 export { PersistenceError } from './database/errors';
 export { DEFAULT_PREFERENCES } from './preferences';
+export { DEFAULT_AUDIO_PREFERENCES } from './audio-preferences';
+export type { AudioPreferences } from './audio-preferences';
 export type { DatabaseOptions } from './database/database';
 export type { MeditationStore } from './database/store';
 export type { StoredMeditationSession } from './database/decoders';

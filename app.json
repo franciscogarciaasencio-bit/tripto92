@@ -32,7 +32,14 @@
           "backgroundColor": "#F2E9DA"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-asset",
+      ["expo-audio", {
+        "microphonePermission": false,
+        "recordAudioAndroid": false,
+        "enableBackgroundRecording": false,
+        "enableBackgroundPlayback": true
+      }]
     ],
     "experiments": {
       "typedRoutes": true,

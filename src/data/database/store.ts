@@ -3,7 +3,7 @@ import { settleTimer, timerSession } from '../../domain/meditation/timer';
 import type { CalendarContext, ProgressionRules } from '../../domain/progression';
 import { DEFAULT_PREFERENCES } from '../preferences';
 import { createMeditationRepository } from '../repositories/meditation-repository';
-import { createSettingsRepository, loadPreferences } from '../repositories/settings-repository';
+import { createSettingsRepository, loadPreferences, loadAudioPreferences } from '../repositories/settings-repository';
 import { createTimerRepository, loadTimer } from '../repositories/timer-repository';
 import { createTransactions, type SqlConnection } from './connection';
 import { createRulesRegistry, decodeContext } from './decoders';
@@ -46,6 +46,7 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
         state = changed;
       }
       await loadPreferences(sql);
+      await loadAudioPreferences(sql);
       await writeCheckpoint(sql, state);
       await validateCompletions(sql, state);
       const dismissed = await loadExplanationDismissal(sql);

@@ -2,27 +2,35 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { useOna } from '@/application/ona-provider';
+import { useOnaAudio } from '@/application/audio-provider';
 import { ConsistencyProgress, LevelProgress } from '@/ui/level-progress';
 import { Action, Notice, Screen, styles, Type } from '@/ui/primitives';
 export default function Home() {
   const app = useOna();
+  const audio = useOnaAudio();
   useFocusEffect(useCallback(() => {
     if (app.draft) router.replace(app.draft.phase === 'finished' ? '/completion' : '/session');
     else if (app.completion) router.replace('/completion');
   }, [app.draft, app.completion]));
   return <Screen>
-    <View style={{ alignItems: 'flex-end', marginRight: -12 }}><Action quiet textRole="label" onPress={() => router.push('/preferences')}>Preferences</Action></View>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: -12 }}>
+      <Action quiet disabled={app.busy || !app.audioPreferences} label={app.audioPreferences?.homeEnabled ? 'Mute Home ambience' : 'Unmute Home ambience'} onPress={() => {
+        const prefs = app.audioPreferences;
+        if (prefs) void app.saveAudioPreferences({ ...prefs, homeEnabled: !prefs.homeEnabled });
+      }}>{app.audioPreferences?.homeEnabled ? 'Sound on' : 'Sound off'}</Action>
+      <Action quiet textRole="label" onPress={() => router.push('/preferences')}>Preferences</Action></View>
     <View style={[styles.center, { flex: 1, minHeight: 240 }]}>
-      <Action disabled={app.busy} onPress={() => { void app.begin(); }}>
+      <Action disabled={app.busy} onPress={() => { void audio.begin(); }}>
         {app.busy ? 'Beginning…' : 'Meditate'}
       </Action>
       <Notice>{app.error ? 'Practice could not start. Please try again.' : null}</Notice>
+      {audio.notice && app.audioPreferences?.homeEnabled && <Action quiet onPress={audio.retry}>{audio.notice === 'interrupted' ? 'Resume sound' : 'Play sound'}</Action>}
     </View>
     <View style={[styles.footer, { minHeight: 128 }]}>{app.journey && app.snapshot && <>
       <Pressable accessibilityRole="button" accessibilityLabel="View Journey"
         onPress={() => router.push('/practice')} style={{ alignItems: 'center', width: '100%', gap: 16, paddingVertical: 16, minHeight: 64 }}>
         <LevelProgress journey={app.journey} compact />
-        <ConsistencyProgress snapshot={app.snapshot} />
+        <ConsistencyProgress snapshot={app.snapshot} compact />
         <Type role="secondary">Journey</Type>
       </Pressable>
       {app.hasHistory && <Action quiet onPress={() => router.push('/history')}>{`History · ${app.completedPractices} ${app.completedPractices === 1 ? 'practice' : 'practices'}`}</Action>}

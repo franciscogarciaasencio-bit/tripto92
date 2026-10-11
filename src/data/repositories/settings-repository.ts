@@ -1,6 +1,13 @@
 import type { SqlConnection, Transactions } from '../database/connection';
 import { json, object, requireData } from '../database/validation';
 import { decodePreferences, type MeditationPreferences } from '../preferences';
+import { decodeAudioPreferences, type AudioPreferences } from '../audio-preferences';
+
+export async function loadAudioPreferences(sql: SqlConnection): Promise<AudioPreferences> {
+  const rows = await sql.all('SELECT * FROM audio_preferences');
+  requireData(rows.length === 1 && object(rows[0]).id === 1, 'Audio preferences singleton is missing or invalid');
+  return decodeAudioPreferences(json(object(rows[0]).preferences_json));
+}
 
 export async function loadPreferences(sql: SqlConnection): Promise<MeditationPreferences> {
   const rows = await sql.all('SELECT * FROM meditation_preferences');
@@ -10,6 +17,14 @@ export async function loadPreferences(sql: SqlConnection): Promise<MeditationPre
 
 export function createSettingsRepository(database: Transactions) {
   return {
+    loadAudioPreferences: () => database.transaction(loadAudioPreferences),
+    async saveAudioPreferences(input: AudioPreferences): Promise<void> {
+      const preferences = decodeAudioPreferences(input);
+      await database.transaction(async (sql) => {
+        await loadAudioPreferences(sql);
+        await sql.run('UPDATE audio_preferences SET preferences_json = ? WHERE id = 1', [JSON.stringify(preferences)]);
+      });
+    },
     loadPreferences: () => database.transaction(loadPreferences),
     async savePreferences(input: MeditationPreferences): Promise<void> {
       const preferences = decodePreferences(input);

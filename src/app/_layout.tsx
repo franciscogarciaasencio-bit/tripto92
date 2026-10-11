@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OnaProvider, useOna } from '@/application/ona-provider';
+import { AudioProvider } from '@/application/audio-provider';
 import { Opening } from '@/ui/opening';
 import { Action, colors, Screen, Type } from '@/ui/primitives';
 import { ProgressExplanation } from '@/ui/progress-explanation';
@@ -34,6 +35,6 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
   return <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.background }}><StatusBar style="dark" />
     {fontError ? <Screen style={{ justifyContent: 'center' }}><Type>Ona’s font could not be loaded. Please reopen the app.</Type></Screen> :
-      <OnaProvider><Application /></OnaProvider>}
+      <OnaProvider><AudioProvider><Application /></AudioProvider></OnaProvider>}
   </SafeAreaProvider>;
 }

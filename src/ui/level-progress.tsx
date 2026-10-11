@@ -19,13 +19,13 @@ export function LevelProgress({ journey, compact = false }: { journey: LifetimeJ
     <Type role="secondary">Lifetime practice</Type>
     <Type role={compact ? 'secondary' : 'label'}>{journeyLabel(journey.level)}</Type>
     <Bar fraction={journey.fraction} label="Lifetime practice progress to next level" />
-    <Type role="secondary">{journey.next ? `To Level ${journey.next.number}: ${requirements.join(' · ')} remaining` : 'Level 125 · Steady Presence. Your practice continues.'}</Type>
+    <Type role="secondary">{journey.next ? compact ? `Toward Level ${journey.next.number}` : `To Level ${journey.next.number}: ${requirements.join(' · ')} remaining` : 'Level 125 · Steady Presence. Your practice continues.'}</Type>
   </View>;
 }
-export function ConsistencyProgress({ snapshot }: { snapshot: ProgressSnapshot }) {
+export function ConsistencyProgress({ snapshot, compact = false }: { snapshot: ProgressSnapshot; compact?: boolean }) {
   return <View style={{ width: '100%', maxWidth: 340, gap: 8 }}>
-    <Type role="secondary">{`Recent consistency · ${snapshot.consistency.multiplier.toFixed(2)}×`}</Type>
+    <Type role="secondary">{compact ? 'Recent consistency' : `Recent consistency · ${snapshot.consistency.multiplier.toFixed(2)}×`}</Type>
     <Bar fraction={snapshot.consistency.precedingActiveDays / snapshot.consistency.windowDays} label="Recent consistency toward maximum" />
-    <Type role="secondary">{`${snapshot.consistency.precedingActiveDays} of ${snapshot.consistency.windowDays} preceding dates · maximum ${snapshot.consistency.maximumMultiplier.toFixed(2)}×`}</Type>
+    {!compact && <Type role="secondary">{`${snapshot.consistency.precedingActiveDays} of ${snapshot.consistency.windowDays} preceding dates · maximum ${snapshot.consistency.maximumMultiplier.toFixed(2)}×`}</Type>}
   </View>;
 }

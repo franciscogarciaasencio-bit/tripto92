@@ -5,6 +5,7 @@
 - `src/app/`: Ona Expo Router screens, with a headerless stack and no tabs. Screens contain no SQL or XP calculations.
 - `src/ui/`: approved design tokens, typography, outlined controls, wave geometry and launch motion.
 - `src/application/ona-provider.tsx`: owns one database, startup, preferences, timer lifecycle and save/retry handshake.
+- `src/application/audio-provider.tsx` and `src/audio/`: one independent sound owner, pure playback policy/controller, native/web adapters. See [AUDIO.md](AUDIO.md).
 - `src/domain/`: pure TypeScript progression. **Never import SQLite, React, React Native or Expo here.**
 - `src/data/index.ts`: application-facing storage API. Future screens call repositories, never SQL.
 - `src/data/database/database.ts`: the only Expo SQLite adapter. Opens a private native connection.
@@ -67,6 +68,7 @@ The V1 SQL lives in `src/data/database/schema.ts`.
 | `journey_checkpoint` | V4 permanent highest legitimately unlocked lifetime level, display version and actual achievement timestamp. |
 | `journey_completions` | V4 immutable credit delta, date credits and lifetime level transition for that completion. |
 | `application_preferences` | V4 first explanation dismissal; independent of unchanged meditation preferences. |
+| `audio_preferences` | V5 validated versioned Home/session sound preferences; independent of legacy preferences and progression. |
 | `schema_migrations` | Ordered schema versions and names already applied. |
 
 Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
@@ -130,10 +132,10 @@ Initialization runs outstanding migrations and their markers transactionally,
 together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
 history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
 cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
-The tests demonstrate real V1/V2→V3 upgrades, a future sequential V5 addition and transactional DDL rollback. Destructive changes to protected
+The tests demonstrate real V1/V2→V3 and V4→V5 upgrades, a future sequential V6 addition and transactional DDL rollback. Destructive changes to protected
 history require an explicit migration decision, never disabling triggers during ordinary writes.
 
-Preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
+Legacy meditation preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
 no periodic gong, ambience volume 0.3 and gong volume 0.5. Durations/intervals are positive integer seconds,
 volumes are finite values in [0, 1], and sound IDs are opaque nonempty strings or null. Future preference
 fields/default changes require a migration for existing rows; corrupt preferences never silently become defaults.
@@ -226,7 +228,7 @@ The old 100-level projection remains compatibility code only. Current lifetime p
 `progression/journey.ts`, independent of the old decaying balance. See the V4 policy below.
 Future sync remains above repositories.
 
-Next: physical-device lifecycle/accessibility verification. Audio remains unimplemented.
+Next: physical-device lifecycle/accessibility/audio verification. See AUDIO.md for sound ownership and native-build limits.
 
 ## Permanent habit journey (V4)
 
@@ -263,6 +265,13 @@ V2 consistency, without awarding old 3–5-minute sessions XP. Malformed histori
 `store.application.isExplanationDismissed()` / `.dismissExplanation(explicitTimestamp)` persist the
 first dismissal idempotently. `initialExplanationDismissed` restores it. Meditation preferences keep
 their original typed shape/defaults. The opening is process-local UI state and is not the explanation.
+
+V5 adds only the audio preferences singleton. `settings.loadAudioPreferences()` and
+`saveAudioPreferences(typedPreferences)` validate version, booleans, supported sound
+and finite 0–1 volumes transactionally. Startup validates this row too; corruption is
+reported, never silently repaired/reset. Released migration defaults must stay frozen;
+future schema/preference versions require the next migration. Historical data, V4
+dismissal and awards are not rewritten. See AUDIO.md for defaults and lifecycle.
 
 Future earning changes use new registered configurations and explicit `changeRules`. Future journey
 threshold changes need a new display version and an explicit peak migration preserving original

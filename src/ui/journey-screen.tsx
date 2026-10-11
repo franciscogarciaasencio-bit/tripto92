@@ -5,7 +5,8 @@ import { useOna } from '@/application/ona-provider';
 import { JOURNEY_CATEGORIES, JOURNEY_LEVELS, journeyLabel } from '@/domain/progression';
 import { CategoryIcon } from './category-icon';
 import { ConsistencyProgress, LevelProgress } from './level-progress';
-import { Action, colors, Header, Screen, Type } from './primitives';
+import { colors, Header, Screen, Type } from './primitives';
+import { HowItWorks } from './progress-explanation';
 import { useReducedMotion } from './reduced-motion';
 
 export function JourneyScreen() {
@@ -33,9 +34,8 @@ export function JourneyScreen() {
           <Type role="heading" style={{ flex: 1 }}>{journeyLabel(journey.level)}</Type></View>
         <LevelProgress journey={journey} /><ConsistencyProgress snapshot={snapshot} />
         <Type role="secondary">{`${(journey.metrics.lifetimeXpCenti / 100).toFixed(2)} lifetime XP · ${journey.metrics.credits} practice credits · ${journey.metrics.realDays} real practice dates`}</Type>
-        <Type role="secondary">Lifetime practice stays with you. Recent consistency looks at the seven preceding calendar dates, excluding today. Double sessions add credit, never an extra date.</Type>
-        <Action quiet textRole="label" onPress={() => router.push('/how-progress-works')}>How progress works</Action>
-        <Type role="secondary">Level 100 completes Ona’s habit-building journey. Level 125 needs 365 real practice dates and at least 365 elapsed days since the first qualifying completion.</Type>
+        <Type role="secondary">Lifetime practice stays with you.</Type>
+        <HowItWorks />
         {journey.level.number >= 100 && <Type>You’ve completed Ona’s habit-building journey. Keep practising to strengthen the habit you’ve built.</Type>}
       </View>
       {JOURNEY_CATEGORIES.map((category) => {

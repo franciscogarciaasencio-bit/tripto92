@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion } from '@/data';
+import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, settleTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney } from '@/domain/progression';
 
@@ -24,6 +24,7 @@ function useApplication() {
   const [journey, setJourney] = useState<LifetimeJourney | null>(null);
   const [explanationDismissed, setExplanationDismissed] = useState(false);
   const [preferences, setPreferences] = useState<MeditationPreferences | null>(null);
+  const [audioPreferences, setAudioPreferences] = useState<AudioPreferences | null>(null);
   const [completion, setCompletion] = useState<PracticeCompletion | null>(null);
   const [completedPractices, setCompletedPractices] = useState(0);
   const [hasHistory, setHasHistory] = useState(false);
@@ -40,6 +41,7 @@ function useApplication() {
       try {
         opened = await initializeDatabase(currentContext());
         const savedPreferences = await opened.settings.loadPreferences();
+        const savedAudioPreferences = await opened.settings.loadAudioPreferences();
         const history = await opened.meditations.getMeditationHistory({ limit: 1 });
         if (disposed) { await opened.close(); return; }
         store.current = opened;
@@ -48,6 +50,7 @@ function useApplication() {
         setJourney(opened.initialJourney);
         setExplanationDismissed(opened.initialExplanationDismissed);
         setPreferences(savedPreferences);
+        setAudioPreferences(savedAudioPreferences);
         setHasHistory(history.length > 0);
         setCompletion(opened.initialCompletion);
         setCompletedPractices(opened.initialCompletedPractices);
@@ -78,6 +81,7 @@ function useApplication() {
         store.current = await initializeDatabase(currentContext());
         const reopened = store.current;
         const savedPreferences = await reopened.settings.loadPreferences();
+        const savedAudioPreferences = await reopened.settings.loadAudioPreferences();
         const savedHistory = await reopened.meditations.getMeditationHistory({ limit: 1 });
         acceptDraft(reopened.initialTimer);
         setSnapshot(reopened.initialSnapshot);
@@ -87,6 +91,7 @@ function useApplication() {
         setCompletedPractices(reopened.initialCompletedPractices);
         setHasHistory(savedHistory.length > 0);
         setPreferences(savedPreferences);
+        setAudioPreferences(savedAudioPreferences);
         needsReopen.current = false;
         // The durable state resolves an uncertain commit. Do not execute a closure built from the old cursor.
         return false;
@@ -141,7 +146,10 @@ function useApplication() {
   }, []);
 
   return {
-    ready, busy, error, draft, snapshot, journey, explanationDismissed, preferences, completion, hasHistory, completedPractices,
+    ready, busy, error, draft, snapshot, journey, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices,
+    async saveAudioPreferences(next: AudioPreferences) {
+      return operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
+    },
     async dismissExplanation() {
       return operation(async (database) => { await database.application.dismissExplanation(Date.now()); setExplanationDismissed(true); });
     },

@@ -5,7 +5,8 @@
 The approved original design is at
 C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/.
 This milestone applies the user's revised habit journey, exact sand colour and motion requirements.
-No HTML replacement, audio, sea-opening animation, tabs, gradients, coloured badges or cards.
+No HTML replacement, sea-opening animation, tabs, gradients, coloured badges or cards.
+The audio/onboarding milestone is documented in [AUDIO.md](AUDIO.md), including verification limits.
 Manrope Regular/Medium and existing wordmark/wave geometry remain the design sources.
 
 The inspected clean baseline was 801b2d9. Its opening had a 500 ms full-opacity hold and
@@ -31,7 +32,7 @@ Native splash configuration requires a new binary; Expo Go controls its own host
 [SDK 57 splash documentation](https://docs.expo.dev/versions/v57.0.0/sdk/splash-screen/).
 
 The first explanation is short, scrollable, skippable, and stores dismissal. Start practising leads
-to Home, not a setup step. Journey → How progress works makes it available again. Pending
+to Home, not a setup step. Journey → How it works expands the detailed rules. Pending
 timer/completion recovery takes precedence over a never-dismissed explanation.
 
 ## Native routes and lifecycle
@@ -52,7 +53,8 @@ timer/completion recovery takes precedence over a never-dismissed explanation.
   All future requirements/icons remain inspectable. Maximum has no next level, never exceeds 125.
 - /how-progress-works: explanation, early three-minute/six-hour examples, actual XP/consistency rules
   and separate 365-date/elapsed-day safeguard.
-- /history, /preferences: retained real history/pagination and typed persisted future audio choices.
+- /history, /preferences: retained real history/pagination and independent persisted Home/session audio choices.
+- /credits: approved recording attribution, source/license links; original recording unchanged.
 
 All number/date rules are domain/repository outputs. No SQL or XP formula lives in screens.
 See GAME_SYSTEM.md for the complete threshold table, simulations and historical version policy;
@@ -107,8 +109,11 @@ additional --offline flag in a restricted environment; normal network mode lets 
 Expo configuration metadata. The app's saved data stays local. Select another port if occupied. Rebuild a native
 binary to assess the configured splash; Expo Go's host splash cannot be branded by JS changes.
 
-## Later direction (not implemented)
+## Audio and onboarding follow-up
 
-Restrained outline waves and soft sea ambience may accompany the wordmark later, with accessible
-motion/sound controls. Session ambience and gongs remain future work. No audio module/assets,
-sea opening animation, Garmin, notifications, account, sync or subscriptions are added here.
+The approved ocean/music recording now accompanies the opening/Home and optionally practice,
+with separate saved volume/mute choices. No sea opening animation, Garmin, reminders,
+account, sync or subscriptions are added here. Bell assets are still unavailable.
+First-use copy is now three short messages; exact rules live in Journey's expandable
+How it works. Home's compact bars omit formula/threshold text. See AUDIO.md and its
+browser evidence for the current milestone rather than the earlier first-use screenshots.

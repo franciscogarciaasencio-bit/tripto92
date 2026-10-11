@@ -47,7 +47,7 @@ test('Actual V3 upgrade backfills credits only, retaining old XP/qualification/a
   await save(store.meditations,session({minutes:3})); await save(store.meditations,session({day:2,minutes:10}));
   const before=await store.meditations.loadProgressionState(), prefs=await store.settings.loadPreferences();
   await store.close(); conn=connection(file);
-  conn.raw.exec('DROP TABLE journey_completions; DROP TABLE journey_checkpoint; DROP TABLE application_preferences; DELETE FROM schema_migrations WHERE version=4;');
+  conn.raw.exec('DROP TABLE audio_preferences; DROP TABLE journey_completions; DROP TABLE journey_checkpoint; DROP TABLE application_preferences; DELETE FROM schema_migrations WHERE version>=4;');
   await conn.close(); conn=connection(file); store=await release(conn,context(3));
   const after=await store.meditations.loadProgressionState();
   assert.deepEqual(after.awards,before.awards); assert.deepEqual(after.sessions,before.sessions);

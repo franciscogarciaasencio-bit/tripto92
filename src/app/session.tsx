@@ -2,12 +2,15 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Pressable, View, useWindowDimensions } from 'react-native';
 import { useOna } from '@/application/ona-provider';
+import { useOnaAudio } from '@/application/audio-provider';
+import { SessionSound } from '@/ui/session-sound';
 import { activeElapsedSeconds } from '@/domain/meditation/timer';
 import { Action, formatTime, Notice, Screen, styles, Type } from '@/ui/primitives';
 import { Wave } from '@/ui/wave';
 import { useForeground } from '@/ui/use-foreground';
 export default function Session() {
   const app = useOna();
+  const audio = useOnaAudio();
   const { height } = useWindowDimensions();
   const foreground = useForeground();
   const [now, setNow] = useState(() => Date.now());
@@ -46,6 +49,7 @@ export default function Session() {
         </Pressable>
         <Type role={paused ? 'body' : 'secondary'}>{paused ? 'Paused' : 'Meditating'}</Type>
         {app.journey && <Wave level={app.journey.level.number} moving={!paused && draft.phase === 'running'} />}
+        <SessionSound />
       </>}
     </View>
     <Notice>{app.error ? 'Your practice could not be updated. Please try again.' : null}</Notice>
@@ -53,7 +57,7 @@ export default function Session() {
       <Action disabled={app.busy} onPress={() => setConfirming(false)}>Keep practice</Action>
       <Action quiet disabled={app.busy} onPress={() => { void app.discard().then((saved) => { if (saved) router.dismissTo('/'); }); }}>Discard practice</Action>
     </> : <>
-      <Action disabled={app.busy} onPress={() => { void (paused ? app.resume() : app.pause()); }}>{paused ? 'Resume' : 'Pause'}</Action>
+      <Action disabled={app.busy} onPress={() => { if (paused) audio.retry(); void (paused ? app.resume() : app.pause()); }}>{paused ? 'Resume' : 'Pause'}</Action>
       <Action quiet textRole="label" disabled={app.busy} onPress={() => { void app.end(); }}>Finish</Action>
       {paused && <Action quiet disabled={app.busy} onPress={() => setConfirming(true)}>Discard practice</Action>}
     </>}</View>
