@@ -192,17 +192,17 @@ test('A failed audio preference transaction leaves the original saved settings i
 });
 test('Approved WAV is bundled byte-for-byte with silent endpoints and its exact offline asset reference', () => {
   const { readFileSync } = require('node:fs'); const { createHash } = require('node:crypto');
-  const wav = readFileSync(path.join(__dirname, '../../assets/audio/ocean-music.wav'));
-  assert.equal(createHash('sha256').update(wav).digest('hex'), 'cc9edb8efad6fea31a9571c6272b616c5423709cd03dfd293034835277d84731');
+  const wav = readFileSync(path.join(__dirname, '../../assets/audio/meditation-choir.wav'));
+  assert.equal(createHash('sha256').update(wav).digest('hex'), 'b974de6aa17ae128b89a53dcc1619c7f0debcf17a5f81993c91d76a3a7227a85');
   assert.equal(wav.subarray(0, 4).toString(), 'RIFF'); assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
   let offset = 12, frames;
   while (offset < wav.length) {
     const tag = wav.subarray(offset, offset + 4).toString(), size = wav.readUInt32LE(offset + 4);
-    if (tag === 'fmt ') { assert.equal(wav.readUInt16LE(offset + 8), 1); assert.equal(wav.readUInt16LE(offset + 10), 2); assert.equal(wav.readUInt32LE(offset + 12), 44100); assert.equal(wav.readUInt16LE(offset + 22), 16); }
-    if (tag === 'data') { frames = size / 4; assert.deepEqual([...wav.subarray(offset + 8, offset + 12)], [0, 0, 0, 0]); assert.deepEqual([...wav.subarray(offset + 8 + size - 4, offset + 8 + size)], [0, 0, 0, 0]); }
+    if (tag === 'fmt ') { assert.equal(wav.readUInt16LE(offset + 8), 1); assert.equal(wav.readUInt16LE(offset + 10), 2); assert.equal(wav.readUInt32LE(offset + 12), 48000); assert.equal(wav.readUInt16LE(offset + 22), 24); }
+    if (tag === 'data') { frames = size / 6; assert.deepEqual([...wav.subarray(offset + 8, offset + 14)], [0, 0, 0, 0, 0, 0]); assert.deepEqual([...wav.subarray(offset + 8 + size - 6, offset + 8 + size)], [0, 0, 0, 0, 0, 0]); }
     offset += 8 + size + (size % 2);
   }
-  assert.equal(frames, 8701951);
+  assert.equal(frames, 3672118);
 });
 
 test('A native volume getter failure cannot throw into navigation/session actions', async () => {

@@ -8,7 +8,7 @@ export const audioBackend: AudioBackend = {
     shouldPlayInBackground: background, shouldRouteThroughEarpiece: false,
   }),
   create() {
-    const player = createAudioPlayer(require('../../assets/audio/ocean-music.wav'), { updateInterval: 250 });
+    const player = createAudioPlayer(require('../../assets/audio/meditation-choir.wav'), { updateInterval: 250 });
     try { player.volume = 0; player.loop = true; }
     catch (error) { player.remove(); throw error; }
     return {
@@ -19,7 +19,7 @@ export const audioBackend: AudioBackend = {
         // Android needs its media foreground service for playback beyond ~3 minutes.
         // Avoid taking over another app's lock screen for Home or on iOS.
         if (Platform.OS === 'android') player.setActiveForLockScreen(active,
-          { title: 'Ona meditation', artist: 'Alexander Blu' },
+          { title: 'Ona meditation', artist: 'zazz.sound.design' },
           { showSeekBackward: false, showSeekForward: false, isLiveStream: true });
       },
       subscribe(listener) {

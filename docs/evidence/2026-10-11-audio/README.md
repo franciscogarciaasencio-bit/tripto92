@@ -1,5 +1,8 @@
 # Ona audio/onboarding verification — 11 October 2026
 
+Historical evidence from before the Meditation Choir soundtrack replacement.
+The recordings/credits captured here refer to the former asset.
+
 Actual exported React Native app in desktop Chrome at 390×844, with Expo SQLite's
 browser adapter. These are **browser captures**, not an iPhone simulation/device claim.
 The native opening animation, timer and progression domain are unchanged.

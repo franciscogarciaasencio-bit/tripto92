@@ -1,17 +1,19 @@
 # Ona audio asset
 
-**Relaxing Ocean Waves With Music — Alexander Blu**
+**Meditation Choir — zazz.sound.design**
 
-- Source: https://orangefreesounds.com/relaxing-ocean-waves-with-music/
-- License: **Creative Commons Attribution 4.0 International (CC BY 4.0)**
-- License terms: https://creativecommons.org/licenses/by/4.0/
-- Local file: `ocean-music.wav`
-- Changes: **none**. Byte-for-byte copy of the user-supplied recording; no conversion,
-  trimming, compression, normalization or generated replacement.
-- Format: PCM WAV, stereo, 16-bit, 44,100 Hz; 197.323152 seconds; 34,811,900 bytes.
-- SHA-256: `cc9edb8efad6fea31a9571c6272b616c5423709cd03dfd293034835277d84731`
+- License: **CC0 (public domain dedication)**, as supplied by the user.
+- Terms: https://creativecommons.org/publicdomain/zero/1.0/
+- No licensing fees, royalties, permission or mandatory attribution, including commercial use.
+- Local file: `meditation-choir.wav`
+- Changes: **none**. Byte-for-byte copy of the supplied recording; no conversion,
+  trimming, compression or normalization.
+- Format: PCM WAV, stereo, 24-bit, 48,000 Hz; 76.502458 seconds; 22,032,752 bytes.
+- SHA-256: `b974de6aa17ae128b89a53dcc1619c7f0debcf17a5f81993c91d76a3a7227a85`
 
-The recording contains both ocean waves and music; it is not a waves-only asset,
-CC0, or public domain. Attribution is also accessible in Preferences → Sound credits.
-Keep this attribution with redistributed/adapted versions and document any future changes.
-No opening/closing bell recordings or separate pure-ocean recording were supplied.
+Home and meditation share this recording and the existing looping player.
+The old recording has been removed; its attribution requirements no longer apply.
+The stored `ocean_music` preference ID and existing sound-control label are retained
+for compatibility with saved choices; they now select Meditation Choir.
+Default Home/session volume remains 0.15; existing user volumes are preserved.
+No bell recordings are changed or added.

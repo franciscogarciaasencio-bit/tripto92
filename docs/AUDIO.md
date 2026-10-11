@@ -77,12 +77,15 @@ the inspectable level requirements remain available. See GAME_SYSTEM.md for rule
 
 ## Recording and verification
 
-See [asset attribution](../assets/audio/README.md). **Relaxing Ocean Waves With Music**
-by **Alexander Blu**, [source](https://orangefreesounds.com/relaxing-ocean-waves-with-music/),
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), bundled unchanged.
-Its source describes it as loopable and endpoint samples are zero. Native loop=true
-uses the platform player; no JS end-of-track restart or overlapping tracks. Listening
-through the full loop on iPhone remains necessary. Keeping the original costs ~35 MB.
+See [asset details](../assets/audio/README.md). **Meditation Choir** by
+**zazz.sound.design**, CC0 (public domain dedication, supplied by the user), is
+bundled unchanged. No mandatory attribution or licensing fees apply.
+The previous recording and its attribution requirements have been removed.
+The 24-bit stereo 48 kHz WAV is ~22 MB, with silent endpoint samples.
+Native loop=true uses the platform player; no JS end-of-track restart or overlapping
+tracks. Listening through the full 76.5-second loop on iPhone remains necessary.
+The existing `ocean_music` preference ID/label is retained to preserve saved choices
+and UI; both Home and sessions now play Meditation Choir. Defaults stay at 0.15.
 
 `npm test` runs the original domain/SQLite tests plus pure controller/policy tests,
 real SQLite audio preference migration/round trips/rollback/corruption tests, and
@@ -100,7 +103,7 @@ A rebuilt development/standalone binary is required to apply the background-audi
 config. Exports/config inspection do not prove physical-device background playback.
 
 On the iPhone, verify: quiet initial loudness with headphones/speaker; mute after
-force-close; session Silence/separate volume; full 3:17 loop without clicks/gaps;
+force-close; session Silence/separate volume; full 1:16.5 loop without clicks/gaps;
 Pause/Resume/Finish/discard and rapid taps; another music app, real incoming call,
 headphone disconnect; lock for >4 minutes in a new native build; Home background
 silence; cold standalone launch in airplane mode; screen reader/large text.
@@ -112,4 +115,4 @@ npx expo start --clear --go --port 8092
 
 Scan the QR code with the iPhone on the same Wi-Fi. Do not assume Expo Go supplies
 this project's native background configuration. Future audio changes stay above
-the repositories and domain; add any later assets with explicit attribution.
+the repositories and domain; add any later assets with explicit license information.

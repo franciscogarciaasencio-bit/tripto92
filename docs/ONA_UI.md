@@ -111,7 +111,7 @@ binary to assess the configured splash; Expo Go's host splash cannot be branded 
 
 ## Audio and onboarding follow-up
 
-The approved ocean/music recording now accompanies the opening/Home and optionally practice,
+The approved Meditation Choir recording now accompanies the opening/Home and optionally practice,
 with separate saved volume/mute choices. No sea opening animation, Garmin, reminders,
 account, sync or subscriptions are added here. Bell assets are still unavailable.
 First-use copy is now three short messages; exact rules live in Journey's expandable

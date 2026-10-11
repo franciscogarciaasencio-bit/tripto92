@@ -8,7 +8,7 @@ import type { AudioBackend, PlaybackStatus } from './controller';
 export const audioBackend: AudioBackend = {
   configure: async () => {},
   create() {
-    const asset = Asset.fromModule(require('../../assets/audio/ocean-music.wav'));
+    const asset = Asset.fromModule(require('../../assets/audio/meditation-choir.wav'));
     const media = new Audio(asset.localUri ?? asset.uri);
     media.volume = 0; media.loop = true; media.preload = 'auto';
     let removeListener: (() => void) | null = null;
