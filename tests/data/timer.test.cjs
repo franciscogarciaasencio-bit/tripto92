@@ -76,7 +76,7 @@ test('Actual V1 database migrates to current schema without changing historical 
   await store.close();
   // Produce the exact released V1 shape, retaining its original immutable history.
   const old = connection(filename);
-  old.raw.exec('DROP TABLE practice_completions; DROP TABLE meditation_timer; DELETE FROM schema_migrations WHERE version >= 2;');
+  old.raw.exec('DROP TABLE journey_completions; DROP TABLE journey_checkpoint; DROP TABLE application_preferences; DROP TABLE practice_completions; DROP TABLE meditation_timer; DELETE FROM schema_migrations WHERE version >= 2;');
   await old.close();
   store = await openStore(connection(filename), before.asOf);
   assert.deepEqual(await store.meditations.loadProgressionState(), before);

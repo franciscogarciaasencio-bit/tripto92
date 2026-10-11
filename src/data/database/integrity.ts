@@ -25,7 +25,9 @@ export function validateIntegrity(state: ProgressionState): void {
     requireData(!ids.has(session.id), 'Duplicate session ID');
     ids.add(session.id);
     requireData(session.startedAt >= previousEnd && session.endedAt <= state.asOf.timestamp, 'Session order conflicts with checkpoint');
-    requireData(entry.qualified === (session.activeDurationSeconds >= rulesForVersion(state, entry.qualificationRulesVersion).minimumActiveSeconds),
+    const qualification = rulesForVersion(state, entry.qualificationRulesVersion);
+    requireData(entry.qualified === (session.activeDurationSeconds >= qualification.minimumActiveSeconds &&
+      (qualification.practiceDayEligibility !== 'completed_minimum' || session.status === 'completed')),
       'Historical qualification conflicts with its rules');
     previousEnd = session.endedAt;
   }
@@ -55,9 +57,13 @@ export function validateIntegrity(state: ProgressionState): void {
       occasion.ordinalInDay === ordinal && occasion.weightBasisPoints === (originalRules.occasionWeightsBasisPoints[ordinal - 1] ?? 0),
     'Invalid occasion origin or frequency metadata');
     const today = dayNumber(occasion.rewardDate);
+    const consistencyDays = originalRules.practiceDayEligibility === 'completed_minimum'
+      ? new Set(state.sessions.filter((entry) => entry.session.endedAt <= first.session.startedAt &&
+        entry.session.status === 'completed' && entry.session.activeDurationSeconds >= originalRules.minimumActiveSeconds)
+        .map((entry) => dayNumber(entry.session.localDate))) : priorDays;
     let preceding = 0;
     for (let day = today - originalRules.consistencyWindowDays; day < today; day++) {
-      if (priorDays.has(day)) preceding++;
+      if (consistencyDays.has(day)) preceding++;
     }
     requireData(occasion.precedingActiveDays === preceding, 'Invalid captured consistency');
     if (previousOccasion) requireData(occasion.startedAt - previousOccasion.endedAt >=

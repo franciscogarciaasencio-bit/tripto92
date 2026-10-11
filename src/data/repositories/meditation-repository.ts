@@ -5,6 +5,7 @@ import { decodeContext, decodeSession, decodeSessionRow, type RulesRegistry, typ
 import { appendTransition, loadState, writeCheckpoint } from '../database/records';
 import { integer, requireData, timestamp } from '../database/validation';
 import { completedPracticeCount, loadCompletion, pendingCompletion, persistCompletion } from '../database/completions';
+import { loadJourney } from '../database/journey';
 
 export interface HistoryQuery { readonly limit?: number; readonly offset?: number }
 
@@ -29,7 +30,7 @@ export function createMeditationRepository(database: Transactions, registry: Rul
         const after = await persistCompletion(sql, await loadState(sql, registry), session, created);
         const completion = await loadCompletion(sql, session.id);
         requireData(completion, 'Legacy history cannot fabricate a completion summary');
-        return { snapshot: getProgressSnapshot(after, after.asOf), completion };
+        return { snapshot: getProgressSnapshot(after, after.asOf), journey: await loadJourney(sql, after), completion };
       });
     },
 
@@ -63,7 +64,17 @@ export function createMeditationRepository(database: Transactions, registry: Rul
       return database.transaction(async (sql) => {
         const state = advanceProgression(await loadState(sql, registry), asOf);
         await writeCheckpoint(sql, state);
+        await loadJourney(sql, state);
         return getProgressSnapshot(state, asOf);
+      });
+    },
+
+    async getCurrentPracticeProgress(input: CalendarContext) {
+      const asOf = decodeContext(input);
+      return database.transaction(async (sql) => {
+        const state = advanceProgression(await loadState(sql, registry), asOf);
+        await writeCheckpoint(sql, state);
+        return { snapshot: getProgressSnapshot(state, asOf), journey: await loadJourney(sql, state) };
       });
     },
 

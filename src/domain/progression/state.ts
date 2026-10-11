@@ -71,7 +71,8 @@ export function recordSession(state: ProgressionState, session: MeditationSessio
     timestamp: session.endedAt, localDate: session.localDate, timeZone: session.timeZone,
   });
   const rules = rulesForVersion(settled);
-  const qualified = session.activeDurationSeconds >= rules.minimumActiveSeconds;
+  const qualified = session.activeDurationSeconds >= rules.minimumActiveSeconds &&
+    (rules.practiceDayEligibility !== 'completed_minimum' || session.status === 'completed');
   const withHistory: ProgressionState = {
     ...settled,
     sessions: [...settled.sessions, { session: { ...session }, qualified, qualificationRulesVersion: rules.version }],

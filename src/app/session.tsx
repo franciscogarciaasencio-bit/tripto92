@@ -5,17 +5,19 @@ import { useOna } from '@/application/ona-provider';
 import { activeElapsedSeconds } from '@/domain/meditation/timer';
 import { Action, formatTime, Notice, Screen, styles, Type } from '@/ui/primitives';
 import { Wave } from '@/ui/wave';
+import { useForeground } from '@/ui/use-foreground';
 export default function Session() {
   const app = useOna();
   const { height } = useWindowDimensions();
+  const foreground = useForeground();
   const [now, setNow] = useState(() => Date.now());
   const [confirming, setConfirming] = useState(false);
   const [timeHidden, setTimeHidden] = useState(false);
   useEffect(() => {
-    if (app.draft?.phase !== 'running') return;
+    if (app.draft?.phase !== 'running' || !foreground) return;
     const interval = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(interval);
-  }, [app.draft?.phase]);
+  }, [app.draft?.phase, foreground]);
   useFocusEffect(useCallback(() => {
     if (app.completion || app.draft?.phase === 'finished') router.replace('/completion');
     else if (!app.draft && !app.busy) router.replace('/');
@@ -43,7 +45,7 @@ export default function Session() {
           {!timeHidden && <Type role="secondary">elapsed</Type>}
         </Pressable>
         <Type role={paused ? 'body' : 'secondary'}>{paused ? 'Paused' : 'Meditating'}</Type>
-        {app.snapshot && <Wave rankId={app.snapshot.currentRank.id} moving={!paused && draft.phase === 'running'} />}
+        {app.journey && <Wave level={app.journey.level.number} moving={!paused && draft.phase === 'running'} />}
       </>}
     </View>
     <Notice>{app.error ? 'Your practice could not be updated. Please try again.' : null}</Notice>

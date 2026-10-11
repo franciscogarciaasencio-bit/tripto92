@@ -1,244 +1,305 @@
-# Meditation progression V1
+# Ona game system
 
-This is a game about logged practice. XP and ranks do not measure brain adaptation,
-mental health, mindfulness ability, or meditation skill. The engine is plain
-TypeScript: no React, Expo, database, audio, device clock, or implicit time zone.
+Ona encourages a meditation habit through logged practice. XP, credits and levels are product
+mechanics; they do not measure brain adaptation, mental health, automatic behaviour or meditation skill.
+All game logic is plain TypeScript, with explicit timestamps/dates and no React, Expo or SQLite imports.
 
-## Concepts and code map
+## Code map and public API
 
-- **Lifetime XP:** the sum of immutable award receipts. It never decreases.
-- **Current progression:** earned XP minus settled inactivity decay; determines current rank.
-- **Highest rank achieved:** a permanent copy of the highest-threshold rank actually reached,
-  with its original rules version and achievement time. Later renaming does not rewrite it.
-- **Meditation time:** actual active seconds, including short runs and occasions that earn zero XP.
-
-Progression imports should come from `src/domain/progression/index.ts`. The separate pure timer API lives in
-`src/domain/meditation/timer.ts`; its durable lifecycle is documented in ARCHITECTURE.md.
+Import from `src/domain/progression/index.ts`.
 
 | File | Responsibility |
 | --- | --- |
-| `meditation/session.ts` | Finished-session contract and validation |
-| `progression/rules.ts` | Central `PROGRESSION_V1` configuration and version validation |
-| `progression/ranks.ts` | V1 rank data and threshold lookup |
-| `progression/occasions.ts` | Frequency grouping and original occasion terms |
-| `progression/earnings.ts` | Duration curve, exact consistency ratio, cumulative reward |
-| `progression/decay.ts` | Daily loss and protected floor |
-| `progression/state.ts` | Pure state transitions and append-only award receipts |
-| `progression/snapshot.ts` | UI-ready projection |
-| `progression/calendar.ts`, `numeric.ts` | Explicit calendar arithmetic and fixed precision |
+| meditation/session.ts, meditation/timer.ts | Validated finished sessions and pure count-up/pause cursors |
+| progression/rules.ts | Frozen historical V1 and prospective V2 earning/decay configurations |
+| progression/earnings.ts, occasions.ts | Duration reward, exact consistency ratio and incremental occasion awards |
+| progression/state.ts, decay.ts | Immutable transitions, version changes and legacy decay |
+| progression/snapshot.ts | Actual earning consistency and legacy balance projection |
+| progression/journey.ts | 25 categories, 125 thresholds, credits and permanent lifetime projection |
+| progression/ranks.ts, levels.ts | Released legacy rank/100-level definitions; no longer the visible level system |
 
-## Qualification and earning
+Core APIs: `createProgressionState`, `recordSession`, `advanceProgression`,
+`getProgressSnapshot`, `changeProgressionRules`, `practiceCredits`,
+`getLifetimeJourney`, `getJourneyFromState`, `journeyLabel`.
+The old `getLevelProgress` remains for historical compatibility and tests only.
 
-Each completed or early-ended timer run must independently contain **300 active
-seconds** to qualify. Paused seconds are recorded separately and never earn credit.
-Active and paused time must fit inside UTC start/end timestamps. Subminimum runs
-remain in history but cannot be pooled into qualification, create an occasion,
-increase consistency, or reset inactivity. Early stops of at least five active
-minutes qualify normally; planned duration does not affect rewards.
+## Permanent practice and recent consistency
 
-For an occasion containing `m` qualifying active minutes:
+- **Lifetime XP** is the exact sum of immutable award receipts, never a decaying balance.
+- **Practice credits** and **distinct real practice dates** are reconstructed from reliable saved sessions.
+- **Lifetime level** needs all three requirements. Persist the highest legitimately unlocked new level.
+- **Recent consistency** is the actual multiplier used for new XP; it can fall after missed dates.
+- **Legacy current progression/highest rank** remain stored and validated, without a competing visible level.
+- **Meditation time** is active seconds, separate from every game score.
+
+Level 100 completes Ona's habit-building journey. Levels 101–125 strengthen and sustain practice.
+This is a product milestone, not scientific proof that someone has established a habit.
+
+## Qualification, credits and date attribution
+
+Prospective `progression_v2` requires **180 active seconds** in one completed session.
+2:59 earns zero XP/credits and does not contribute to consistency. Paused time is excluded.
+Short completed sessions remain valid history and still count as completed practices.
+
+Per frozen completion date: no qualifying completed session = 0 credits; any = 1;
+a valid separately saved pair = **2 credits total**, never more. The later **start** must be
+at least six absolute elapsed hours after the earlier **end**; equality qualifies.
+Inspect all eligible pairs, not just the first two sessions. Both need 180 active seconds,
+completed status and the same recorded date. A paused/resumed cursor is one session.
+Two credits are one real date, including for consistency and the maximum's 365-date gate.
+
+Capture UTC Unix milliseconds, completion-local YYYY-MM-DD and an explicit IANA zone.
+A session spanning midnight belongs to its **completion** date. Historical dates/zones never move
+after travel. Different zones with the same captured date share that date's credit cap; different
+date labels do not form a pair. Six hours and the final year are absolute elapsed time, unaffected by DST.
+No implicit device time zone is used in the engine. Live Finish captures its observed zone; recovery
+of an already-finished cursor retains it. Legacy unattended timed expiry uses the saved practice zone.
+Invalid/missing historical dates, zones or durations fail explicitly, rather than guessing/backfilling.
+
+## Versioned XP and consistency
+
+V1 retains its 300-second minimum and original historical qualification flags. V2 lowers eligibility
+without rebasing the duration reference. Both evaluate:
 
 `Q(m) = 60 + 20 * log2(min(m, 60) / 5)`
 
-The first, second, and third occasions on a reward date receive weights of 100%,
-75%, and 25%. Further occasions earn zero XP while retaining time/history and
-qualifying-day credit. Ordering is chronological; longer-first ordering can earn
-slightly more. No separate daily cap is needed beyond these weights and the
-duration ceiling.
+| Active minutes | Base XP without a bonus |
+| --- | --- |
+| 3 (V2 only) | 45.26 |
+| 5 | 60.00 |
+| 10 | 80.00 |
+| 20 | 100.00 |
+| 30 | 111.70 |
+| 60 or more | 131.70 |
 
-Consistency is `1 + 0.40 * (active preceding days / 7)`. Only the **seven preceding
-recorded local calendar dates** count. Today is excluded, and multiple sessions on
-one date count once. Losing a bonus affects future earnings only.
+Qualifying runs less than 90 minutes apart, end-to-start in UTC, extend one occasion.
+Exactly 90 minutes starts another. Sum qualifying active seconds, then award only the incremental
+change in the cumulative reward. Two nearby 10-minute practices earn 80 then 20 XP, not 180.
+Subminimum runs cannot be pooled or bridge occasions. This works across midnight and travel.
+First/second/third occasions on a reward date receive 100% / 75% / 25%; later occasions receive zero.
+Zero-XP eligible occasions still count for credits, time and consistency.
 
-## Occasions and incremental awards
+Consistency: `1 + 0.40 * (active preceding dates / 7)`, maximum **1.40×**.
+The seven preceding captured calendar dates count; today never counts toward itself.
+V2 uses completed sessions with 180 active seconds, including reliable historical 3–5-minute
+records, for **future** consistency/decay only. This resolves the old V1 flag incompatibility.
+Historical V1 eligibility, awards and captured multipliers remain unchanged. A double day counts once.
+The Home bar uses that same domain snapshot, with fraction active preceding dates / 7.
 
-Qualifying sessions with an end-to-next-start gap **less than 90 minutes** belong
-to one occasion. Exactly 90 minutes starts another. UTC timestamps control this,
-including across midnight, daylight saving changes, and travel. Short runs cannot
-bridge the gap between qualifying sessions.
+An occasion freezes its first reward date, ordinal, multiplier, separation and rules version.
+An open V1 occasion keeps V1 terms for a qualifying V2 top-up; all receipts remain attributable.
+The six-hour credit rule adds no extra XP multiplier. Qualifying sessions across midnight each
+count toward their own practice date even if their occasion shares the earlier reward date.
 
-An occasion keeps the first session's reward date, frequency ordinal, consistency
-bonus, separation rule, and earnings rules version. Each qualifying extension
-recomputes its cumulative reward and awards only the difference from its previous
-total. It does not re-award the full occasion reward. Each increment has its own
-receipt linked to the session and stable occasion ID.
+## Historical guarantees, precision and legacy decay
 
-Qualifying sessions on either side of midnight count toward **their own captured
-practice dates**, even when they share one occasion. The occasion's reward date
-stays on the first date. A later separate occasion on the new date starts that
-date's frequency allowance. This deliberately distinguishes daily practice from
-spaced frequency rewards.
+Append-only receipts record XP, session/occasion IDs, earning version, timestamp, dates and breakdown.
+Never recalculate lifetime XP on startup. Register old versions; activate new rules explicitly.
+The V4 application release recovers already-finished cursors and settles old decay before activating V2.
+Historical 3–5-minute sessions can backfill **credits only**, never retroactive XP.
+Old highest named ranks remain separate: XP or practice count cannot reveal missing dates,
+fine-grained former level peaks or eligibility for the new maximum.
 
-## Precision
+All XP/thresholds/receipts use integer centi-XP (100 = 1 XP). Duration/log reward rounds half upward
+to centi-XP; apply occasion weights and the exact rational consistency ratio together, round the
+cumulative target once, then subtract prior receipts. BigInt arithmetic protects integer products.
+The UI rounds only for display. Historical receipts never change on reconstruction.
 
-All balances, thresholds, and receipts are integer **centi-XP** (100 = 1 XP).
-Durations use whole active/paused seconds. Rates and weights use integer basis
-points (10,000 = 100%). Balances must remain safe integers.
+Legacy current progression still decays after two complete inactive dates. Only dates strictly before
+asOf.localDate are complete. After Monday practice, Tuesday/Wednesday are protected; Thursday's
+first loss appears Friday 00:00, unless Thursday contains qualifying practice.
+Each loss is min(rounded 1% of current, 16 XP), with floor ceil(25% of lifetime XP).
+Lifetime XP, credits, real dates and lifetime level never decay. A returning practice earns normally,
+without debt. Settlement cursors never rewind across travel or repeated reopening.
 
-1. Round the logarithmic duration reward to the nearest centi-XP, half upward.
-2. Apply the occasion weight and exact rational consistency bonus together; round
-   the cumulative target once, half upward. Compute the increment by subtraction.
-3. Round each daily percentage loss to centi-XP, half upward; apply the 16 XP cap.
-4. Round the protected floor **upward**, so rounding never undercuts 25%.
+## Lifetime thresholds and pacing
 
-Integer products/division use BigInt internally to avoid intermediate overflow;
-persisted state contains only JSON-compatible numbers and data. The logarithm is
-the only floating-point earning step. Once recorded, receipts are never
-reconstructed from floating-point calculations. The snapshot's display multiplier
-and rank-progress fraction are ordinary numbers, never used as persisted XP.
+Released display version: **ona_journey_v2**. Stable category IDs/icons are central in journey.ts.
+For level index i = level − 1, r = i / 124:
 
-## Calendar, inactivity, and travel
+- XP centi = round(3,000,000 × r^1.75), strictly increasing.
+- Credits = ceil(365 × r^1.4), nondecreasing.
+- Real dates = ceil(365 × r^1.8), nondecreasing and distributed throughout the journey.
 
-The caller supplies UTC Unix milliseconds, a `YYYY-MM-DD` local date, and an IANA
-time-zone label. Capture a session's date/zone **at completion**. The engine trusts
-this association; it checks date syntax/validity but does not perform IANA zone
-conversion. No `Date.now()`, local Date getters, or device time-zone lookup occurs.
+These curves front-load rewards and gradually lengthen level intervals. The stronger credit gate
+gives double sessions an intermediate advantage; the real-date curve prevents rushing to a final wait.
+The lifetime bar is the **minimum** progress across XP, credit, real-date and applicable elapsed gates,
+measured between current/next requirements. Every unmet requirement is shown, never a full misleading bar.
 
-Only dates **strictly before** `asOf.localDate` are complete. If the last qualifying
-practice is Monday, Tuesday and Wednesday are protected. Thursday's first decay
-becomes observable at **Friday 00:00 local time**, once Thursday is complete.
-A qualifying Thursday session prevents that loss. Fourteen complete inactive days
-therefore produce twelve daily decay applications.
+Level 125 additionally requires **365 elapsed 24-hour days since the first qualifying completion**,
+365 distinct qualifying dates, 365 credits and 30,000 XP. A daily same-time routine first meets the
+elapsed requirement on calendar day 366. On that day its extra practice date is incidental; the
+condition remains 365 dates plus 365 elapsed days. Days need not be consecutive.
 
-For each eligible inactive day:
+Never edit released thresholds/version meaning in place. A future display version must migrate and
+retain the previous legitimately achieved peak with its original terms, without granting unmet new
+maximum gates. The stored version/peak currently fails closed on unexpected/corrupt data.
+Earning parameters remain in rules.ts; credit/pacing parameters are in journey.ts.
 
-`current = max(ceil(0.25 * lifetime), current - min(round(0.01 * current), 1600))`
+### Actual engine simulations
 
-This expression uses centi-XP. Lifetime XP is unchanged. A returning session adds
-its normal award and begins a new grace period; there is no debt or recovery
-currency. With no qualifying history, inactivity starts at zero.
+Calendar day 1 is the first practice; single sessions occur at 09:00 UTC. Doubles at 07:00/15:00
+meet the end-to-start gap. Five-date routine starts Monday and skips weekends. Break skips dates
+15–28, then returns. These results include actual weights, caps, rounding and consistency, not
+a constant assumed daily award. Run `node scripts/simulate-journey.cjs` to reproduce; regression
+tests assert the first date each target is available. Ten-minute daily Level 100 is ~8.8 months;
+30,000 final XP is compatible because sustained-date requirements also govern progression.
 
-Historical date labels never move after travel. V1 compares those recorded labels
-as Gregorian dates. Crossing time zones can skip/repeat a label. A settlement
-cursor never moves backward: westward travel cannot refund already settled decay
-or reopen a closed day. New practice still retains its captured date, and UTC gaps
-still determine grouping. This is a deliberate simple policy, not a complete
-international-date-line or clock-tampering solution.
+| Routine | L5 | L25 | L50 | L75 | L100 | L125 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3 minutes daily | 3 | 37 | 100 | 193 | 321 | 475 |
+| 10 minutes daily | 3 | 37 | 100 | 178 | 267 | 366 |
+| 20 minutes daily | 3 | 37 | 100 | 178 | 267 | 366 |
+| 30 minutes daily | 3 | 37 | 100 | 178 | 267 | 366 |
+| Two 10-minute sessions daily (07:00 and 15:00) | 2 | 19 | 69 | 145 | 244 | 366 |
+| 10 minutes on five dates per week (Monday–Friday) | 3 | 51 | 138 | 248 | 373 | 509 |
+| 10 minutes daily, 14-date break after date 14 | 3 | 51 | 114 | 192 | 281 | 379 |
 
-## Ranks and future versions
+### Complete released threshold table
 
-Rank identity is a stable string ID, never array position. Definitions are ordered
-by strictly increasing centi-XP thresholds beginning at zero. V1's ten thresholds
-in XP are 0, 200, 650, 1500, 3000, 5500, 9000, 14000, 21000, and 30000. Current rank
-may decrease. The highest-rank record is compared by its achieved threshold and
-preserved independently of today's definitions. Reordering the meaning of ranks
-across versions would require an explicit achievement-migration policy.
+All requirements are cumulative inclusive lower bounds. Level 125 also has the elapsed-time gate above.
 
-`ProgressionState` is a serializable checkpoint plus session history, occasions,
-award receipts, and captured rulesets. There is no general-purpose event bus or
-event-sourcing framework. Persist the returned state **atomically** in a future
-storage adapter; never separately increment an XP counter on the UI side.
+| Level | Category | Step | Lifetime XP | Credits | Real dates |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Monkey Mind | 1/5 | 0.00 | 0 | 0 |
+| 2 | Monkey Mind | 2/5 | 6.51 | 1 | 1 |
+| 3 | Monkey Mind | 3/5 | 21.90 | 2 | 1 |
+| 4 | Monkey Mind | 4/5 | 44.52 | 2 | 1 |
+| 5 | Monkey Mind | 5/5 | 73.66 | 3 | 1 |
+| 6 | First Pause | 1/5 | 108.85 | 5 | 2 |
+| 7 | First Pause | 2/5 | 149.76 | 6 | 2 |
+| 8 | First Pause | 3/5 | 196.13 | 7 | 3 |
+| 9 | First Pause | 4/5 | 247.77 | 8 | 3 |
+| 10 | First Pause | 5/5 | 304.48 | 10 | 4 |
+| 11 | Awakening Attention | 1/5 | 366.13 | 11 | 4 |
+| 12 | Awakening Attention | 2/5 | 432.58 | 13 | 5 |
+| 13 | Awakening Attention | 3/5 | 503.73 | 14 | 6 |
+| 14 | Awakening Attention | 4/5 | 579.47 | 16 | 7 |
+| 15 | Awakening Attention | 5/5 | 659.72 | 18 | 8 |
+| 16 | Finding the Breath | 1/5 | 744.38 | 19 | 9 |
+| 17 | Finding the Breath | 2/5 | 833.38 | 21 | 10 |
+| 18 | Finding the Breath | 3/5 | 926.66 | 23 | 11 |
+| 19 | Finding the Breath | 4/5 | 1024.14 | 25 | 12 |
+| 20 | Finding the Breath | 5/5 | 1125.78 | 27 | 13 |
+| 21 | Learning to Return | 1/5 | 1231.50 | 29 | 14 |
+| 22 | Learning to Return | 2/5 | 1341.27 | 31 | 15 |
+| 23 | Learning to Return | 3/5 | 1455.03 | 33 | 17 |
+| 24 | Learning to Return | 4/5 | 1572.74 | 35 | 18 |
+| 25 | Learning to Return | 5/5 | 1694.35 | 37 | 19 |
+| 26 | Gathering Focus | 1/5 | 1819.82 | 39 | 21 |
+| 27 | Gathering Focus | 2/5 | 1949.11 | 41 | 22 |
+| 28 | Gathering Focus | 3/5 | 2082.19 | 44 | 24 |
+| 29 | Gathering Focus | 4/5 | 2219.01 | 46 | 26 |
+| 30 | Gathering Focus | 5/5 | 2359.55 | 48 | 27 |
+| 31 | Settling Mind | 1/5 | 2503.78 | 51 | 29 |
+| 32 | Settling Mind | 2/5 | 2651.65 | 53 | 31 |
+| 33 | Settling Mind | 3/5 | 2803.15 | 55 | 32 |
+| 34 | Settling Mind | 4/5 | 2958.24 | 58 | 34 |
+| 35 | Settling Mind | 5/5 | 3116.89 | 60 | 36 |
+| 36 | Finding Rhythm | 1/5 | 3279.08 | 63 | 38 |
+| 37 | Finding Rhythm | 2/5 | 3444.79 | 65 | 40 |
+| 38 | Finding Rhythm | 3/5 | 3613.98 | 68 | 42 |
+| 39 | Finding Rhythm | 4/5 | 3786.65 | 70 | 44 |
+| 40 | Finding Rhythm | 5/5 | 3962.75 | 73 | 46 |
+| 41 | Growing Roots | 1/5 | 4142.27 | 75 | 48 |
+| 42 | Growing Roots | 2/5 | 4325.19 | 78 | 50 |
+| 43 | Growing Roots | 3/5 | 4511.49 | 81 | 52 |
+| 44 | Growing Roots | 4/5 | 4701.14 | 83 | 55 |
+| 45 | Growing Roots | 5/5 | 4894.13 | 86 | 57 |
+| 46 | Steady Practice | 1/5 | 5090.44 | 89 | 59 |
+| 47 | Steady Practice | 2/5 | 5290.05 | 92 | 62 |
+| 48 | Steady Practice | 3/5 | 5492.94 | 94 | 64 |
+| 49 | Steady Practice | 4/5 | 5699.09 | 97 | 67 |
+| 50 | Steady Practice | 5/5 | 5908.49 | 100 | 69 |
+| 51 | Sustained Attention | 1/5 | 6121.12 | 103 | 72 |
+| 52 | Sustained Attention | 2/5 | 6336.96 | 106 | 74 |
+| 53 | Sustained Attention | 3/5 | 6556.00 | 109 | 77 |
+| 54 | Sustained Attention | 4/5 | 6778.23 | 112 | 80 |
+| 55 | Sustained Attention | 5/5 | 7003.62 | 114 | 82 |
+| 56 | Quiet Focus | 1/5 | 7232.16 | 117 | 85 |
+| 57 | Quiet Focus | 2/5 | 7463.84 | 120 | 88 |
+| 58 | Quiet Focus | 3/5 | 7698.65 | 123 | 91 |
+| 59 | Quiet Focus | 4/5 | 7936.56 | 126 | 93 |
+| 60 | Quiet Focus | 5/5 | 8177.57 | 130 | 96 |
+| 61 | Deepening Stillness | 1/5 | 8421.67 | 133 | 99 |
+| 62 | Deepening Stillness | 2/5 | 8668.83 | 136 | 102 |
+| 63 | Deepening Stillness | 3/5 | 8919.05 | 139 | 105 |
+| 64 | Deepening Stillness | 4/5 | 9172.32 | 142 | 108 |
+| 65 | Deepening Stillness | 5/5 | 9428.62 | 145 | 111 |
+| 66 | Clear Awareness | 1/5 | 9687.95 | 148 | 115 |
+| 67 | Clear Awareness | 2/5 | 9950.28 | 151 | 118 |
+| 68 | Clear Awareness | 3/5 | 10215.61 | 155 | 121 |
+| 69 | Clear Awareness | 4/5 | 10483.92 | 158 | 124 |
+| 70 | Clear Awareness | 5/5 | 10755.22 | 161 | 128 |
+| 71 | Grounded Presence | 1/5 | 11029.48 | 164 | 131 |
+| 72 | Grounded Presence | 2/5 | 11306.69 | 168 | 134 |
+| 73 | Grounded Presence | 3/5 | 11586.84 | 171 | 138 |
+| 74 | Grounded Presence | 4/5 | 11869.93 | 174 | 141 |
+| 75 | Grounded Presence | 5/5 | 12155.95 | 178 | 145 |
+| 76 | Patient Attention | 1/5 | 12444.87 | 181 | 148 |
+| 77 | Patient Attention | 2/5 | 12736.71 | 184 | 152 |
+| 78 | Patient Attention | 3/5 | 13031.43 | 188 | 155 |
+| 79 | Patient Attention | 4/5 | 13329.04 | 191 | 159 |
+| 80 | Patient Attention | 5/5 | 13629.52 | 195 | 163 |
+| 81 | Widening Awareness | 1/5 | 13932.88 | 198 | 166 |
+| 82 | Widening Awareness | 2/5 | 14239.09 | 202 | 170 |
+| 83 | Widening Awareness | 3/5 | 14548.14 | 205 | 174 |
+| 84 | Widening Awareness | 4/5 | 14860.04 | 209 | 178 |
+| 85 | Widening Awareness | 5/5 | 15174.77 | 212 | 182 |
+| 86 | Steady Clarity | 1/5 | 15492.32 | 216 | 185 |
+| 87 | Steady Clarity | 2/5 | 15812.68 | 219 | 189 |
+| 88 | Steady Clarity | 3/5 | 16135.86 | 223 | 193 |
+| 89 | Steady Clarity | 4/5 | 16461.83 | 226 | 197 |
+| 90 | Steady Clarity | 5/5 | 16790.58 | 230 | 201 |
+| 91 | Quiet Depth | 1/5 | 17122.13 | 234 | 206 |
+| 92 | Quiet Depth | 2/5 | 17456.44 | 237 | 210 |
+| 93 | Quiet Depth | 3/5 | 17793.53 | 241 | 214 |
+| 94 | Quiet Depth | 4/5 | 18133.37 | 244 | 218 |
+| 95 | Quiet Depth | 5/5 | 18475.96 | 248 | 222 |
+| 96 | Habit Established | 1/5 | 18821.30 | 252 | 226 |
+| 97 | Habit Established | 2/5 | 19169.38 | 256 | 231 |
+| 98 | Habit Established | 3/5 | 19520.18 | 259 | 235 |
+| 99 | Habit Established | 4/5 | 19873.71 | 263 | 239 |
+| 100 | Habit Established | 5/5 | 20229.95 | 267 | 244 |
+| 101 | Rooted Habit | 1/5 | 20588.91 | 271 | 248 |
+| 102 | Rooted Habit | 2/5 | 20950.56 | 274 | 253 |
+| 103 | Rooted Habit | 3/5 | 21314.92 | 278 | 257 |
+| 104 | Rooted Habit | 4/5 | 21681.96 | 282 | 262 |
+| 105 | Rooted Habit | 5/5 | 22051.68 | 286 | 266 |
+| 106 | Integrated Practice | 1/5 | 22424.08 | 290 | 271 |
+| 107 | Integrated Practice | 2/5 | 22799.15 | 294 | 276 |
+| 108 | Integrated Practice | 3/5 | 23176.88 | 297 | 280 |
+| 109 | Integrated Practice | 4/5 | 23557.27 | 301 | 285 |
+| 110 | Integrated Practice | 5/5 | 23940.30 | 305 | 290 |
+| 111 | Everyday Presence | 1/5 | 24325.99 | 309 | 295 |
+| 112 | Everyday Presence | 2/5 | 24714.31 | 313 | 300 |
+| 113 | Everyday Presence | 3/5 | 25105.27 | 317 | 304 |
+| 114 | Everyday Presence | 4/5 | 25498.85 | 321 | 309 |
+| 115 | Everyday Presence | 5/5 | 25895.05 | 325 | 314 |
+| 116 | Natural Stillness | 1/5 | 26293.87 | 329 | 319 |
+| 117 | Natural Stillness | 2/5 | 26695.30 | 333 | 324 |
+| 118 | Natural Stillness | 3/5 | 27099.33 | 337 | 329 |
+| 119 | Natural Stillness | 4/5 | 27505.96 | 341 | 334 |
+| 120 | Natural Stillness | 5/5 | 27915.18 | 345 | 339 |
+| 121 | Steady Presence | 1/5 | 28326.99 | 349 | 345 |
+| 122 | Steady Presence | 2/5 | 28741.39 | 353 | 350 |
+| 123 | Steady Presence | 3/5 | 29158.35 | 357 | 355 |
+| 124 | Steady Presence | 4/5 | 29577.89 | 361 | 360 |
+| 125 | Steady Presence | 5/5 | 30000.00 | 365 | 365 |
 
-Every award stores its amount, session/occasion IDs, rules version, time, practice
-and reward dates, and calculation breakdown. Qualification decisions also retain
-their version. Snapshot reads project existing balances and settle missing decay;
-they do **not** recalculate past earnings using the latest rules.
+## Worked examples
 
-`changeProgressionRules` is an explicit boundary. It settles all previously
-complete days under the old rules, captures the new rules, and applies them to new
-qualifications and new occasions. An open occasion continues its original earning
-terms for all top-ups. The active version governs future complete-day decay and
-current rank lookup; a partial day is governed by the version active when settled.
-Reusing a version ID with changed data is rejected. Raising a floor above current
-progression requires an explicit migration rather than silently granting points.
+- First 10-minute practice: 80 XP, one credit/date, Level 2. The next gates visibly explain what remains.
+- Two 10-minute practices with a six-hour end-to-start gap on the same date: 80 + 60 XP before
+  consistency, two credits, **one** real date. A mere 90-minute gap earns the same spaced XP but one credit.
+- Two nearby 10-minute practices: one 20-minute XP occasion (100 XP total), one credit/date.
+- Miss one date after two weeks: lifetime level/XP/credits stay; future bonus reflects six preceding dates.
+- Miss three complete dates: one legacy decay application, no lifetime loss; normal earnings on return.
 
-For V2 balancing changes, supply a new versioned configuration. For a genuinely
-different formula, add a new algorithm discriminator and implementation while
-retaining the old evaluator for still-open historical occasions. Never replace the
-V1 algorithm in place or rebuild lifetime XP under the new formula.
+## Input discipline and verification
 
-All balancing values are configurable through one ruleset: qualification,
-duration base/reference/growth/cap, separation, frequency weights, consistency
-window/bonus, grace period, daily decay rate/cap, floor, and rank definitions.
-Precision, completion-day assignment, and settlement semantics are V1 contracts;
-changing those requires an explicit schema/behavior migration.
-
-## Ona's 100 visible levels
-
-`progression/levels.ts` defines a separate display version, `ona_levels_v1`.
-It subdivides each of V1's nine rank intervals into eleven steps. For anchors
-`a` and `b` in integer centi-XP, subdivision `j=0..10` starts at
-`a + floor((b-a)*j/11)`. Append the final 30,000 XP anchor as Level 100.
-There are exactly 100 strictly increasing thresholds, each an inclusive lower
-bound. One centi-XP below a boundary belongs to the preceding level.
-
-| Named stage (original stable rank ID/name) | Levels | Starting XP |
-| --- | --- | --- |
-| Monkey Mind | 1–11 | 0 |
-| First Pause | 12–22 | 200 |
-| Quiet Spark | 23–33 | 650 |
-| Steady Breath | 34–44 | 1,500 |
-| Still Pond | 45–55 | 3,000 |
-| Clear Sky | 56–66 | 5,500 |
-| Deep Current | 67–77 | 9,000 |
-| Quiet Mountain | 78–88 | 14,000 |
-| Wide Horizon | 89–99 | 21,000 |
-| Steady Presence | 100 | 30,000 |
-
-`getLevelProgress(currentProgressionCenti)` returns the number, stage, next
-level and numeric progress. Existing users map from their unchanged **current**
-balance: 80 XP → Level 5; 3,232 XP → Level 46; after the approved break,
-3,040 XP → Level 45. No session, award, earning configuration or achievement
-is migrated/recomputed. Current levels can fall with existing decay. At Level
-100, there is no next threshold and the UI says “Your practice continues.”
-Additional XP and history accumulate normally; displayed levels never exceed 100.
-
-The permanent highest achievement remains the domain's highest **named stage**.
-V1 did not retain an intra-stage peak balance: a historical highest numbered
-level cannot be inferred reliably from lifetime XP. The UI labels the preserved
-achievement as highest stage, without inventing past level peaks. A future highest
-numbered-level achievement would need a deliberate persisted model/migration.
-Display subdivisions are not new earning-rule versions and never alter receipts.
-
-## Public API and input discipline
-
-- `createProgressionState(asOf, rules?)`: create an empty state, usually once.
-- `recordSession(state, session)`: append a finished run, settle earlier complete
-  dates, and create any incremental award. Returns a new immutable state.
-- `advanceProgression(state, asOf)`: materialize a decay checkpoint for persistence.
-- `getProgressSnapshot(state, asOf)`: read a projection without mutating state.
-- `changeProgressionRules(state, rules, asOf)`: activate a new rules version explicitly.
-
-Also exported: rules, centi-XP scale, and the input/output types. A future screen
-can render snapshot ranks, progress to next rank, totals, consistency, and
-inactivity directly. It does not need internal calculation helpers.
-
-Append sessions in UTC order without overlap. An exact duplicate ID/payload is a
-no-op, even after a version change; conflicting duplicates fail. Rewinding the
-checkpoint or backdating a new completed session fails rather than changing
-settled awards. Collect pending completed sessions before advancing/persisting a
-checkpoint beyond them. Imports, edits, deletion, and corrected clocks need an
-explicit reconciliation flow later.
-
-Public functions accept typed state produced by this API (or its unchanged JSON
-round-trip). A future persistence adapter must validate untrusted/corrupt stored
-data and schema versions before passing it in. State is fully in memory for now;
-history indexing and validated loading belong to that next integration layer.
-
-## Worked examples (starting without a consistency bonus)
-
-- One 10-minute meditation earns **80 XP**.
-- Two 10-minute meditations separated by at least 90 minutes earn **80 + 60 = 140 XP**.
-- Two nearby 10-minute meditations earn **80**, then a **20 XP** top-up: **100 XP** total.
-- After 14 daily 10-minute meditations, the balance is about **1,440 XP**.
-  Missing one day costs no accumulated progress; the returning session earns
-  approximately **107.43 XP**, with six preceding active dates.
-- Missing three complete days after that same history applies one approximately
-  **14.40 XP** loss. The returning session earns **98.29 XP** normally.
-- After 30 daily 10-minute meditations, lifetime XP is about **3,232**. Fourteen
-  complete inactive dates reduce current progression by **192 XP** to about **3,040**.
-  After 180 daily sessions, the same break leaves about **19,840** of **20,032 XP**.
-
-## Verification
-
-Run `npm test`, `npm run test:coverage`, `npx tsc --noEmit`, and `npx expo lint`.
-Tests use the existing TypeScript compiler and Node's built-in test runner; no
-testing dependency is installed. A separate strict compilation uses only ES2022
-libraries and no ambient framework/Node types, enforcing the domain boundary.
-Compiled test artifacts use a unique temporary directory and are cleaned up.
-
-Regression tests cover all approved A-K patterns, exact daily-decay counts,
-boundaries, receipt conservation, duplicates, input mutation, JSON round trips,
-rules changes, calendar transitions, and identical results under different host
-time zones. Rounded simulation values have a small explicit centi-XP tolerance;
-monetary invariants and award increments use exact integer assertions.
+Append sessions chronologically without overlap. Exact duplicate IDs/payloads are no-ops; conflicts,
+backdated new sessions and clock rollback fail. Submit pending completions before advancing past them.
+No automatic historical edits/import reconciliation or clock-tampering repair is implemented.
+Use explicit asOf contexts. Run npm test, npx tsc --noEmit, npm run lint and native exports.
+See ARCHITECTURE.md for atomic persistence and ONA_UI.md for visual/device verification limits.

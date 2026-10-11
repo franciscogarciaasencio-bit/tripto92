@@ -8,6 +8,7 @@ export interface DatabaseOptions {
   readonly databaseName?: string;
   /** Register future definitions explicitly, retaining every historical version. */
   readonly supportedRules?: readonly ProgressionRules[];
+  readonly activateRulesVersion?: string;
 }
 
 /** Own and close one store at application lifecycle level, outside React screens. */
@@ -20,5 +21,5 @@ export async function initializeDatabase(asOf: CalendarContext, options: Databas
     run: async (sql, parameters = []) => { await database.runAsync(sql, [...parameters]); },
     all: (sql, parameters = []) => database.getAllAsync<unknown>(sql, [...parameters]),
     close: () => database.closeAsync(),
-  }, context, supportedRules);
+  }, context, supportedRules, options.activateRulesVersion ?? 'progression_v2');
 }

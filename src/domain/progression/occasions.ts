@@ -5,7 +5,10 @@ import { rulesForVersion } from './rules';
 import type { PracticeOccasion, ProgressionState } from './types';
 
 export function qualifyingDates(state: ProgressionState): readonly string[] {
-  return [...new Set(state.sessions.filter((entry) => entry.qualified).map((entry) => entry.session.localDate))];
+  const rules = rulesForVersion(state);
+  return [...new Set(state.sessions.filter((entry) => rules.practiceDayEligibility === 'completed_minimum'
+    ? entry.session.status === 'completed' && entry.session.activeDurationSeconds >= rules.minimumActiveSeconds
+    : entry.qualified).map((entry) => entry.session.localDate))];
 }
 
 /** The last qualifying session's end controls grouping; short runs cannot bridge occasions. */

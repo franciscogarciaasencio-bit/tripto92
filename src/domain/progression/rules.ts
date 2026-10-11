@@ -19,6 +19,12 @@ export const PROGRESSION_V1: ProgressionRules = freeze({
   ranks: V1_RANKS,
 });
 
+/** Prospective eligibility only; the five-minute logarithmic reference and all weights remain unchanged. */
+export const PROGRESSION_V2: ProgressionRules = freeze({
+  ...PROGRESSION_V1, version: 'progression_v2', minimumActiveSeconds: 180,
+  practiceDayEligibility: 'completed_minimum',
+});
+
 /** Validate and detach caller-owned configuration. A version identifies an entire frozen ruleset. */
 export function captureRules(rules: ProgressionRules): ProgressionRules {
   if (!rules.version.trim()) throw new RangeError('rules version is required');
@@ -42,9 +48,11 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     inactivityGraceDays: rules.inactivityGraceDays,
     dailyDecayCapCentiXp: rules.dailyDecayCapCentiXp,
   })) assertNonnegativeInteger(value, name);
-  if (rules.duration.referenceSeconds > rules.minimumActiveSeconds || rules.duration.capSeconds < rules.minimumActiveSeconds) {
-    throw new RangeError('Duration reference/cap must bracket qualification minimum');
+  if (rules.duration.capSeconds < rules.minimumActiveSeconds ||
+    rules.duration.baseCentiXp + rules.duration.doublingCentiXp * Math.log2(rules.minimumActiveSeconds / rules.duration.referenceSeconds) < 0) {
+    throw new RangeError('Duration cap/reward must support qualification minimum');
   }
+  if (rules.practiceDayEligibility !== undefined && rules.practiceDayEligibility !== 'completed_minimum') throw new RangeError('Unsupported practice-day policy');
   for (const value of [...rules.occasionWeightsBasisPoints, rules.dailyDecayBasisPoints, rules.protectedFloorBasisPoints]) {
     assertNonnegativeInteger(value, 'basis points');
     if (value > BASIS_POINTS) throw new RangeError('Rate/weight exceeds 100%');
@@ -71,6 +79,7 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     earningsAlgorithm: rules.earningsAlgorithm,
     decayAlgorithm: rules.decayAlgorithm,
     minimumActiveSeconds: rules.minimumActiveSeconds,
+    ...(rules.practiceDayEligibility ? { practiceDayEligibility: rules.practiceDayEligibility } : {}),
     duration: {
       baseCentiXp: rules.duration.baseCentiXp,
       referenceSeconds: rules.duration.referenceSeconds,

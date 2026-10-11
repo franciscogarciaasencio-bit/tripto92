@@ -16,6 +16,8 @@ export interface ProgressionRules {
   readonly earningsAlgorithm: 'logarithmic_v1';
   readonly decayAlgorithm: 'capped_daily_v1';
   readonly minimumActiveSeconds: number;
+  /** Omitted in released V1: its historical qualification flags define practice days. */
+  readonly practiceDayEligibility?: 'completed_minimum';
   readonly duration: {
     readonly baseCentiXp: CentiXp;
     readonly referenceSeconds: number;
@@ -121,6 +123,7 @@ export interface ProgressSnapshot {
     readonly precedingActiveDays: number;
     readonly windowDays: number;
     readonly multiplier: number;
+    readonly maximumMultiplier: number;
   };
   readonly inactivity: {
     readonly lastQualifyingDate: LocalDate | null;

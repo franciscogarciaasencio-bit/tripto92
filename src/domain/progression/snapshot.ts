@@ -32,7 +32,8 @@ export function getProgressSnapshot(state: ProgressionState, asOf: CalendarConte
     totalQualifyingPracticeDays: dates.length,
     totalMeditationSeconds: projected.totalMeditationSeconds,
     totalMeditationMinutes: projected.totalMeditationSeconds / 60,
-    consistency: { precedingActiveDays: preceding, windowDays: rules.consistencyWindowDays, multiplier: ratio.numerator / ratio.denominator },
+    consistency: { precedingActiveDays: preceding, windowDays: rules.consistencyWindowDays, multiplier: ratio.numerator / ratio.denominator,
+      maximumMultiplier: consistencyRatio(rules.consistencyWindowDays, rules).numerator / ratio.denominator },
     inactivity: {
       lastQualifyingDate,
       completeInactiveDays: lastQualifyingDate === null ? 0 : Math.max(0,

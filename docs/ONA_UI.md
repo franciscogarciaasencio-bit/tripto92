@@ -1,90 +1,114 @@
 # Ona native interface
 
-## Design and code map
+## Sources and diagnosis
 
-The approved source remains the portable study at
-`C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/`:
-HANDOFF.md, screen/storyboard SVGs and wave-spec.json. This refinement applies the user's
-explicit changes: warmer sand, open-ended practice, numbered progression and flowing wordmark.
+The approved original design is at
+C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/.
+This milestone applies the user's revised habit journey, exact sand colour and motion requirements.
+No HTML replacement, audio, sea-opening animation, tabs, gradients, coloured badges or cards.
+Manrope Regular/Medium and existing wordmark/wave geometry remain the design sources.
 
-`src/ui/primitives.tsx` centralizes #F6F1E7 surfaces, #141414 monochrome ink, Manrope
-Regular/Medium, outlined actions and safe-area/reflowing layouts. No tabs, cards, gradients
-or competitive decorations. The unchanged bundled Manrope 4.505 files retain their SIL license.
+The inspected clean baseline was 801b2d9. Its opening had a 500 ms full-opacity hold and
+was omitted for Reduced Motion/screen readers; its moving wave varied only 2.4 viewBox units
+and kept its phase loop active while paused/backgrounded. The rendered background was
+#F6F1E7. These are code findings; stale bundles or the user's iPhone accessibility settings
+were not independently observed and cannot be asserted as the cause of their report.
 
-`assets/ona/wave-spec.json` retains the original ten contours and stable stage IDs.
-`Wave` animates only the session's curve: a 14-second continuous phase with at most 2.4
-viewBox units of movement, preserving tangent continuity. Reanimated shared values/animated
-SVG props run on the UI thread on native, independently of timer calculations or React frame
-updates. Pause/resume ease the displacement over 1.1 seconds. Other waves are static.
-Reduced Motion starts static and responds to changes during practice.
+## Entry, opening and theme
 
-The editable `wordmark.svg` and its native coordinate source `wordmark.json` contain the same
-three medium-stroke letter outlines. Edit both together; a test prevents divergence.
-Intro shows **Ona / Build your meditation habit**, takes 1.2 seconds, can be skipped,
-omits itself for screen readers and uses a short fade for Reduced Motion.
-It mounts once per process, never on background resume. Interface text remains Manrope.
+expo-router/entry → src/app/_layout.tsx → process-local Opening → first explanation or native Stack.
+Font readiness renders the root; Opening awaits native splash dismissal before starting its hold.
+SQLite startup proceeds underneath and never shortens the opening. Exact wordmark/tagline:
+**Ona / Build your meditation habit**. Entrance 300 ms, full hold 1100 ms, exit 350 ms.
+Tap skips without activating underlying Meditate. Reduced Motion and VoiceOver remove transitions
+but preserve the hold. Returns Home and background/resume do not remount it; a new process does.
 
-## Working flow
+src/ui/theme.json is the actual central #F2E9DA / #141414 source. Primitives, root, opening,
+stack content and every current screen use it. app.config.ts applies it to native config/splash
+backgrounds; app.json matches for tooling. Unused starter components/theme files are outside
+the active route/import graph. Screenshot background pixels are RGB(242,233,218).
+Native splash configuration requires a new binary; Expo Go controls its own host launch screen.
+[SDK 57 splash documentation](https://docs.expo.dev/versions/v57.0.0/sdk/splash-screen/).
 
-- `/`: Meditate persists a new UUID open cursor immediately and opens the session.
-  No setup or target selection. Returning users see completed-history count, current
-  numbered level and a quiet progress line; tapping opens Your practice.
-- `/session`: active time counts UP. Tap time to hide/show without changing the cursor.
-  Pause / Resume and Finish are accessible; paused practice also offers deliberate discard
-  confirmation. Finish is a normal completed session; discard creates no history or XP.
-- `/completion`: successful content appears only after the atomic save commits.
-  **Well done. / You made time for yourself.** Active duration, saved practice count,
-  actual fixed-point award, current level and next-level progress. A short count dissolve
-  and actual before→after level acknowledgement support multiple-level jumps. Zero XP stays zero.
-  Home acknowledges the durable summary before navigating away. Failed saves retain the exact
-  finished payload and offer Retry; uncertain commit/rollback failures reopen the database
-  on Retry and restore durable truth rather than rerunning a stale cursor.
-- `/practice`: numeric level, existing named stage/wave, precise XP remaining,
-  current progression, lifetime XP and permanent highest **stage**. At 100: “Your practice continues.”
-- `/preferences`: ambience choice, gong interval, volumes and explicit Done/save.
-  These are future audio preferences; this version remains silent. The legacy default-duration
-  field survives unchanged in storage but is unused by open-ended practice.
-- `/history`: paginated actual records, captured local days, active durations and statuses.
-  Old timed/early-ended records remain readable.
+The first explanation is short, scrollable, skippable, and stores dismissal. Start practising leads
+to Home, not a setup step. Journey → How progress works makes it available again. Pending
+timer/completion recovery takes precedence over a never-dismissed explanation.
 
-## Persistence and interpretation
+## Native routes and lifecycle
 
-See ARCHITECTURE.md for V3 migration, atomic completion, pending-summary acknowledgement
-and clock/zone policies. Practice count is derived from saved `status='completed'` sessions,
-including short zero-XP practice. Legacy `ended_early` remains history and can retain XP under
-the unchanged earning rules, but does not count as a completed practice. Discarded drafts do neither.
+- /: dominant one-tap Meditate; two quiet indicators for permanent lifetime practice and actual
+  recent consistency; Journey, saved-history count and preferences. Both bars appear for new users.
+- /session: count UP, hide/show time, Pause/Resume, Finish and deliberate discard.
+  Existing durable cursor/retry/recovery remain unchanged. Running locked/closed time counts;
+  Pause excludes it. No duration setup/selection.
+- /completion: confirmed atomic save; Well done, active duration, real saved-practice count,
+  immutable awarded XP, permanent level and all unmet gates. Durable credit feedback distinguishes
+  ordinary, double-day increment, already credited/capped and short history. Category transitions
+  receive a quiet acknowledgement; crossing 100 receives the exact habit milestone message.
+  Home acknowledges the summary. Old summaries never invent pre-migration event feedback.
+- /practice: native **Journey**. Permanent level/category/step/icon, two indicators, lifetime XP,
+  credits vs real dates, explanations and expandable 25-category/125-level list. Automatically
+  bring the current category into view; scroll upward for the overview and How progress works.
+  All future requirements/icons remain inspectable. Maximum has no next level, never exceeds 125.
+- /how-progress-works: explanation, early three-minute/six-hour examples, actual XP/consistency rules
+  and separate 365-date/elapsed-day safeguard.
+- /history, /preferences: retained real history/pagination and typed persisted future audio choices.
 
-A running cursor includes wall-clock time while locked/backgrounded/closed; only Pause stops
-active accrual. An open practice has no expiry. Paused drafts remain paused. Finishing captures
-the explicit observed completion zone/date. A finished payload already saved keeps that capture.
-Legacy timed drafts recover their calculated deadlines using their captured practice zone.
-Clock rollback fails explicitly; there is no guessed repair.
+All number/date rules are domain/repository outputs. No SQL or XP formula lives in screens.
+See GAME_SYSTEM.md for the complete threshold table, simulations and historical version policy;
+ARCHITECTURE.md documents V4 migration and immutable completion metadata.
 
-A pending saved summary is a continuation of the same completion, including after a crash.
-It does not replay earnings. Once Home is acknowledged, later launches do not replay it.
-No fabricated presentation receipts are backfilled for pre-V3 history.
+## Wave and icon assets
 
-## Verification
+Wave samples the ten original approved artwork contours along the **permanent** journey; their
+legacy asset IDs no longer select a visible rank. During practice, Reanimated changes cubic
+control/join heights by at most six drawing units in a 12-second sinusoidal cycle. Adjacent
+controls move together, preserving tangents. It changes shape, rather than translating a drawing.
+Pause smoothly settles over 1100 ms and stops the phase loop. Resume eases back in; full-cycle
+phase endpoints have identical sine values. Background cancels animation work, independently
+of the timer. Reduced Motion is static, including preference changes during a session.
+Animation props run on the native UI thread; no whole-screen frame renders. It is not a breathing pacer.
 
-`npm test`, `npx tsc --noEmit`, `npm run lint`, `npx expo export --platform all`.
-Pure domain tests and real Node SQLite tests cover timing, all 100 level boundaries,
-counting, migrations, receipt preservation, transactions, retries and reopen recovery.
+assets/ona/categories.json contains 25 native path definitions; categories/ contains the matching
+editable SVGs. Shared 24×24 viewBox, monochrome 1.35 strokes, rounded joins/caps; optically shown
+at 28–32 logical pixels. IDs match central Journey category icon IDs. Update both sources together;
+a parity test prevents drift. icon-specimen.svg is the compact specimen. Every icon is integrated
+in the actual Journey with accessible names; icons are not substituted with emoji/placeholders.
 
-The exported React Native web app is exercised at iPhone dimensions against browser SQLite:
-immediate start, time hide/show, moving curve, pause/resume/reload, Finish, zero-XP saved summary,
-acknowledgement/reopen, history/count, discard and saved preferences. Browser checks also cover
-a qualifying completion using a simulated wall-clock advance, actual multi-level acknowledgement and Reduced Motion.
-They are not physical iOS/Android tests. Export success is not a signed native build.
+## Evidence and verification limits
 
-On iPhone test lock/unlock, force-close running/paused/pending completion, multiple pauses,
-larger text, VoiceOver, Reduce Motion and preferences/history after restart. Native splash
-uses sand in a newly built binary; Expo Go controls its own host launch screen.
+See [browser evidence](evidence/2026-10-11/README.md): opening, explanation, Home, active practice,
+ordinary/double completion, current/future Journey and clearly labelled Level 100 test data.
+The wave recording contains actual browser-rendered curve motion and a smooth Pause; its sampled
+phases differ, while paused/Reduced Motion paths remain static. This is not iPhone evidence.
 
-```powershell
+Automated checks: npm test (pure TS and real Node SQLite), npx tsc --noEmit, npm run lint,
+npx expo export --platform all; exported React Native web against browser SQLite.
+Browser checks cover the >=1-second actual full-opacity hold, skip/dismissal/reopening,
+rendered colours, all icons, inspectable future levels, active/paused/Reduced Motion curve,
+pause/reload recovery, actual ordinary/double credits and Level 100 recovery. Test wall-clock
+advances/fixture history are explicit; no fake product counters or debug route are shipped.
+Native exports/dev bundle do not verify a signed release, native filesystem or visible device motion.
+
+On iPhone: cold launch vs resume; tap skip; first explanation dismiss/reopen; warm sand across
+all screens; watch wave >=12 seconds; Pause/Resume; Reduce Motion; lock/force-close running,
+paused and pending completion; save 2:59 vs 3:00 active; double gap just below/exactly six hours;
+Journey gates/current auto-scroll; large text/VoiceOver; persistent history/preferences after restart.
+
+From PowerShell:
+
+~~~powershell
 cd C:\Users\fga31\Documents\MeditationApp
-npx expo start --clear --go --offline --port 8090
-```
+npx expo start --clear --go --port 8091
+~~~
 
-Keep computer/iPhone on the same Wi-Fi and scan the terminal QR with Camera.
-Offline disables CLI cloud requests, retaining local Wi-Fi. Choose another port if occupied.
-Audio assets and playback remain outside this milestone.
+Computer/iPhone on the same Wi-Fi; scan the terminal QR with Camera. Verification used the
+additional --offline flag in a restricted environment; normal network mode lets the CLI resolve
+Expo configuration metadata. The app's saved data stays local. Select another port if occupied. Rebuild a native
+binary to assess the configured splash; Expo Go's host splash cannot be branded by JS changes.
+
+## Later direction (not implemented)
+
+Restrained outline waves and soft sea ambience may accompany the wordmark later, with accessible
+motion/sound controls. Session ambience and gongs remain future work. No audio module/assets,
+sea opening animation, Garmin, notifications, account, sync or subscriptions are added here.

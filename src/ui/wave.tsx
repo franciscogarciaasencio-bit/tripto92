@@ -5,24 +5,28 @@ import Svg, { Path } from 'react-native-svg';
 import specification from '../../assets/ona/wave-spec.json';
 import { colors } from './primitives';
 import { useReducedMotion } from './reduced-motion';
+import { useForeground } from './use-foreground';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** Curve updates run on the UI thread. Neither the timer nor React receives animation-frame updates. */
-export const Wave = memo(function Wave({ rankId, moving }: { rankId: string; moving?: boolean }) {
-  const points = specification.ranks.find((rank) => rank.id === rankId)?.path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+export const Wave = memo(function Wave({ level = 1, moving }: { level?: number; moving?: boolean }) {
+  // The ten approved contours are artwork, sampled along the permanent journey, not a second rank system.
+  const contour = Math.min(specification.ranks.length - 1, Math.max(0, Math.floor((level - 1) / 124 * (specification.ranks.length - 1))));
+  const points = specification.ranks[contour].path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   const reduced = useReducedMotion();
+  const foreground = useForeground();
   const phase = useSharedValue(0);
   const amplitude = useSharedValue(0);
-  const practiceMotion = moving !== undefined;
   useEffect(() => {
-    if (reduced || !practiceMotion) { cancelAnimation(phase); phase.set(0); amplitude.set(0); return; }
-    phase.set(withRepeat(withTiming(Math.PI * 2, { duration: 14_000, easing: Easing.linear }), -1));
-    return () => cancelAnimation(phase);
-  }, [reduced, practiceMotion, phase, amplitude]);
-  useEffect(() => {
-    amplitude.set(reduced ? 0 : withTiming(moving ? 2.4 : 0, { duration: 1100, easing: Easing.inOut(Easing.cubic) }));
-  }, [moving, reduced, amplitude]);
+    cancelAnimation(phase);
+    if (reduced || !foreground || moving === undefined) { amplitude.set(0); return; }
+    if (moving) {
+      phase.set(withRepeat(withTiming(phase.get() + Math.PI * 2, { duration: 12_000, easing: Easing.linear }), -1));
+    }
+    amplitude.set(withTiming(moving ? 6 : 0, { duration: 1100, easing: Easing.inOut(Easing.cubic) }));
+    return () => { cancelAnimation(phase); cancelAnimation(amplitude); };
+  }, [moving, reduced, foreground, phase, amplitude]);
   const animatedProps = useAnimatedProps(() => {
     const p = [...points];
     if (p.length !== 20) return { d: '' };

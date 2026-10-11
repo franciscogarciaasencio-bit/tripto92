@@ -4,7 +4,7 @@ import { AppState } from 'react-native';
 
 import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, settleTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
-import type { ProgressSnapshot } from '@/domain/progression';
+import type { ProgressSnapshot, LifetimeJourney } from '@/domain/progression';
 
 export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -21,6 +21,8 @@ function useApplication() {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<TimerDraft | null>(null);
   const [snapshot, setSnapshot] = useState<ProgressSnapshot | null>(null);
+  const [journey, setJourney] = useState<LifetimeJourney | null>(null);
+  const [explanationDismissed, setExplanationDismissed] = useState(false);
   const [preferences, setPreferences] = useState<MeditationPreferences | null>(null);
   const [completion, setCompletion] = useState<PracticeCompletion | null>(null);
   const [completedPractices, setCompletedPractices] = useState(0);
@@ -43,6 +45,8 @@ function useApplication() {
         store.current = opened;
         acceptDraft(opened.initialTimer);
         setSnapshot(opened.initialSnapshot);
+        setJourney(opened.initialJourney);
+        setExplanationDismissed(opened.initialExplanationDismissed);
         setPreferences(savedPreferences);
         setHasHistory(history.length > 0);
         setCompletion(opened.initialCompletion);
@@ -77,6 +81,8 @@ function useApplication() {
         const savedHistory = await reopened.meditations.getMeditationHistory({ limit: 1 });
         acceptDraft(reopened.initialTimer);
         setSnapshot(reopened.initialSnapshot);
+        setJourney(reopened.initialJourney);
+        setExplanationDismissed(reopened.initialExplanationDismissed);
         setCompletion(reopened.initialCompletion);
         setCompletedPractices(reopened.initialCompletedPractices);
         setHasHistory(savedHistory.length > 0);
@@ -99,6 +105,7 @@ function useApplication() {
     const session = timerSession(finished);
     const saved = await database.meditations.completePractice(session, Date.now());
     setSnapshot(saved.snapshot);
+    setJourney(saved.journey);
     setCompletion(saved.completion);
     setCompletedPractices(saved.completion.completedPractices);
     setHasHistory(true);
@@ -121,7 +128,8 @@ function useApplication() {
       if (state !== 'active') return;
       check(false);
       if (!timer.current) void operation(async (database) => {
-        setSnapshot(await database.meditations.getCurrentProgressionSnapshot(currentContext()));
+        const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+        setSnapshot(progress.snapshot); setJourney(progress.journey);
       });
     });
     return () => { clearInterval(interval); listener.remove(); };
@@ -133,7 +141,10 @@ function useApplication() {
   }, []);
 
   return {
-    ready, busy, error, draft, snapshot, preferences, completion, hasHistory, completedPractices,
+    ready, busy, error, draft, snapshot, journey, explanationDismissed, preferences, completion, hasHistory, completedPractices,
+    async dismissExplanation() {
+      return operation(async (database) => { await database.application.dismissExplanation(Date.now()); setExplanationDismissed(true); });
+    },
     retryInitialization: () => { setReady(false); setError(null); setAttempt((value) => value + 1); },
     async begin() {
       return operation(async (database) => {
@@ -180,7 +191,8 @@ function useApplication() {
       return operation(async (database) => {
         await database.timer.discard(pending.id);
         acceptDraft(null);
-        setSnapshot(await database.meditations.getCurrentProgressionSnapshot(currentContext()));
+        const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+        setSnapshot(progress.snapshot); setJourney(progress.journey);
       });
     },
     async savePreferences(next: MeditationPreferences) {

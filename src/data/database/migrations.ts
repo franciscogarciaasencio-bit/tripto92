@@ -22,6 +22,35 @@ export const MIGRATIONS: readonly Migration[] = [
     CREATE TRIGGER practice_completions_no_delete BEFORE DELETE ON practice_completions
       BEGIN SELECT RAISE(ABORT, 'Completion summary is immutable'); END;
   ` },
+  { version: 4, name: 'permanent_habit_journey', sql: `
+    CREATE TABLE journey_checkpoint (
+      id INTEGER PRIMARY KEY NOT NULL CHECK(id = 1), version TEXT NOT NULL,
+      level INTEGER NOT NULL CHECK(typeof(level) = 'integer' AND level BETWEEN 1 AND 125),
+      achieved_at INTEGER NOT NULL CHECK(typeof(achieved_at) = 'integer' AND achieved_at >= 0)
+    );
+    CREATE TRIGGER journey_checkpoint_monotonic BEFORE UPDATE ON journey_checkpoint
+      WHEN NEW.level < OLD.level OR NEW.version != OLD.version OR NEW.achieved_at < OLD.achieved_at
+      BEGIN SELECT RAISE(ABORT, 'Journey achievement cannot decrease'); END;
+    CREATE TRIGGER journey_checkpoint_no_delete BEFORE DELETE ON journey_checkpoint
+      BEGIN SELECT RAISE(ABORT, 'Journey achievement cannot be deleted'); END;
+    CREATE TABLE journey_completions (
+      session_id TEXT PRIMARY KEY NOT NULL REFERENCES practice_completions(session_id),
+      before_level INTEGER NOT NULL CHECK(typeof(before_level) = 'integer' AND before_level BETWEEN 1 AND 125),
+      after_level INTEGER NOT NULL CHECK(typeof(after_level) = 'integer' AND after_level BETWEEN before_level AND 125),
+      credits_added INTEGER NOT NULL CHECK(typeof(credits_added) = 'integer' AND credits_added BETWEEN 0 AND 1),
+      date_credits INTEGER NOT NULL CHECK(typeof(date_credits) = 'integer' AND date_credits BETWEEN 0 AND 2)
+    );
+    CREATE TRIGGER journey_completions_immutable BEFORE UPDATE ON journey_completions
+      BEGIN SELECT RAISE(ABORT, 'Journey completion is immutable'); END;
+    CREATE TRIGGER journey_completions_no_delete BEFORE DELETE ON journey_completions
+      BEGIN SELECT RAISE(ABORT, 'Journey completion is immutable'); END;
+    CREATE TABLE application_preferences (
+      id INTEGER PRIMARY KEY NOT NULL CHECK(id = 1),
+      explanation_dismissed_at INTEGER CHECK(explanation_dismissed_at IS NULL OR
+        (typeof(explanation_dismissed_at) = 'integer' AND explanation_dismissed_at >= 0))
+    );
+    INSERT INTO application_preferences VALUES (1, NULL);
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

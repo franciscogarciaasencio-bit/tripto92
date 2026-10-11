@@ -64,6 +64,9 @@ The V1 SQL lives in `src/data/database/schema.ts`.
 | `meditation_preferences` | Singleton typed preferences document. |
 | `meditation_timer` | V2 singleton durable running/paused/pending-completion cursor; removed with the corresponding completion transaction. |
 | `practice_completions` | V3 immutable before/after progression at the completion event, plus first Home acknowledgement. Presentation/recovery metadata, never an authoritative balance. |
+| `journey_checkpoint` | V4 permanent highest legitimately unlocked lifetime level, display version and actual achievement timestamp. |
+| `journey_completions` | V4 immutable credit delta, date credits and lifetime level transition for that completion. |
+| `application_preferences` | V4 first explanation dismissal; independent of unchanged meditation preferences. |
 | `schema_migrations` | Ordered schema versions and names already applied. |
 
 Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
@@ -104,9 +107,10 @@ Time-zone identifiers are checked for syntax and retained verbatim; their member
 and timestamp/date correspondence belong to the capturing timer. The storage layer does not consult the
 device's current zone or remap historical dates. This avoids differences between device tzdb versions.
 
-The explicit supported-rules registry defaults to V1 and checks stored configuration against registered
+The registry always retains V1/V2 and checks stored configuration against registered
 definitions, ignoring JSON object key order. Adding a known future version to `supportedRules` does **not**
-activate it. Use `store.meditations.changeRules(version, asOf)` for a deliberate transition: the domain
+activate it. The native V4 release deliberately upgrades V1 to V2 after recovering pending completions
+and settling old decay. It cannot downgrade a known future version. Use `store.meditations.changeRules(version, asOf)` for a deliberate transition: the domain
 settles old decay, preserves old receipts and open-occasion terms, and then activates new rules atomically.
 Retain V1 in future releases. Unknown versions fail explicitly, including when an older app opens newer data.
 An actual new algorithm also requires a domain evaluator as described in GAME_SYSTEM.md.
@@ -119,13 +123,14 @@ values. No cryptographic integrity seal or independent decay journal is claimed.
 `migrations.ts` contains the ordered `MIGRATIONS` list. V2 adds the timer without modifying V1.
 V3 adds completion metadata and assigns `mode='timed'` to V2 timer JSON; no historical
 session/award/rule/checkpoint/preferences content is rewritten. New open cursors use
-`mode='open_ended'` and a null target. To add V4, append `{ version: 4, name, sql }`;
+`mode='open_ended'` and a null target. V4 adds permanent journey/application metadata without rewriting V1–V3 records.
+To add V5, append `{ version: 5, name, sql }`;
 keep released migrations unchanged.
 Initialization runs outstanding migrations and their markers transactionally,
 together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
 history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
 cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
-The tests demonstrate real V1/V2→V3 upgrades, a future sequential V4 addition and transactional DDL rollback. Destructive changes to protected
+The tests demonstrate real V1/V2→V3 upgrades, a future sequential V5 addition and transactional DDL rollback. Destructive changes to protected
 history require an explicit migration decision, never disabling triggers during ordinary writes.
 
 Preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
@@ -188,7 +193,7 @@ the progression engine continues to consume explicit historical dates and perfor
 ## Open-ended completion and visible progression (V3)
 
 The open-ended timer never expires. Finish emits `completed`, including short runs;
-eligibility remains five active minutes. `timer.discard(id)` removes only an unfinished
+V1 eligibility remains five active minutes; the V4 app release activates prospective V2 three-minute eligibility. `timer.discard(id)` removes only an unfinished
 matching cursor, idempotently, with no session/award. Old timed cursors/history retain
 their original status/deadline semantics. Open running time includes locked/closed time;
 paused time is excluded using explicit wall-clock cursors, not interval ticks.
@@ -217,8 +222,53 @@ for current XP, lifetime XP, decay or highest achievement. Missing old metadata 
 malformed existing metadata fails explicitly. Missing checkpoint policy remains unchanged.
 One startup query validates metadata; only the pending summary needs derived count queries.
 
-Numbered levels are a pure display projection in `src/domain/progression/levels.ts`.
-See GAME_SYSTEM.md for subdivisions, existing-user mapping and highest-stage semantics.
-No numbered level balance is stored separately. Future sync remains above repositories.
+The old 100-level projection remains compatibility code only. Current lifetime progression is
+`progression/journey.ts`, independent of the old decaying balance. See the V4 policy below.
+Future sync remains above repositories.
 
 Next: physical-device lifecycle/accessibility verification. Audio remains unimplemented.
+
+## Permanent habit journey (V4)
+
+Native startup registers historical earning configurations and deliberately activates progression_v2
+only from V1. Existing finished cursors recover under their previously active rules **first**.
+New completion uses three-minute eligibility. Old receipts, qualification flags, preferences, legacy
+highest named rank, settlement cursor and V3 completion summaries remain intact. Unknown versions fail.
+
+Saved validated sessions remain authoritative for practice credits and real dates; immutable receipts
+remain authoritative for lifetime XP. Nothing infers dates from XP/count. No new duplicated XP balance
+is stored. `journey_checkpoint` retains only a legitimately attained display version/level/timestamp,
+validated against the history and receipts that existed at that timestamp. SQL prevents decreases.
+Migration initializes this peak from actual reconstructed gates, never from a former XP-only peak.
+The legacy highest named rank remains separately in the original progression checkpoint.
+
+`completePractice` atomically appends session/award, updates both checkpoints, writes V3/V4 immutable
+completion metadata and deletes the matching timer. It returns `{ snapshot, journey, completion }`.
+`completion.journey` reports the original before/after level, credits added and date-credit total,
+unchanged on duplicate save or reopen. Pre-V4 summaries have null journey feedback: no invented
+historical event acknowledgement. Startup validates credit metadata and original before/after levels
+against saved session/receipt prefixes at completion time; an unearned milestone fails explicitly.
+Retries and uncertain commit recovery use the existing poisoned-connection reopen policy.
+
+`getCurrentPracticeProgress(asOf)` atomically settles legacy progression and returns
+`{ snapshot, journey }`; `initialJourney` is the startup equivalent. All UI imports this API, never SQL.
+The domain lifetime projection uses lifetime XP, credits, real dates and explicit elapsed time.
+The original snapshot supplies the **same consistency factor used by actual earning receipts**.
+
+V4 migration creates the three new tables, then backfills a peak only when migrating from a schema
+before V4. On an already-current database, a missing/invalid journey checkpoint fails instead of
+recreating one. Frozen completed sessions >=180 seconds can backfill credits and inform **future**
+V2 consistency, without awarding old 3–5-minute sessions XP. Malformed historical data fails closed.
+
+`store.application.isExplanationDismissed()` / `.dismissExplanation(explicitTimestamp)` persist the
+first dismissal idempotently. `initialExplanationDismissed` restores it. Meditation preferences keep
+their original typed shape/defaults. The opening is process-local UI state and is not the explanation.
+
+Future earning changes use new registered configurations and explicit `changeRules`. Future journey
+threshold changes need a new display version and an explicit peak migration preserving original
+achievement terms; do not edit released thresholds or bypass maximum gates. SQLite stays out of
+`src/domain/`; future optional sync can sit above these repositories.
+
+Current hydration/credit validation favors integrity and readability over multi-year optimization.
+Credit metadata validation reads session prefixes at startup; profile large histories on devices
+before adding incremental summaries. No native filesystem, device failure or signed-build claim is made.
