@@ -4,7 +4,7 @@ const { assert, api, context, session, fixture, disk, connection, openStore, sav
 test('V1 initializes all tables, defaults, schema marker and empty domain state', async (t) => {
   const { conn, meditations, settings } = await fixture(t);
   const tables = conn.raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name);
-  assert.deepEqual(tables, ['application_preferences', 'audio_preferences', 'habit_checkpoints', 'habit_reward_receipts', 'journey_animation_receipts', 'journey_checkpoint', 'journey_completions', 'journey_legacy_peaks', 'legacy_journey_checkpoint', 'meditation_preferences', 'meditation_sessions', 'meditation_timer', 'practice_completions', 'progression_awards', 'progression_checkpoint', 'progression_consistency_activations', 'progression_generations', 'progression_rules', 'schema_migrations']);
+  assert.deepEqual(tables, ['application_preferences', 'audio_preferences', 'habit_checkpoints', 'habit_reward_receipts', 'journey_animation_receipts', 'journey_checkpoint', 'journey_completions', 'journey_legacy_peaks', 'legacy_journey_checkpoint', 'meditation_preferences', 'meditation_sessions', 'meditation_timer', 'practice_completions', 'progression_awards', 'progression_checkpoint', 'progression_consistency_activations', 'progression_generations', 'progression_rules', 'schema_migrations', 'sync_document_clocks', 'sync_manifest', 'sync_set_aside_sessions', 'sync_state']);
   assert.equal(conn.raw.prepare('SELECT version FROM schema_migrations').get().version, 1);
   assert.equal(conn.raw.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
   assert.deepEqual(await meditations.loadProgressionState(), api.createProgressionState(context(1)));

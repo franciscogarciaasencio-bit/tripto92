@@ -14,6 +14,7 @@ import { loadJourney } from './journey';
 import { createApplicationRepository, loadExplanationDismissal } from '../repositories/application-repository';
 import { loadHabit } from './habit';
 import { DEFAULT_AUDIO_PREFERENCES } from '../audio-preferences';
+import { createSyncRepository, loadSyncState } from '../repositories/sync-repository';
 
 /** Internal factory shared by native adapter and real SQLite tests; application code uses initializeDatabase. */
 export async function openStore(connection: SqlConnection, input: CalendarContext, supportedRules?: readonly ProgressionRules[], activateRulesVersion?: string) {
@@ -58,16 +59,18 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       const habit = await loadHabit(sql, state, migration.previousVersion < 8 || releasedUpgrade);
       await validateCompletions(sql, registry);
       const dismissed = await loadExplanationDismissal(sql);
+      const sync = await loadSyncState(sql);
       return { initialSnapshot: getProgressSnapshot(state, asOf), initialTimer: draft?.phase === 'finished' ? null : draft,
         initialJourney: habit?.journey ?? await loadJourney(sql, state), initialHabit: habit?.checkpoint ?? null, initialExplanationDismissed: dismissed !== null,
         recoveredSession, previousRank, initialCompletion: await pendingCompletion(sql),
-        initialCompletedPractices: await completedPracticeCount(sql) };
+        initialCompletedPractices: await completedPracticeCount(sql), initialSync: sync };
     });
     return {
       meditations: createMeditationRepository(database, registry),
       settings: createSettingsRepository(database),
       timer: createTimerRepository(database),
       application: createApplicationRepository(database),
+      sync: createSyncRepository(database, registry),
       ...restored,
       close: database.close,
     };

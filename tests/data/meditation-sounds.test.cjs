@@ -1,5 +1,5 @@
 const {test}=require('node:test');
-const {assert,data,domain,connection,openStore,context,disk,session,save}=require('./helpers.cjs');
+const {assert,data,domain,connection,openStore,context,disk,session,save,DROP_SYNC_MIGRATION}=require('./helpers.cjs');
 const {createSessionSoundController,activeAudioSeconds}=data('../audio/session-controller.js');
 const {DEFAULT_AUDIO_PREFERENCES:defaults,decodeAudioPreferences}=data('audio-preferences.js');
 const {startOpenEndedTimer,pauseTimer,resumeTimer,finishTimer}=domain('meditation/timer.js');
@@ -92,7 +92,7 @@ test('V9 migrates legacy choices/mutes/volumes transactionally, preserving sessi
  const old={version:1,homeEnabled:false,homeVolume:.21,sessionSound:'silence',sessionVolume:.07,openingBellEnabled:true,closingBellEnabled:false};
  conn.raw.prepare('UPDATE audio_preferences SET preferences_json=?').run(JSON.stringify(old));
  // Reconstruct the released V8 schema, removing only later, empty migration additions.
- conn.raw.exec('DROP TABLE progression_consistency_activations; DELETE FROM schema_migrations WHERE version>=9');await conn.close();
+ conn.raw.exec(DROP_SYNC_MIGRATION+'DROP TABLE progression_consistency_activations; DELETE FROM schema_migrations WHERE version>=9');await conn.close();
  store=await openStore(connection(file),state.asOf);
  assert.deepEqual(await store.settings.loadAudioPreferences(),{...old,version:2,bellVolume:.18,intervalSeconds:null,hapticsEnabled:false});
  assert.deepEqual(await store.meditations.loadProgressionState(),state);await store.close();

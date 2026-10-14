@@ -565,3 +565,34 @@ foreground-service permissions; no microphone permission. The existing APK still
 the old declarations until the next build (Session 20). A regression test guards the list.
 Verification: **879 tests** (511 domain + 368 data), TypeScript and lint pass.
 
+### 13 — Complete (2026-10-14): sync design, ledger export/import and durable local outbox
+
+Owner decisions: Supabase backend, guided owner-created accounts. docs/SYNC.md specifies
+the model: the device's validated ledger stays the unit of truth; the cloud keeps a linear,
+multi-version revision history with compare-and-swap pushes and idempotent push IDs; local
+changes are *derived* by diffing an export against the last synced manifest, so the outbox
+cannot lose events. Fast-forward merges keep remote history untouched; only an interleaved
+post-fork window is replayed; latest reset wins with no resurrection; overlapping practices
+are set aside, never dropped. Per-account ledger files prevent cross-account leaks.
+
+Implementation: migration 11 (`optional_account_sync`) adds sync_state (random device ID,
+account binding enforced by an SQL trigger, synced revision, one in-flight push), sync_manifest,
+sync_document_clocks and immutable sync_set_aside_sessions (deleted by confirmed reset).
+database/ledger.ts: fixed 15-table ledger with stable keys, dependency-free SHA-256 row hashes,
+deterministic export, untrusted-row decoding (table/column allowlists, scalar values, recomputed
+keys), diff/apply, and `replaceLedger`, which swaps the ledger in one transaction, refuses while a
+practice or unacknowledged completion exists, marks imported completions acknowledged and runs
+full startup validation; any inconsistency rolls back. Continuation singletons alone are not
+"significant" changes, so ordinary reopening never causes pushes or merges. Reset's deletion
+guards became shared helpers. Preference saves record monotonic edit clocks.
+sync-repository.ts exposes bind, export, localChanges, begin/complete/abandon push, applyRemote.
+
+Verification: **896 tests** (511 domain + 385 data): seventeen new ledger/sync tests cover
+SHA-256 against Node crypto, unique device IDs, V10→V11 upgrade, account binding (including raw
+SQL), exact cross-device round trip (history/details/progress/next earning identical, no
+completion screen), four tampered-ledger rejections with unchanged device and restored guards,
+untrusted row validation, import refusal states, diff/apply equivalence, durable in-flight push
+across restart, abandoned pushes, reset removals and preference clocks. Existing migration tests
+were updated only for the new migration count/V10 fixtures. TypeScript, lint and all-platform
+export pass. No network code, dependency or UI change yet.
+

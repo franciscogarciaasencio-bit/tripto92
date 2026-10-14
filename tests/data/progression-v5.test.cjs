@@ -1,5 +1,5 @@
 const { test } = require('node:test');
-const { assert, api, data, domain, connection, disk, openStore, context, session, at } = require('./helpers.cjs');
+const { assert, api, data, domain, connection, disk, openStore, context, session, at, DROP_SYNC_MIGRATION } = require('./helpers.cjs');
 const { startTimer, settleTimer, timerSession } = domain('meditation/timer.js');
 const release = (conn, asOf, supported) => openStore(conn, asOf, supported, 'progression_v5');
 const legacy = (conn, asOf) => openStore(conn, asOf, undefined, 'progression_v4');
@@ -22,7 +22,7 @@ async function releasedNineFixture(t, days = 3) {
   const state = await store.meditations.loadProgressionState(), receipts = awards(conn);
   await store.close(); conn = connection(file);
   assert.equal(anchorRows(conn).length, 0);
-  conn.raw.exec(`DROP TRIGGER consistency_activations_immutable_update;
+  conn.raw.exec(DROP_SYNC_MIGRATION + `DROP TRIGGER consistency_activations_immutable_update;
     DROP TRIGGER consistency_activations_immutable_delete;
     DROP TABLE progression_consistency_activations;
     DELETE FROM schema_migrations WHERE version = 10;`);
@@ -44,7 +44,7 @@ test('Real V9 history migrates transactionally to V10, preserving exact V4 award
   assert.equal(state.consistencyActivations[0].awardCount, 7);
   assert.deepEqual(awards(conn), receipts);
   assert.equal(state.lifetimeXpCenti, previous.lifetimeXpCenti);
-  assert.equal(conn.raw.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 10);
+  assert.equal(conn.raw.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 11);
   assert.equal(conn.raw.prepare('SELECT COUNT(*) n FROM schema_migrations WHERE version=10').get().n, 1);
   const stored = anchorRows(conn); await store.close();
   conn = connection(file); store = await release(conn, context(12));

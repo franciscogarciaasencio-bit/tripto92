@@ -204,6 +204,43 @@ export const MIGRATIONS: readonly Migration[] = [
     CREATE TRIGGER consistency_activations_immutable_delete BEFORE DELETE ON progression_consistency_activations
       BEGIN SELECT RAISE(ABORT, 'Consistency activation is immutable'); END;
   ` },
+  { version: 11, name: 'optional_account_sync', sql: `
+    CREATE TABLE sync_state (
+      id INTEGER PRIMARY KEY NOT NULL CHECK(id = 1),
+      device_id TEXT NOT NULL CHECK(length(device_id) = 32 AND device_id NOT GLOB '*[^0-9a-f]*'),
+      account_id TEXT CHECK(account_id IS NULL OR length(trim(account_id)) > 0),
+      synced_revision INTEGER NOT NULL DEFAULT 0 CHECK(typeof(synced_revision) = 'integer' AND synced_revision >= 0),
+      inflight_json TEXT,
+      last_synced_at INTEGER CHECK(last_synced_at IS NULL OR (typeof(last_synced_at) = 'integer' AND last_synced_at >= 0)),
+      CHECK(account_id IS NOT NULL OR (synced_revision = 0 AND inflight_json IS NULL AND last_synced_at IS NULL))
+    );
+    INSERT INTO sync_state(id, device_id) VALUES (1, lower(hex(randomblob(16))));
+    CREATE TRIGGER sync_state_account_bound BEFORE UPDATE OF account_id, device_id ON sync_state
+      WHEN NEW.device_id != OLD.device_id OR (OLD.account_id IS NOT NULL AND NEW.account_id IS NOT OLD.account_id)
+      BEGIN SELECT RAISE(ABORT, 'A ledger file stays bound to one account and device identity'); END;
+    CREATE TABLE sync_manifest (
+      table_name TEXT NOT NULL CHECK(length(trim(table_name)) > 0),
+      row_key TEXT NOT NULL CHECK(length(row_key) > 0),
+      row_hash TEXT NOT NULL CHECK(length(row_hash) = 64),
+      PRIMARY KEY(table_name, row_key)
+    );
+    CREATE TABLE sync_document_clocks (
+      document TEXT PRIMARY KEY NOT NULL
+        CHECK(document IN ('meditation_preferences', 'audio_preferences', 'application_preferences')),
+      updated_at INTEGER NOT NULL CHECK(typeof(updated_at) = 'integer' AND updated_at >= 0)
+    );
+    CREATE TABLE sync_set_aside_sessions (
+      session_id TEXT PRIMARY KEY NOT NULL CHECK(length(trim(session_id)) > 0),
+      session_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL CHECK(typeof(created_at) = 'integer' AND created_at >= 0),
+      set_aside_at INTEGER NOT NULL CHECK(typeof(set_aside_at) = 'integer' AND set_aside_at >= 0),
+      reason TEXT NOT NULL CHECK(reason IN ('overlap'))
+    );
+    CREATE TRIGGER sync_set_aside_sessions_immutable_update BEFORE UPDATE ON sync_set_aside_sessions
+      BEGIN SELECT RAISE(ABORT, 'Set-aside practice is immutable'); END;
+    CREATE TRIGGER sync_set_aside_sessions_immutable_delete BEFORE DELETE ON sync_set_aside_sessions
+      BEGIN SELECT RAISE(ABORT, 'Set-aside practice is immutable'); END;
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

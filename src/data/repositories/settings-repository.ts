@@ -2,6 +2,7 @@ import type { SqlConnection, Transactions } from '../database/connection';
 import { json, object, requireData } from '../database/validation';
 import { decodePreferences, type MeditationPreferences } from '../preferences';
 import { decodeAudioPreferences, type AudioPreferences } from '../audio-preferences';
+import { touchDocument } from './sync-repository';
 
 export async function loadAudioPreferences(sql: SqlConnection): Promise<AudioPreferences> {
   const rows = await sql.all('SELECT * FROM audio_preferences');
@@ -18,19 +19,21 @@ export async function loadPreferences(sql: SqlConnection): Promise<MeditationPre
 export function createSettingsRepository(database: Transactions) {
   return {
     loadAudioPreferences: () => database.transaction(loadAudioPreferences),
-    async saveAudioPreferences(input: AudioPreferences): Promise<void> {
+    async saveAudioPreferences(input: AudioPreferences, updatedAt = Date.now()): Promise<void> {
       const preferences = decodeAudioPreferences(input);
       await database.transaction(async (sql) => {
         await loadAudioPreferences(sql);
         await sql.run('UPDATE audio_preferences SET preferences_json = ? WHERE id = 1', [JSON.stringify(preferences)]);
+        await touchDocument(sql, 'audio_preferences', updatedAt);
       });
     },
     loadPreferences: () => database.transaction(loadPreferences),
-    async savePreferences(input: MeditationPreferences): Promise<void> {
+    async savePreferences(input: MeditationPreferences, updatedAt = Date.now()): Promise<void> {
       const preferences = decodePreferences(input);
       await database.transaction(async (sql) => {
         await loadPreferences(sql);
         await sql.run('UPDATE meditation_preferences SET preferences_json = ? WHERE id = 1', [JSON.stringify(preferences)]);
+        await touchDocument(sql, 'meditation_preferences', updatedAt);
       });
     },
   };

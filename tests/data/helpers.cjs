@@ -91,4 +91,7 @@ async function writeLegacyFixture(conn, version, state, preferences = data('pref
     await conn.run(`INSERT INTO journey_checkpoint VALUES (1, ${version >= 6 ? '1, ' : ''}?, ?, ?)`, [api.LEGACY_JOURNEY_VERSION, peak.level.number, state.asOf.timestamp]);
   }
 }
-module.exports = { ...domainHelpers, data, connection, fixture, disk, openStore, save, checkpoint, corruptCheckpoint, writeLegacyFixture };
+/** Remove migration 11's empty sync objects, reconstructing a released V10 file for upgrade tests. */
+const DROP_SYNC_MIGRATION = `DROP TABLE sync_state; DROP TABLE sync_manifest; DROP TABLE sync_document_clocks;
+  DROP TABLE sync_set_aside_sessions; DELETE FROM schema_migrations WHERE version = 11;`;
+module.exports = { ...domainHelpers, data, connection, fixture, disk, openStore, save, checkpoint, corruptCheckpoint, writeLegacyFixture, DROP_SYNC_MIGRATION };

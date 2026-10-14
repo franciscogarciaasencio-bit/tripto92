@@ -86,10 +86,10 @@ remain a historical read-only projection. No historical XP is rewritten.
 
 ## Schema and migrations
 
-V1 SQL: database/schema.ts. Ordered released migrations **1–10**: database/migrations.ts.
+V1 SQL: database/schema.ts. Ordered released migrations **1–11**: database/migrations.ts.
 schema_migrations tracks names/versions; startup validates the exact prefix. Migrations,
 markers and restored initial continuation share one transaction. Reopening current data
-is nondestructive. To extend, append migration **11**, add typed decoders/tests and document
+is nondestructive. To extend, append migration **12**, add typed decoders/tests and document
 its meaning; never edit released definitions or reset a DB to make a migration pass.
 
 | Tables | Purpose |
@@ -106,6 +106,8 @@ its meaning; never edit released definitions or reset a DB to make a migration p
 | meditation_timer | One durable running/paused/pending cursor |
 | meditation_preferences, audio_preferences, application_preferences | Typed settings and independent onboarding preference |
 | schema_migrations | Applied ordered schema versions |
+| sync_state, sync_manifest, sync_document_clocks | Migration 11: device ID, bound account, synced revision/manifest, in-flight push, preference edit clocks |
+| sync_set_aside_sessions | Migration 11: practices that could not merge into the ledger (synced, immutable, cleared by reset) |
 
 Decoders/validation/integrity validate untrusted rows, IDs, dates/zones, finite safe
 integer times/XP, durations, known versions, ledger/occasion membership and receipt chains.
@@ -141,5 +143,7 @@ npm run check covers pure domain plus real Node SQLite repository/migration/rese
 fake-clock audio lifecycle and pure presentation plans. Node SQLite executes real SQL,
 not the Expo native bridge. Native exports verify imports/assets, not device lifecycle.
 Web SQLite additionally needs COOP/COEP headers; platform audio adapters share policies.
-No accounts/backend/sync are implemented. A future optional sync layer can sit above
-repositories using stable IDs, captured timestamps and versioned immutable receipts.
+Optional account sync is specified in [Sync](SYNC.md). database/ledger.ts exports the
+practice ledger as keyed, hashed rows and replaces it (`replaceLedger`) inside one
+transaction followed by full startup validation; the sync repository tracks the bound
+account, synced manifest and one durable in-flight push. Guest use needs none of it.
