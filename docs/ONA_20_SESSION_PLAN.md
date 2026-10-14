@@ -2,21 +2,20 @@
 
 ## Resume here
 
-Sessions **1–8 are complete**. Session **9 research/mastering is prepared** and Session
-**10 audio integration is implemented**. Subjective listening and physical-device audio
-acceptance remain pending; do not claim those were performed. **Session 11 is complete**:
-the signed standalone Android APK was downloaded and verified. **Session 12 is partial**:
-APK compatibility checks pass, but native acceptance is blocked by an unavailable Android
-phone and missing emulator hypervisor driver. Development is being handed to Claude per
-the owner; read docs/CLAUDE_HANDOFF.md and docs/ANDROID_ACCEPTANCE.md. Finish those native
-checks using the existing APK; do not automatically begin Session 13 or create another key.
-Default to one substantial session per `continue`; the user explicitly authorized four
-consecutive sessions through Session 5 in this run. Verify, update this file, then stop.
-Never count planning alone or silently run unrequested future sessions.
-Read AGENTS.md, inspect Git status and preserve earlier work before editing. The starting
-tree contains many authorized, uncommitted milestones; HEAD is `9e910bf` (Choir replacement),
-**not** a snapshot of the current app. Do not reset it, bulk-stage it or claim a clean baseline.
-Session 1's pre-edit hashes/status and check logs are in ignored `.expo/program-session-1/`.
+Development moved from Codex on the owner's Windows PC to Claude on 2026-10-14. The
+repository now lives on GitHub (`franciscogarciaasencio-bit/tripto92`, branch `main`);
+commit `e5c3b17` is the first complete snapshot of Sessions 1–11. Claude works in a
+cloud Linux checkout and pushes after every session; the owner pulls on Windows.
+Only one agent edits at a time: pull before starting, push before handing over.
+
+Sessions **1–8 and 11 are complete**; 9–10 are implemented with subjective listening
+still owner-reported only. **Session 12 is complete**: the owner installed and uses the
+APK on a physical Android phone. On 2026-10-14 the owner explicitly authorized Claude to
+continue through Sessions 13–20 in one program, with Supabase as the backend, guided
+owner-created Google/Supabase accounts, and a **pre-meditation screen** (intention,
+sound, open-ended or fixed duration) inserted after Session 18 and before 19–20 so the
+final polish/audit/APK cover it. Read AGENTS.md and the session log below on `continue`.
+Never claim device/listening results the owner has not reported.
 
 ## Mission and acceptance contract
 
@@ -525,7 +524,7 @@ test hardware Back/safe areas/wave/timer/recovery/SQLite/audio/settings/offline 
 and inspect native permissions/16 KB compatibility. Expo Go data is a separate sandbox;
 the new standalone app does not automatically import it. Session 12 was not begun.
 
-### 12 — Partial (2026-10-14): compatibility checks and Claude handoff
+### 12 — Complete (2026-10-14): compatibility checks, handoff and owner device acceptance
 
 Inspected the current dirty tree, roadmap, native configuration and integration. No app
 source/dependency/user-data/signing changes. ADB found no connected device. Started the
@@ -553,3 +552,16 @@ identity, safe credential retrieval, machine tools, external service gaps and us
 No private signing material exported, new account, purchase, Git commit or Session 13 work.
 The owner intends to continue with Claude after this milestone; native acceptance is the
 first unfinished prerequisite rather than something that may be silently marked complete.
+
+**Completed by Claude (2026-10-14).** The owner reports the Session 11 APK installed and
+working on their own physical Android phone; they test there directly. Per-row results of
+the ANDROID_ACCEPTANCE.md table were not individually reported, so rows remain listed for
+targeted follow-up when an issue is noticed rather than as claimed passes. The pre-release
+review item is resolved in configuration: app.json `android.blockedPermissions` removes
+READ/WRITE_EXTERNAL_STORAGE and SYSTEM_ALERT_WINDOW. A disposable `expo prebuild` copy
+(outside the repository) confirmed the generated manifest marks all three
+`tools:node="remove"`, retaining INTERNET, VIBRATE, MODIFY_AUDIO_SETTINGS and media
+foreground-service permissions; no microphone permission. The existing APK still contains
+the old declarations until the next build (Session 20). A regression test guards the list.
+Verification: **879 tests** (511 domain + 368 data), TypeScript and lint pass.
+

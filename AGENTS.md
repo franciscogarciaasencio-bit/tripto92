@@ -32,7 +32,10 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
 - Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
   the approved application ID and signing key; never commit credentials or APK artifacts.
 - Claude handoff: docs/CLAUDE_HANDOFF.md contains external setup/chat decisions. Session 12
-  native acceptance is pending (docs/ANDROID_ACCEPTANCE.md); do not start Session 13 automatically.
+  is complete (owner tests the APK on a physical Android phone). The owner authorized
+  Sessions 13–20 plus the pre-meditation screen (before 19–20); see the plan's Resume here.
+- The repository is on GitHub (origin/main). Pull before starting, commit and push after
+  each session; only one agent (Codex or Claude) edits at a time.
 - Node 24+ is required. Run npm run check before finishing; npm test covers domain,
   persistence, audio and reward/geometry logic. Export all platforms after changing
   imports, assets, dependencies or native config: npx expo export --platform all.

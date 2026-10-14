@@ -65,3 +65,14 @@ test('Unrelated audio/Router/SQLite plugins retain their configuration', () => {
   assert.deepEqual(unrelated(actual.plugins), unrelated(base.expo.plugins));
   assert.equal(actual.backgroundColor, theme.background);
 });
+
+test('Unneeded legacy storage and overlay permissions are blocked from the release manifest', () => {
+  const actual = configuration();
+  assert.deepEqual([...actual.android.blockedPermissions].sort(), [
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'android.permission.SYSTEM_ALERT_WINDOW',
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+  ]);
+  assert.ok(!(actual.android.permissions ?? []).some(name => actual.android.blockedPermissions.includes(name)));
+  assert.ok(!(actual.android.permissions ?? []).includes('android.permission.RECORD_AUDIO'));
+});

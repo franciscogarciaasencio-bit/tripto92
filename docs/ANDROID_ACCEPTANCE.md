@@ -1,5 +1,11 @@
 # Session 12 — Android acceptance
 
+2026-10-14 (later): **owner device acceptance.** The owner installed the existing APK on
+their own physical Android phone and reports it working; they now test there directly.
+Individual table rows below were not separately reported and remain the checklist for
+targeted follow-up. Legacy storage/overlay declarations are now blocked in app config
+(effective from the next build). Earlier the same day, before the owner's phone was used:
+
 2026-10-14: **partial; native runtime blocked**, not a completed device test.
 No Android phone is available (confirmed by owner). The existing API 37 x86_64 AVD
 cannot boot: `Android Emulator hypervisor driver is not installed on this machine`.

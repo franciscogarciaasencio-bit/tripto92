@@ -5,6 +5,11 @@ application architecture tutorial. Read AGENTS.md and the existing technical doc
 
 ## Start here
 
+> **Superseded 2026-10-14:** the working tree was committed as `e5c3b17` and pushed to
+> GitHub (`franciscogarciaasencio-bit/tripto92`). Git now contains the current app; the
+> notes below about uncommitted work and HEAD `9e910bf` are historical. The owner has a
+> physical Android phone and authorized Sessions 13–20 (see ONA_20_SESSION_PLAN.md).
+
 - Work in `C:\Users\fga31\Documents\MeditationApp`. Preserve its entire working tree.
   It contains many authorized, uncommitted milestones and untracked runtime files.
   Git HEAD `9e910bf` is only the older Choir replacement, **not the current app**.
