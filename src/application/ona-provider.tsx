@@ -313,6 +313,8 @@ function useApplication() {
   return {
     ready, busy: busy || switching, error, draft, snapshot,
     cloudAvailable: cloudAuth !== null,
+    /** Development builds only: the return address sent to Supabase, to compare with its Redirect URLs. */
+    signInReturnAddress: __DEV__ && cloudAuth ? cloudAuth.redirectUri() : null,
     account: account ?? null,
     syncStatus,
     syncNow: () => runSync(),

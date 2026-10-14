@@ -101,6 +101,9 @@ export function AccountScreen() {
       {body}
       {!between && app.cloudAvailable && <Type role="secondary">Finish your current practice and return Home first.</Type>}
       <Notice>{app.error ? 'Something went wrong. Please try again.' : message}</Notice>
+      {app.signInReturnAddress && <Type role="secondary" selectable style={{ fontSize: 12 }}>
+        {`Development: sign-in returns to ${app.signInReturnAddress}${app.error ? `\nLast error: ${app.error}` : ''}`}
+      </Type>}
     </View>
   </Screen>;
 }

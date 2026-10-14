@@ -726,7 +726,14 @@ cloud keeps every version, so storage grows ~25 MB per person-year. Fine for the
 group on the free plan; documented in SYNC.md with the compaction design needed before wider
 release. Not changed now, deliberately, to avoid risky retention logic without real usage data.
 
-Verification: **942 tests** (511 domain + 431 data), TypeScript and lint pass. No app source
+Verification: **942 tests** (511 domain + 431 data), TypeScript and lint pass (full check re-run
+after the owner's interruptions, exit 0). No app source
 changes in this session beyond test helpers and documentation. Real Google sign-in and a hosted
 Supabase project remain owner setup; device sync remains to be exercised with real credentials.
+
+Open item (2026-10-14, owner testing in Expo Go on iPhone): Google sign-in reaches Google, but
+Supabase returns to its Site URL (`localhost`) instead of the app, so the session does not reach
+Ona. Redirect URLs contain `exp://**` and `meditationapp://auth-callback`. Next diagnosis:
+Supabase Auth logs, and the development-only return address now shown on the Account screen.
+Owner chose to continue the program and fix this together later.
 
