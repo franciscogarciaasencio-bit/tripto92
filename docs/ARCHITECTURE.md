@@ -91,10 +91,10 @@ remain a historical read-only projection. No historical XP is rewritten.
 
 ## Schema and migrations
 
-V1 SQL: database/schema.ts. Ordered released migrations **1–12**: database/migrations.ts.
+V1 SQL: database/schema.ts. Ordered released migrations **1–13**: database/migrations.ts.
 schema_migrations tracks names/versions; startup validates the exact prefix. Migrations,
 markers and restored initial continuation share one transaction. Reopening current data
-is nondestructive. To extend, append migration **13**, add typed decoders/tests and document
+is nondestructive. To extend, append migration **14**, add typed decoders/tests and document
 its meaning; never edit released definitions or reset a DB to make a migration pass.
 
 | Tables | Purpose |
@@ -111,7 +111,7 @@ its meaning; never edit released definitions or reset a DB to make a migration p
 | meditation_timer | One durable running/paused/pending cursor |
 | meditation_preferences, audio_preferences, application_preferences | Typed settings and independent onboarding preference |
 | schema_migrations | Applied ordered schema versions |
-| sync_state, sync_manifest, sync_document_clocks | Migrations 11–12: device ID, bound account, synced revision, the synced base rows (content + hash), in-flight push, preference edit/acknowledgement clocks |
+| sync_state, sync_manifest, sync_document_clocks | Migrations 11–13 (cloud ledger identity in 13): device ID, bound account, synced revision, the synced base rows (content + hash), in-flight push, preference edit/acknowledgement clocks |
 | sync_set_aside_sessions | Migration 11: practices that could not merge into the ledger (synced, immutable, cleared by reset) |
 
 Decoders/validation/integrity validate untrusted rows, IDs, dates/zones, finite safe

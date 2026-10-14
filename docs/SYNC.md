@@ -90,7 +90,7 @@ the account ID. Signing in switches files; signing out switches back to guest. A
 bound to one account (`sync_state.account_id`) and refuses any other, so data cannot
 cross accounts even through a bug in the caller.
 
-## Sync cycle (Sessions 16–17)
+## Sync cycle (Sessions 16–17, src/application/sync-engine.ts)
 
 Preconditions: signed in, no running/paused practice, no unacknowledged completion.
 
@@ -108,26 +108,41 @@ Preconditions: signed in, no running/paused practice, no unacknowledged completi
 
 ### Merge
 
-The base is the cloud state at S (fetched from the server). Events after the base:
-practices that exist on only one side, and resets (a changed reset boundary).
+`planMerge` (database/ledger-merge.ts) compares the stored base S, the cloud head H and
+this phone's ledger. Events since S are practices present on only one side and resets
+(a changed `progression_generations` boundary).
 
-- **Fast-forward** (common case): no reset on either side and every local-only
-  practice starts after the last remote practice ended → import H, then complete the
-  local-only practices in time order through the normal completion path. Remote
-  history is untouched; local-only practices earn under current rules.
-- **Interleaved**: import the base, then complete every practice after the base from
-  both sides in time order. Only this post-fork window is recalculated; practices
-  synced before the fork never change. This is the one place where a reward shown on
-  one device may later differ slightly (e.g. same-day occasion weighting across two
-  offline devices). It is deterministic and documented.
+- **Fast-forward** (common case): no local reset, and every local-only practice starts
+  at or after H's settlement time → import H, then complete the local-only practices in
+  time order through the normal completion path. Cloud history is untouched.
+- **Replay**: otherwise a practice arrived late (made offline before the cloud state's
+  settlement time). The engine asks `ona_ledger_revision_before(earliest, H)` for the
+  newest revision settled no later than the earliest event, imports that state (from the
+  local base when it is S, otherwise downloaded once) and completes every newer practice
+  from both sides in time order. Only this window is recalculated; history up to the
+  start revision never changes. If no revision is early enough, the replay starts from a
+  fresh ledger built exactly as a new install builds one (no reset is invented).
+  This is the one place a reward shown on one phone may later differ slightly (for
+  example same-day occasion weighting across two offline phones). It is deterministic.
 - **Reset**: the latest reset wins; practices that started at or before its boundary are
-  deleted (deletion wins, nothing is resurrected). Later practices from both sides are
-  replayed onto the empty ledger.
-- **Overlap**: two practices whose times overlap (only possible across two devices)
-  cannot both enter the ledger. The earlier start is kept; the other is stored in
+  deleted (deletion wins, nothing is resurrected). Later practices from both sides replay
+  onto the empty ledger.
+- **Overlap**: two practices whose times overlap (only possible across phones) cannot
+  both enter the ledger. The earlier start is kept; the other is stored in
   `sync_set_aside_sessions` with its full data, so nothing is lost silently.
 
-Merges run in one local transaction and are validated like imports before pushing.
+Merges run in one local transaction, are validated like imports, and are abandoned (and
+planned again) if the phone saved anything after planning. The merged result is pushed
+with kind `merge`.
+
+### Cloud ledger identity
+
+Each cloud ledger has an identity (`ledger_id`). Deleting the cloud copy removes it; a later
+upload starts a new identity whose revision numbers restart. Phones remember the identity
+they synced with (migration 13) and every push names it, so a phone synced to a deleted
+ledger can never write onto a new one with the same revision numbers
+(`SyncCloudReplaced`). The Account screen then offers to save this phone's practice to the
+account again (`forgetCloud`, then an upload or a merge) or to remove the account from the phone.
 
 ### Settings
 
@@ -139,10 +154,19 @@ time; the newest edit wins on both server (RPC condition) and device.
 | Account in cloud | This device's guest practice | Result |
 | --- | --- | --- |
 | empty | empty | new account ledger, uploaded |
-| empty | has practice | offer to save this device's practice to the account (copy) |
+| empty | has practice | after the first sync, offer to copy this phone's practice into the account |
 | has practice | any | account practice is downloaded; guest practice stays in guest |
 
 Guest data is never deleted or merged automatically. Signing out returns to it.
+
+## Leaving
+
+- **Sign out**: returns to guest practice; the account's file stays on the phone and
+  syncs again on the next sign-in.
+- **Remove this account from this phone**: deletes the phone's account file and signs out.
+- **Delete this account's practice**: deletes the cloud copy (`ona_delete_my_cloud_data`)
+  and this phone's file, then signs out. Other phones keep their copy and see
+  "deleted from another device" instead of re-uploading it.
 
 ## Security
 
@@ -151,7 +175,7 @@ Guest data is never deleted or merged automatically. Signing out returns to it.
 - Tokens stored with expo-secure-store. Sign-out clears them.
 - RLS on every table; writes only through `security definer` functions that check
   `auth.uid()`, validate table names, key/row sizes and payload limits.
-- A user can delete all of their cloud data from Settings.
+- A person can delete all of their cloud data from the Account screen.
 
 ## Failure behavior
 

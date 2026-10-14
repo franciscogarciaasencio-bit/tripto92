@@ -676,3 +676,34 @@ retry, time-only adoption, waiting during an open practice, newer-format refusal
 ordering across phones, and base re-download. TypeScript, lint and all-platform exports pass.
 Merging two phones that both practiced offline is Session 17.
 
+### 17 — Complete (2026-10-14): merging phones, resets, deletion and account switching
+
+database/ledger-merge.ts: pure `planMerge` (fast-forward when local-only practice starts at or
+after the cloud state's settlement and there is no local reset; latest reset across both sides)
+and a transactional `applyMerge`: start from the chosen cloud revision (or a fresh ledger built
+like a new install), apply the winning reset, replay newer practices from both sides in time
+order through the normal completion path, set aside overlaps with full data, carry set-aside
+practices, settle to now, mark completions acknowledged and validate like startup. The sync
+repository's `mergeRemote` refuses (returns false) if the phone saved anything after planning.
+The engine picks the replay start with `ona_ledger_revision_before`, reusing the local base or
+downloading one revision, and pushes the result as kind `merge`.
+
+Found and fixed: a deleted and re-created cloud copy reuses revision numbers, so an old phone
+could have pushed onto the wrong history. Cloud ledgers now carry an identity (`ledger_id`,
+regenerated on deletion); pushes name it and receive `replaced` on mismatch; changes report it;
+migration 13 stores it on the phone (`SyncCloudReplaced`, Account status "deleted from another
+device"). Account screen: optional copy of this phone's guest practice into an empty account
+after the first sync, "Save this phone's practice to the account" after a replacement
+(`forgetCloud`), "Remove this account from this phone", and "Delete this account's practice"
+(cloud + this phone's file, then sign-out). Account files are deleted only after their store
+closes; the guest file can never be deleted this way.
+
+Verification: **934 tests** (511 domain + 423 data). Eight merge scenarios on real SQLite phones
+and the real Supabase SQL: fast-forward without touching synced awards, late offline practice
+replayed from an early revision (only that window reweighted), a fresh start without an invented
+reset, overlap set aside on both phones, remote and local resets winning with no resurrection,
+three phones converging to identical history and progress, and stale-plan refusal. Plus ledger
+identity on the server, deleted-copy refusal and re-save, and first sign-in guest copy.
+TypeScript, lint and iOS/Android/web exports pass. Real Google/Supabase use still awaits the
+owner's project; the SQL file is final for this program.
+
