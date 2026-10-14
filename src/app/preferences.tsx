@@ -34,6 +34,9 @@ export default function Preferences() {
       <VolumeControl value={edited.homeVolume} onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
       <MeditationSounds preferences={edited} onChange={setEdited} />
       <Action quiet textRole="label" onPress={() => router.push('/credits')}>About Ona sound</Action>
+      {app.cloudAvailable && <View style={{ marginTop: 16, borderTopWidth: 1, borderColor: colors.line }}>
+        <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} divider={false} onPress={() => router.push('/account')} />
+      </View>}
     </View>}
     <View style={{ marginTop: confirmReset ? 40 : 32, gap: 12, paddingTop: confirmReset ? 0 : 24, borderTopWidth: confirmReset ? 0 : 1, borderTopColor: colors.line }}>
       {confirmReset ? <>

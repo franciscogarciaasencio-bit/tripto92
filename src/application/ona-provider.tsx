@@ -2,7 +2,8 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
+import { cloudAuth, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
+import { databaseNameFor, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
 import { watchTimerDeadline } from './practice-lifecycle';
@@ -11,8 +12,21 @@ export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
+/** Open the ledger file that belongs to `account` (guest when null) and bind it on first use. */
+async function openLedger(account: CloudAccount | null) {
+  const opened = await initializeDatabase(currentContext(), { databaseName: databaseNameFor(account?.id ?? null) });
+  if (account) {
+    try { await opened.sync.bindAccount(account.id); }
+    catch (failure) { await opened.close(); throw failure; }
+  }
+  return opened;
+}
+
 function useApplication() {
   const store = useRef<MeditationStore | null>(null);
+  // undefined while the remembered account loads; null is guest practice.
+  const [account, setAccount] = useState<CloudAccount | null | undefined>(cloudAuth ? undefined : null);
+  const accountRef = useRef<CloudAccount | null>(null);
   const timer = useRef<TimerDraft | null>(null);
   const locked = useRef(false);
   const needsReopen = useRef(false);
@@ -20,6 +34,7 @@ function useApplication() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [draft, setDraft] = useState<TimerDraft | null>(null);
   const [snapshot, setSnapshot] = useState<ProgressSnapshot | null>(null);
   const [journey, setJourney] = useState<LifetimeJourney | null>(null);
@@ -41,11 +56,21 @@ function useApplication() {
   }, []);
 
   useEffect(() => {
+    if (!cloudAuth) return;
+    let disposed = false;
+    // A missing or unreadable remembered account falls back to guest; it never blocks meditation.
+    void loadActiveAccount().catch(() => null).then((remembered) => { if (!disposed) setAccount(remembered); });
+    return () => { disposed = true; };
+  }, []);
+
+  useEffect(() => {
+    if (account === undefined) return;
     let disposed = false;
     let opened: MeditationStore | null = null;
+    accountRef.current = account;
     async function load() {
       try {
-        opened = await initializeDatabase(currentContext());
+        opened = await openLedger(account ?? null);
         const savedPreferences = await opened.settings.loadPreferences();
         const savedAudioPreferences = await opened.settings.loadAudioPreferences();
         const history = await opened.meditations.getMeditationHistory({ limit: 1 });
@@ -61,10 +86,12 @@ function useApplication() {
         setHasHistory(history.length > 0);
         setCompletion(opened.initialCompletion);
         setCompletedPractices(opened.initialCompletedPractices);
+        setPracticeRevision((revision) => revision + 1);
+        setSwitching(false);
         setReady(true);
       } catch (failure) {
         if (opened) await opened.close();
-        if (!disposed) setError(String(failure));
+        if (!disposed) { setError(String(failure)); setSwitching(false); setReady(false); }
       }
     }
     void load();
@@ -75,7 +102,7 @@ function useApplication() {
       if (activeStore) void activeStore.close();
       if (opened && opened !== activeStore) void opened.close();
     };
-  }, [attempt, acceptDraft]);
+  }, [attempt, account, acceptDraft]);
 
   const operation = useCallback(async (work: (database: MeditationStore) => Promise<void>) => {
     if (locked.current || !store.current) return false;
@@ -85,7 +112,7 @@ function useApplication() {
     try {
       if (needsReopen.current) {
         await store.current.close();
-        store.current = await initializeDatabase(currentContext());
+        store.current = await openLedger(accountRef.current);
         const reopened = store.current;
         const savedPreferences = await reopened.settings.loadPreferences();
         const savedAudioPreferences = await reopened.settings.loadAudioPreferences();
@@ -178,8 +205,44 @@ function useApplication() {
     return () => clearInterval(refresh);
   }, [ready, draft, completion, snapshot?.asOf.localDate, operation]);
 
+  /** Switch to another account's ledger (or guest). Only between practices. */
+  const switchAccount = useCallback(async (next: CloudAccount | null) => {
+    if (locked.current || timer.current || completion) throw new Error('Finish your current practice and return Home first');
+    locked.current = true;
+    setBusy(true);
+    try {
+      await saveActiveAccount(next);
+      // Screens stay mounted; the provider swaps ledgers underneath and refreshes history views.
+      setSwitching(true);
+      setAccount(next);
+    } finally { locked.current = false; setBusy(false); }
+  }, [completion]);
+
   return {
-    ready, busy, error, draft, snapshot, journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
+    ready, busy: busy || switching, error, draft, snapshot,
+    cloudAvailable: cloudAuth !== null,
+    account: account ?? null,
+    /** Google sign-in, then open this account's own practice file. Returns false if cancelled. */
+    async signIn() {
+      if (!cloudAuth) return false;
+      setError(null);
+      try {
+        const result = await cloudAuth.signInWithGoogle();
+        if (result.status !== 'signed_in') return false;
+        await switchAccount(result.account);
+        return true;
+      } catch (failure) { setError(String(failure)); return false; }
+    },
+    /** End the session on this device and return to guest practice. Account files stay on the device. */
+    async signOut() {
+      if (!cloudAuth) return false;
+      setError(null);
+      try {
+        await switchAccount(null);
+        await cloudAuth.signOut();
+        return true;
+      } catch (failure) { setError(String(failure)); return false; }
+    }, journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
     async saveAudioPreferences(next: AudioPreferences) {
       return operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
     },

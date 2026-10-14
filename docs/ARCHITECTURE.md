@@ -11,6 +11,11 @@
 | src/domain | Plain TypeScript meditation/progression; forbidden from importing persistence, UI or device APIs |
 | src/data/index.ts, repositories | Small application-facing storage API |
 | src/data/database/database.ts | Only native Expo SQLite adapter; raw connection never reaches screens |
+| src/cloud | Optional: public Supabase config, Google sign-in (PKCE, secure-store tokens), RPC client; null when unconfigured |
+
+The provider opens the ledger file of the active account (`databaseNameFor`): guest uses
+`meditation.db`, each signed-in account its own file, bound to that account by migration 11.
+Switching account happens only between practices and keeps screens mounted.
 
 Read [Game system](GAME_SYSTEM.md) for rules, [UI](ONA_UI.md) for presentation.
 

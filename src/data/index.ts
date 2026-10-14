@@ -1,4 +1,6 @@
 export { initializeDatabase } from './database/database';
+export { databaseNameFor, GUEST_DATABASE } from './namespace';
+export type { SyncState } from './repositories/sync-repository';
 export { PersistenceError } from './database/errors';
 export { DEFAULT_PREFERENCES } from './preferences';
 export { DEFAULT_AUDIO_PREFERENCES } from './audio-preferences';

@@ -620,3 +620,31 @@ settings ordering. **904 tests** (511 domain + 393 data), TypeScript/lint pass. 
 changes are only the new dev dependency (installed with npm 11 to match the owner's).
 No Supabase project exists yet; the owner creates it with guidance in Session 15.
 
+### 15 — Complete (2026-10-14): Google sign-in, secure tokens and per-account ledgers
+
+Added @supabase/auth-js 2.117.2 (exact, auth only; no realtime/storage bundle) and the SDK 57
+modules expo-auth-session ~57.0.13, expo-web-browser ~57.0.3, expo-secure-store ~57.0.4
+(versions read from expo/bundledNativeModules.json because `expo install` cannot reach Expo's
+API from this environment; all published at least two weeks ago). src/cloud: `parseCloudConfig`
+(origin-only https URL, refuses secret/service-role keys; cloud stays off when unset), chunked
+secure-store session storage (count written last, so an interrupted write never yields a
+truncated token; unreadable keystore values after an Android restore read as signed out),
+PKCE callback parsing (codes or errors only; implicit tokens rejected), `createCloudAuth`
+(Google via Supabase in the system browser, `meditationapp://auth-callback`, auto-refresh only
+while active, local sign-out), and a Supabase RPC client with classified failures
+(offline/signed_out/server/rejected). The expo-secure-store config plugin is deliberately not
+added: its backup rules would stop Android Auto Backup from covering Ona's SQLite files.
+
+Provider: remembers the active account in secure storage, opens that account's own ledger file
+(`databaseNameFor`, opaque hashed names; guest keeps meditation.db) and binds it, switches only
+between practices without unmounting screens, and refreshes history views. New Account screen
+(Preferences → Account, shown only when configured): optional sign-in copy, signed-in address,
+confirmed sign-out returning to the phone's own practice. docs/SUPABASE_SETUP.md is the owner's
+step-by-step guide (Supabase project, SQL, Google OAuth client, redirect URLs, public values).
+
+Verification: **912 tests** (511 domain + 401 data); eight new tests cover config validation and
+secret-key refusal, secure storage chunking/shrinking/removal/interrupted writes/unreadable
+restores, callback parsing, namespace naming, RPC request shape and failure classification.
+TypeScript, lint and iOS/Android/web exports pass. Real Google sign-in needs the owner's
+Supabase project and a rebuilt binary (Expo Go works via `exp://**`); not yet exercised.
+
