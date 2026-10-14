@@ -70,6 +70,14 @@ Send these two values to Claude (they are safe to share), or add them yourself:
 
 Restart the development server with `npm start -- --clear` after changing `.env`.
 
+## Status for Ona (2026-10-14)
+
+Done by the owner: Supabase project `zmebgjgcmptmivwqumxg` (EU), Google OAuth client
+(testing mode, owner as test user), Google provider enabled, redirect URLs, SQL applied.
+The public URL and publishable key are in `.env` (Expo Go / development) and in
+`eas.json` → `build.preview.env` (APK builds). Publishing the Google app for everyone later
+needs a homepage and a privacy policy page.
+
 ## Things to know
 
 - **Free plan pause:** Supabase pauses a free project after about a week with no activity.
