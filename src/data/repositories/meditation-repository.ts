@@ -1,19 +1,44 @@
-import { advanceProgression, changeProgressionRules, getProgressSnapshot } from '../../domain/progression';
+import { advanceProgression, changeProgressionRules, createProgressionState, getProgressSnapshot, JOURNEY_VERSION } from '../../domain/progression';
 import type { CalendarContext, MeditationSession } from '../../domain/progression';
 import type { Transactions } from '../database/connection';
-import { decodeContext, decodeSession, decodeSessionRow, type RulesRegistry, type StoredMeditationSession } from '../database/decoders';
+import { checkpointMetadata, decodeAwardRow, decodeContext, decodeSession, decodeSessionRow, type RulesRegistry, type StoredMeditationSession } from '../database/decoders';
 import { appendTransition, loadState, writeCheckpoint } from '../database/records';
-import { integer, requireData, timestamp } from '../database/validation';
+import { canonical, integer, requireData, text, timestamp } from '../database/validation';
 import { completedPracticeCount, loadCompletion, pendingCompletion, persistCompletion } from '../database/completions';
 import { loadJourney } from '../database/journey';
+import { currentGeneration } from '../database/generations';
+import { loadTimer } from './timer-repository';
+import { resetAllPracticeData } from '../database/reset-practice';
+import { loadHabit } from '../database/habit';
 
 export interface HistoryQuery { readonly limit?: number; readonly offset?: number }
+export interface PracticeDetails extends StoredMeditationSession {
+  /** Original immutable reward, in centi-Ripples. Reading never recalculates or replays it. */
+  readonly awardedXpCenti: number;
+}
 
 export function createMeditationRepository(database: Transactions, registry: RulesRegistry) {
   return {
+    async resetAllPracticeData(input: CalendarContext) {
+      const asOf = decodeContext(input);
+      return database.transaction((sql) => resetAllPracticeData(sql, registry, asOf));
+    },
     loadProgressionState: () => database.transaction((sql) => loadState(sql, registry)),
     getCompletedPracticeCount: () => database.transaction(completedPracticeCount),
     getPendingCompletion: () => database.transaction(pendingCompletion),
+    async getPracticeDetails(id: string): Promise<PracticeDetails | null> {
+      const sessionId = text(id);
+      return database.transaction(async (sql) => {
+        const value = (await sql.all('SELECT * FROM meditation_sessions WHERE id = ?', [sessionId]))[0];
+        if (!value) return null;
+        const row = decodeSessionRow(value);
+        registry.get(row.qualificationRulesVersion);
+        const awardValue = (await sql.all('SELECT * FROM progression_awards WHERE session_id = ?', [sessionId]))[0];
+        const award = awardValue ? decodeAwardRow(awardValue) : null;
+        if (award) registry.get(award.rulesVersion);
+        return { session: row.session, createdAt: row.createdAt, awardedXpCenti: award?.xpCenti ?? 0 };
+      });
+    },
     async acknowledgeCompletion(id: string, acknowledgedAt: number) {
       const at = timestamp(acknowledgedAt);
       return database.transaction(async (sql) => {
@@ -30,7 +55,8 @@ export function createMeditationRepository(database: Transactions, registry: Rul
         const after = await persistCompletion(sql, await loadState(sql, registry), session, created);
         const completion = await loadCompletion(sql, session.id);
         requireData(completion, 'Legacy history cannot fabricate a completion summary');
-        return { snapshot: getProgressSnapshot(after, after.asOf), journey: await loadJourney(sql, after), completion };
+        const habit = await loadHabit(sql, after);
+        return { snapshot: getProgressSnapshot(after, after.asOf), journey: habit?.journey ?? await loadJourney(sql, after), habit: habit?.checkpoint ?? null, completion };
       });
     },
 
@@ -74,7 +100,43 @@ export function createMeditationRepository(database: Transactions, registry: Rul
       return database.transaction(async (sql) => {
         const state = advanceProgression(await loadState(sql, registry), asOf);
         await writeCheckpoint(sql, state);
-        return { snapshot: getProgressSnapshot(state, asOf), journey: await loadJourney(sql, state) };
+        const habit = await loadHabit(sql, state);
+        return { snapshot: getProgressSnapshot(state, asOf), journey: habit?.journey ?? await loadJourney(sql, state), habit: habit?.checkpoint ?? null };
+      });
+    },
+
+    /** Archive this journey, preserving immutable history, then begin an empty generation. */
+    async resetProgression(input: CalendarContext) {
+      const asOf = decodeContext(input);
+      return database.transaction(async (sql) => {
+        requireData(await loadTimer(sql) === null, 'Finish or discard the current meditation before resetting progression');
+        requireData(await pendingCompletion(sql) === null, 'Return Home from the pending completion before resetting progression');
+        const before = advanceProgression(await loadState(sql, registry), asOf);
+        const generation = await currentGeneration(sql);
+        // A retry of the same confirmed boundary cannot manufacture additional generations.
+        if (generation.boundary && canonical(generation.boundary) === canonical(asOf) && before.sessions.length === 0) {
+          return { snapshot: getProgressSnapshot(before, asOf), journey: await loadJourney(sql, before) };
+        }
+        await loadJourney(sql, before);
+        await loadHabit(sql, before);
+        const achievement = (await sql.all('SELECT * FROM journey_checkpoint'))[0];
+        await sql.run(`UPDATE progression_generations SET closed_checkpoint_json = ?, closed_progression_centi = ?,
+          closed_journey_json = ? WHERE id = ?`,
+        [JSON.stringify(checkpointMetadata(before)), before.currentProgressionCenti, JSON.stringify(achievement), generation.id]);
+        const nextId = integer(generation.id + 1, 1);
+        await sql.run('INSERT INTO progression_generations(id, started_at, boundary_json) VALUES (?, ?, ?)',
+          [nextId, asOf.timestamp, JSON.stringify(asOf)]);
+        // Historical rule snapshots remain global and immutable, even when the journey balance resets.
+        const empty = createProgressionState(asOf, registry.get(before.activeRulesVersion));
+        const after = advanceProgression({ ...empty, ruleSets: before.ruleSets }, asOf);
+        for (const activation of after.consistencyActivations ?? []) await sql.run(
+          'INSERT INTO progression_consistency_activations(generation_id, rules_version, activation_json) VALUES (?, ?, ?)',
+          [nextId, activation.rulesVersion, JSON.stringify(activation)]);
+        await writeCheckpoint(sql, after);
+        await sql.run(`UPDATE journey_checkpoint SET generation_id = ?, version = ?, level = 0, achieved_at = ? WHERE id = 1`,
+          [nextId, JOURNEY_VERSION, asOf.timestamp]);
+        await loadHabit(sql, after, true);
+        return { snapshot: getProgressSnapshot(after, asOf), journey: await loadJourney(sql, after) };
       });
     },
 
@@ -86,6 +148,7 @@ export function createMeditationRepository(database: Transactions, registry: Rul
         const before = await loadState(sql, registry);
         const after = changeProgressionRules(before, rules, asOf);
         await appendTransition(sql, before, after, asOf.timestamp);
+        await loadHabit(sql, after, !before.ruleSets.find((rule) => rule.version === before.activeRulesVersion)?.continuousConsistency);
         return getProgressSnapshot(after, asOf);
       });
     },

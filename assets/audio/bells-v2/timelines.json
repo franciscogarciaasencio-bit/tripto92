@@ -1,0 +1,59 @@
+{
+  "collection": "ona_acoustic_bells_v2",
+  "sourceSha256": "6d55e00053409d671c64fa09b5abcd4780dfbcbc83ec35f5a4edf7d5df29cf63",
+  "activeSeconds": 21600,
+  "tailSeconds": 12,
+  "assets": {
+    "interval-5m.m4a": {
+      "seconds": 21612,
+      "intervalSeconds": 300,
+      "firstBellSeconds": 300,
+      "sourceSha256": "6d55e00053409d671c64fa09b5abcd4780dfbcbc83ec35f5a4edf7d5df29cf63",
+      "sha256": "3d83e27973aa0766c2712616117a433013ebafbbd1b225fcdb77321ec3be4eee",
+      "bytes": 7943640,
+      "decoded": {
+        "samplePeak": 0.07773648202419281,
+        "correlationWithIntervalMaster": 0.9999719846336584,
+        "firstSecondRmsDifference": 0.00010187547271578749,
+        "firstLastRmsDifference": 0.00013174507495596391,
+        "initialSilencePeak": 0.0,
+        "beforeFirstBellPeak": 0.0,
+        "lastSecondPeak": 0.0
+      }
+    },
+    "interval-10m.m4a": {
+      "seconds": 21612,
+      "intervalSeconds": 600,
+      "firstBellSeconds": 600,
+      "sourceSha256": "6d55e00053409d671c64fa09b5abcd4780dfbcbc83ec35f5a4edf7d5df29cf63",
+      "sha256": "644ba0b6f5e9166017a3c4bbeade11a3de0e5e1c0d3468f347f96c827fc7ad56",
+      "bytes": 6013659,
+      "decoded": {
+        "samplePeak": 0.07759825140237808,
+        "correlationWithIntervalMaster": 0.9999786722258893,
+        "firstSecondRmsDifference": 0.00013451820391257183,
+        "firstLastRmsDifference": 0.0001345185170574262,
+        "initialSilencePeak": 0.0,
+        "beforeFirstBellPeak": 0.0,
+        "lastSecondPeak": 0.0
+      }
+    },
+    "interval-15m.m4a": {
+      "seconds": 21612,
+      "intervalSeconds": 900,
+      "firstBellSeconds": 900,
+      "sourceSha256": "6d55e00053409d671c64fa09b5abcd4780dfbcbc83ec35f5a4edf7d5df29cf63",
+      "sha256": "41f109d7830cc12ae699f4fc64411f19b8bfa55e7df97a52d76615fc1268bc0f",
+      "bytes": 5371955,
+      "decoded": {
+        "samplePeak": 0.0772566944360733,
+        "correlationWithIntervalMaster": 0.9999760634649004,
+        "firstSecondRmsDifference": 9.783710185817411e-05,
+        "firstLastRmsDifference": 0.0001378432290803119,
+        "initialSilencePeak": 0.0,
+        "beforeFirstBellPeak": 0.0,
+        "lastSecondPeak": 0.0
+      }
+    }
+  }
+}

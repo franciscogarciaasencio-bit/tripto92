@@ -68,17 +68,13 @@ test('Corrupt timer fails explicitly instead of erasing or crediting it', async 
 });
 test('Actual V1 database migrates to current schema without changing historical XP or preferences', async (t) => {
   const filename = disk(t);
-  let store = await openStore(connection(filename), context(1));
-  const { session, save } = require('./helpers.cjs');
-  await save(store.meditations, session());
-  const before = await store.meditations.loadProgressionState();
-  const preferences = await store.settings.loadPreferences();
-  await store.close();
-  // Produce the exact released V1 shape, retaining its original immutable history.
+  const { session, api, data, writeLegacyFixture } = require('./helpers.cjs');
+  const before = api.recordSession(api.createProgressionState(context(1)), session());
+  const preferences = data('preferences.js').DEFAULT_PREFERENCES;
   const old = connection(filename);
-  old.raw.exec('DROP TABLE audio_preferences; DROP TABLE journey_completions; DROP TABLE journey_checkpoint; DROP TABLE application_preferences; DROP TABLE practice_completions; DROP TABLE meditation_timer; DELETE FROM schema_migrations WHERE version >= 2;');
+  await writeLegacyFixture(old,1,before,preferences);
   await old.close();
-  store = await openStore(connection(filename), before.asOf);
+  const store = await openStore(connection(filename), before.asOf);
   assert.deepEqual(await store.meditations.loadProgressionState(), before);
   assert.deepEqual(await store.settings.loadPreferences(), preferences);
   assert.equal(await store.timer.load(), null);

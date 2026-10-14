@@ -1,0 +1,52 @@
+{
+  "method": "Built-in imagegen; original reference preserved",
+  "generatedOn": "2026-10-12",
+  "records": [
+    {
+      "stage": 5,
+      "prompt": "Use case: precise-object-edit. Asset type: Ona offline mobile Forest background, portrait 853x1844 proportions. Edit the supplied Forest entry watercolor illustration. Preserve its exact warm cream paper, muted olive foliage, ochre sandy soil, soft pale blue stream that snakes from the foreground through stepping stones toward the distant calm sea, and misty mountains. Preserve the overall foreground trees framing the central opening, detailed irregular foliage and loose handpainted texture. Change ONLY: remove ALL baked text ('2 · Stream garden', 'Your forest', 'Grows with your practice'), remove the top-left back chevron and bottom navigation dots. Fill their footprints seamlessly with matching empty warm paper. There must be NO letters, numbers, symbols, controls, border, device frame or watermark anywhere. Keep the original reference composition, especially open central upper area for native headings and tree trunks anchoring the left and right edges. Mature forest stage, the richest final-stage reference. Full-bleed portrait illustration; native controls will be drawn separately. Do not add a halo, sun disk, waves overlay, extra decorations or a different tree species. Keep the stream and stepping stones faithful.",
+      "inputs": [
+        "Forest entry.png"
+      ]
+    },
+    {
+      "stage": 0,
+      "prompt": "Use case: precise-object-edit. Asset: portrait full-bleed watercolor Forest entry illustration for Ona, 853x1844 proportions. Input is mature final-stage reference. Create stage ZERO of this SAME stream garden, preserving EXACT scene geography: the flowing pale blue stream winding from bottom foreground, same ochre sand banks and stepping stones, same sea opening and distant misty mountains, same warm cream textured paper and muted watercolor brush marks. Crucial change: remove ALL full-height mature foreground trees on left/right and all mature midground trees, replace their footprints naturally with sparse sandy meadow and pale paper sky. Starting forest has only TWO very small young saplings (one each bank, slender trunks, a few small olive leaves), sparse low grasses and just a handful of soft shrubs; no adult trees anywhere. Keep near-stream view perspective rather than beach/coast panorama. Top 20 percent clear cream negative space for separately rendered native title. Keep stream open and natural, not an ornamental path. No halo or sun disk. No text, labels, numbers, logos, chevrons, controls, dots, border or watermark. Do not change the stream, rocks or horizon. Minimal and beautiful, faithful to supplied calm coastal watercolor style.",
+      "inputs": [
+        "entry-5.png"
+      ]
+    },
+    {
+      "stage": 1,
+      "prompt": "Use case: precise-object-edit. Asset type: portrait 853x1844 Ona Forest background. Image1 is sparse starting stage EDIT TARGET. Image2 is the final mature reference, for watercolor style and tree species only. Create stage ONE of the same stream garden, a gentle first earned growth beyond two small saplings: add two slender young olive trees to the lower left and lower right stream bank edges, crowns reaching roughly halfway up the illustration, increase existing two saplings slightly, add only a few low bush clusters. All trees young, narrow trunks, light airy small crowns, NO giant foreground trunks or upper-edge adult canopy yet. Preserve image1 EXACT pale blue winding stream, stepping stones positions, sandy bank contours, distant calm sea and misty mountains. Same restrained olive/ochre/cream watercolor identity as image2. Central upper40% remains mostly beautiful cream sky with clear space for native heading. This is a closer forest entry looking downstream, NOT a coastal panorama; no halo. No text, letters, logos, buttons, chevrons, dots, border or watermark. Keep source geometry and full portrait framing stable; change only gradually earned foliage.",
+      "inputs": [
+        "entry-0.png",
+        "entry-5.png"
+      ]
+    },
+    {
+      "stage": 2,
+      "prompt": "Use case: precise-object-edit. Asset type: portrait Ona stream-garden entry background, same853x1844 proportions. Image1 is early stage ONE, edit target. Image2 is final mature entry forstyle/species/framing. Create stage TWO: the slender young trees on extreme left and right banks grow into medium young trees, slightly broader airy crowns reaching to roughly30% from top; add two modest midground saplings behind them. This begins to frame the central stream like image2, but foliage density is only about35% of final, no giant adult trunks/full canopy. Preserve image1 EXACT winding pale blue stream, stepping stones, sandbanks, rocks, shoreline, sea horizon and distant mountains. Preserve restrained watercolor warm cream paper, sage/olive leaves and earthy ochre. Keep upper center clean warm paper for native headings, no branches across central title space. No halo, no sun disk, no text, letters, numbers, logos, arrows, controls, dots, border or watermark. This is the same near-stream entry view, not enlarged beach artwork. Do not move the stream or camera.",
+      "inputs": [
+        "entry-1.png",
+        "entry-5.png"
+      ]
+    },
+    {
+      "stage": 3,
+      "prompt": "Use case: precise-object-edit. Asset: portrait Ona forest-entry background853x1844. Image1 is stage TWO edit target; Image2 mature final reference identity. Create stage THREE, halfway toward mature framed woodland: enlarge the near left and right young trees, crowns reaching to about15% from top along EXTREME edges, trunks still moderately slender; grow midground saplings to small airy trees, addsoft bushes deeper behind near trees. About60%of mature foliage, no completely solid canopy. Preserve the EXACT same winding pale-blue foreground stream, stepping stones, sandy river bank, horizon, distant soft mountains, warm cream textured paper and mutedolive/ochre watercolor palette. Centralupper sky remains clear for native title; foliage never enters central heading area. Trees should frame the opening to the sea like the original mature reference, not become a coastal-beach panorama. No halo/sun disk, no text, letters, numbers, controls, arrows, navigationdots, borders or watermark. Do not move camera, streamorrockpositions.",
+      "inputs": [
+        "entry-2.png",
+        "entry-5.png"
+      ]
+    },
+    {
+      "stage": 4,
+      "prompt": "Use case: precise-object-edit. Asset: portrait853x1844 Ona forest entry background. Image1 is current middle stage THREE. Image2 is the final mature forest reference. Create stage FOUR: nearly mature, about80%of the final reference foliage. Add a few airy foreground and midground trees behind stage3 trees, fuller soft undergrowth, richer gently overlapping crowns at the extreme upper-left/right edges, trunks slightly thicker. Strong tree framing of stream-to-sea opening just like image2, but retain visible spaces between individual crowns and less dense shrubs than final. Keep precise same geography and colors: pale blue foregroundstream, same steppingstones andsandybanks, centraldistantsea andmistymountains, warmcream paper, mutedolive/sage/ochre watercolor. Centralupper headingarea remains beautifully clear. No sun disk/halo, no text, letters, numbers, controls, chevrons, dots, border or watermark. Do notmove thecamera/stream/rocks/horizon; preserve source fullportraitcomposition. Thisis forestentry, notcoastcrop.",
+      "inputs": [
+        "entry-3.png",
+        "entry-5.png"
+      ]
+    }
+  ]
+}

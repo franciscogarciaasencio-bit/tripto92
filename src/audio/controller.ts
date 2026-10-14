@@ -1,4 +1,4 @@
-import type { AudioIntent } from './policy';
+import type { AudioIntent, AmbienceSource } from './policy';
 
 export interface PlaybackStatus { playing: boolean; loaded: boolean; buffering: boolean; error: string | null }
 export interface SoundPlayer {
@@ -10,7 +10,7 @@ export interface SoundPlayer {
   remove(): void;
 }
 export interface AudioBackend {
-  create(): SoundPlayer;
+  create(source?: AmbienceSource): SoundPlayer;
   configure(background: boolean): Promise<void>;
 }
 export interface AudioClock {
@@ -26,6 +26,7 @@ export function createAudioController(backend: AudioBackend, clock: AudioClock, 
   let player: SoundPlayer | null = null;
   let unsubscribe: (() => void) | null = null;
   let owner: 'home' | 'session' | null = null;
+  let source: AmbienceSource | null = null;
   let revision = 0;
   let disposed = false;
   let blocked = false;
@@ -102,8 +103,12 @@ export function createAudioController(backend: AudioBackend, clock: AudioClock, 
     const next = intent;
     configure(next.kind === 'session', token, () => {
       try {
+        const targetSource = next.kind === 'session' ? next.source ?? 'ocean_music' : 'ocean_music';
+        if (player && source !== targetSource) {
+          unsubscribe?.(); unsubscribe = null; player.remove(); player = null;
+        }
         if (!player) {
-          player = backend.create();
+          player = backend.create(targetSource); source = targetSource;
           player.volume = 0;
           const owned = player;
           unsubscribe = player.subscribe((update) => {
@@ -131,7 +136,7 @@ export function createAudioController(backend: AudioBackend, clock: AudioClock, 
     if (retry) { blocked = false; notify(null); }
     if (next.kind === 'silent') {
       cancelLoad?.(); cancelLoad = null;
-      const stop = () => { pause(); configure(false, token, () => {}); };
+      const stop = () => { pause(); configure(next.background === true, token, () => {}); };
       if (next.immediate || !player) {
         try { if (player) player.volume = 0; stop(); } catch { failure('unavailable'); }
       } else fade(0, FADE.stop, token, stop);
@@ -139,14 +144,15 @@ export function createAudioController(backend: AudioBackend, clock: AudioClock, 
       if (next.kind === 'session' && next.background) {
         // JS fades may freeze at lock. Never leave Home's old volume under an active practice.
         cancelLoad?.(); cancelLoad = null;
-        if (owner === 'session' && requested && player) player.volume = next.volume;
+        if (owner === 'session' && source === (next.source ?? 'ocean_music') && requested && player) player.volume = next.volume;
         else {
           if (player) player.volume = 0;
           pause(); start(token);
         }
         return;
       }
-      if (owner === next.kind && requested) {
+      const targetSource = next.kind === 'session' ? next.source ?? 'ocean_music' : 'ocean_music';
+      if (owner === next.kind && source === targetSource && requested) {
         if (!waitingForPlay) fade(next.volume, FADE.volume, token);
         else if (!cancelLoad) cancelLoad = clock.schedule(() => failure('unavailable'), FADE.loadTimeout);
       } else if (owner !== null && player) {

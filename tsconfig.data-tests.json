@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.domain-tests.json",
-  "compilerOptions": { "rootDir": "src" },
-  "include": ["src/domain/**/*.ts", "src/data/**/*.ts", "src/audio/controller.ts", "src/audio/policy.ts"],
+  "compilerOptions": { "rootDir": "src", "resolveJsonModule": true },
+  "include": ["src/application/practice-lifecycle.ts", "src/domain/**/*.ts", "src/data/**/*.ts", "src/audio/controller.ts", "src/audio/policy.ts", "src/audio/session-controller.ts", "src/ui/ocean-geometry.ts", "src/ui/format-ripples.ts", "src/ui/reward-sequence.ts", "src/ui/session-clock.ts", "src/ui/practice-history.ts", "src/ui/coastal-composition.ts", "src/ui/forest-geometry.ts", "src/ui/category-presentation.ts"],
   "exclude": ["src/data/index.ts", "src/data/database/database.ts"]
 }

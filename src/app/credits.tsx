@@ -1,15 +1,16 @@
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { View } from 'react-native';
 import { Header, Screen, Type } from '@/ui/primitives';
 
 export default function Credits() {
-  return <Screen><Header title="Sound credits" back={() => router.back()} />
+  return <Screen><Header title="Ona sound" back={() => router.back()} />
     <View style={{ gap: 24, paddingTop: 32 }}>
-      <Type role="heading">Meditation Choir</Type>
-      <Type>zazz.sound.design</Type>
-      <Type role="secondary">The original recording is bundled unchanged.</Type>
-      <Type role="secondary">CC0 — public domain dedication. No attribution required.</Type>
-      <Link href="https://creativecommons.org/publicdomain/zero/1.0/" accessibilityLabel="CC0 public domain dedication" style={{ paddingVertical: 12 }}><Type>Read the license ↗</Type></Link>
+      <Type role="heading">Made for quiet practice</Type>
+      <Type>Ona’s bells are acoustic singing bowls, gently refined for quiet practice. The recordings are public domain (CC0).</Type>
+      <Type role="secondary">Ocean, Rain, Storm and Brown Noise are original sound designs, generated for Ona.</Type>
+      <Type role="secondary">All sounds are bundled locally. No streaming, accounts or subscription.</Type>
+      <Type role="heading">The original Choir</Type>
+      <Type role="secondary">Meditation Choir by zazz.sound.design remains available. The supplied recording is CC0, with no mandatory attribution or licensing fees.</Type>
     </View>
   </Screen>;
 }

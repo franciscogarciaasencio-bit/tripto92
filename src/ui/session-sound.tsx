@@ -1,33 +1,54 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import { HomeIcon } from './home-icons';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
 import { Action, Type } from './primitives';
+import { AMBIENCES } from '@/audio/assets';
+import { QuietPressable } from './quiet-pressable';
+import { useReducedMotion } from './reduced-motion';
+import { UI_MOTION } from './motion';
 
-export function VolumeControl({ value, onChange, disabled = false }: { value: number; onChange: (value: number) => void; disabled?: boolean }) {
+export function VolumeControl({ value, onChange, disabled = false, label = 'volume' }: { value: number; onChange: (value: number) => void; disabled?: boolean; label?: string }) {
   const change = (direction: number) => onChange(Math.min(1, Math.max(0, Math.round((value + direction * 0.05) * 100) / 100)));
   return <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-    <Action quiet label="Decrease volume" disabled={disabled || value === 0} onPress={() => change(-1)}>Less</Action>
+    <Action quiet label={`Decrease ${label}`} disabled={disabled || value === 0} onPress={() => change(-1)}>Less</Action>
     <Type role="secondary" accessibilityLabel={`Volume ${Math.round(value * 100)} percent`}>{`${Math.round(value * 100)}%`}</Type>
-    <Action quiet label="Increase volume" disabled={disabled || value === 1} onPress={() => change(1)}>More</Action>
+    <Action quiet label={`Increase ${label}`} disabled={disabled || value === 1} onPress={() => change(1)}>More</Action>
   </View>;
 }
-export function SessionSound() {
+export function SessionSound({ compact = false }: { compact?: boolean }) {
+  const { width } = useWindowDimensions();
   const app = useOna();
   const audio = useOnaAudio();
   const [expanded, setExpanded] = useState(false);
+  const reduced = useReducedMotion(), accessibility = reduced ? ReduceMotion.Always : ReduceMotion.Never;
   const prefs = app.audioPreferences;
   if (!prefs) return null;
-  return <View style={{ alignItems: 'center', width: '100%', maxWidth: 320 }}>
-    <Action quiet label="Meditation sound settings" onPress={() => setExpanded(!expanded)}>{`Sound · ${prefs.sessionSound === 'silence' ? 'Silence' : 'Ocean music'}`}</Action>
-    {expanded && <>
+  const controls = <>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Action quiet disabled={app.busy || prefs.sessionSound === 'ocean_music'} onPress={() => { void app.saveAudioPreferences({ ...prefs, sessionSound: 'ocean_music' }); }}>Ocean music</Action>
-        <Action quiet disabled={app.busy || prefs.sessionSound === 'silence'} onPress={() => { void app.saveAudioPreferences({ ...prefs, sessionSound: 'silence' }); }}>Silence</Action>
+        {AMBIENCES.map(sound => <QuietPressable key={sound.id} accessibilityRole="radio" accessibilityLabel={sound.name}
+          accessibilityState={{ checked: prefs.sessionSound === sound.id, disabled: app.busy }} aria-checked={prefs.sessionSound === sound.id} disabled={app.busy}
+          style={{ width: '50%', minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', opacity: app.busy ? .4 : 1 }}
+          onPress={() => { void app.saveAudioPreferences({ ...prefs,sessionSound: sound.id }).then(saved => { if (saved && audio.notice && sound.id !== 'silence') audio.retry(); }); }}>
+          <Type role={prefs.sessionSound === sound.id ? 'label' : 'secondary'} style={{ fontSize: 14 }}>{sound.name}</Type>
+        </QuietPressable>)}
       </View>
       <VolumeControl value={prefs.sessionVolume} disabled={app.busy} onChange={(sessionVolume) => { void app.saveAudioPreferences({ ...prefs, sessionVolume }); }} />
-    </>}
-    {audio.notice && prefs.sessionSound !== 'silence' && app.draft?.phase === 'running' &&
-      <Action quiet onPress={audio.retry}>{audio.notice === 'interrupted' ? 'Resume sound' : 'Play sound'}</Action>}
+    </>;
+  // Native touch handling needs the popup inside its ancestors' bounds, even when the controls are visually compact.
+  return <View pointerEvents="box-none" style={compact ? { alignItems: 'flex-start', zIndex: 10, width: 280, height: 280 } : { alignItems: 'center', width: '100%', maxWidth: 320 }}>
+    {compact ? <QuietPressable accessibilityRole="button" accessibilityLabel="Meditation sound settings" accessibilityState={{ expanded }}
+      onPress={() => { if (audio.notice) audio.retry(); setExpanded(!expanded); }} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+      <HomeIcon name="speaker" selected={prefs.sessionSound !== 'silence' && prefs.sessionVolume > 0} size={19} color="#898579" />
+    </QuietPressable> : <Action quiet label="Meditation sound settings" onPress={() => { if (audio.notice) audio.retry(); setExpanded(!expanded); }}>{`Sound · ${AMBIENCES.find(sound => sound.id === prefs.sessionSound)?.name}`}</Action>}
+    {expanded && <Animated.View entering={FadeIn.duration(UI_MOTION.reveal).reduceMotion(accessibility)}
+      exiting={FadeOut.duration(120).reduceMotion(accessibility)} style={compact ? { position: 'absolute', top: 50, left: 0, width: 280, backgroundColor: '#F6EEDF', borderRadius: 16,
+      borderWidth: 1, borderColor: '#DCD0BC', overflow: 'hidden' } : undefined}>
+      {compact ? <ScrollView style={{ maxHeight: Math.min(220,width/390*280-70) }} contentContainerStyle={{ padding: 12 }}>
+        {controls}
+      </ScrollView> : controls}
+    </Animated.View>}
   </View>;
 }

@@ -4,7 +4,7 @@ const { assert, api, context, session, fixture, disk, connection, openStore, sav
 test('V1 initializes all tables, defaults, schema marker and empty domain state', async (t) => {
   const { conn, meditations, settings } = await fixture(t);
   const tables = conn.raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((r) => r.name);
-  assert.deepEqual(tables, ['application_preferences', 'audio_preferences', 'journey_checkpoint', 'journey_completions', 'meditation_preferences', 'meditation_sessions', 'meditation_timer', 'practice_completions', 'progression_awards', 'progression_checkpoint', 'progression_rules', 'schema_migrations']);
+  assert.deepEqual(tables, ['application_preferences', 'audio_preferences', 'habit_checkpoints', 'habit_reward_receipts', 'journey_animation_receipts', 'journey_checkpoint', 'journey_completions', 'journey_legacy_peaks', 'legacy_journey_checkpoint', 'meditation_preferences', 'meditation_sessions', 'meditation_timer', 'practice_completions', 'progression_awards', 'progression_checkpoint', 'progression_consistency_activations', 'progression_generations', 'progression_rules', 'schema_migrations']);
   assert.equal(conn.raw.prepare('SELECT version FROM schema_migrations').get().version, 1);
   assert.equal(conn.raw.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
   assert.deepEqual(await meditations.loadProgressionState(), api.createProgressionState(context(1)));
@@ -74,7 +74,7 @@ test('SQL uniqueness and foreign keys independently reject duplicate/orphan rece
   await save(meditations, session());
   assert.throws(() => conn.raw.exec('INSERT INTO progression_awards SELECT * FROM progression_awards'), /UNIQUE/);
   const copy = `INSERT INTO progression_awards SELECT 'other', 2, ?, occasion_id, rules_version,
-    awarded_at, local_date, reward_date, xp_centi, breakdown_json FROM progression_awards`;
+    awarded_at, local_date, reward_date, xp_centi, breakdown_json, generation_id FROM progression_awards`;
   assert.throws(() => conn.raw.prepare(copy).run(session().id), /UNIQUE/);
   assert.throws(() => conn.raw.prepare(copy).run('missing-session'), /FOREIGN KEY/);
 });

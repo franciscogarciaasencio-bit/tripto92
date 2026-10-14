@@ -137,13 +137,41 @@ test('Buffering is not mistaken for an interruption and cleanup removes fades/li
 });
 test('Pure app policy keeps Home out of background/completion/paused sessions and supports real Silence', () => {
   const input = { ready: true, foreground: true, phase: null, completionPending: false, starting: false, preferences: defaults };
-  assert.deepEqual(audioIntent(input), home());
+  assert.deepEqual(audioIntent(input), home(.075));
   for (const change of [{ ready: false }, { starting: true }, { completionPending: true }, { phase: 'paused' }, { phase: 'finished' }, { preferences: null }]) assert.equal(audioIntent({ ...input, ...change }).kind, 'silent');
   assert.deepEqual(audioIntent({ ...input, foreground: false }), silent(true));
-  assert.deepEqual(audioIntent({ ...input, foreground: false, phase: 'running' }), { ...meditation(.15), background: true });
+  assert.deepEqual(audioIntent({ ...input, foreground: false, phase: 'running' }), { ...meditation(.075), source: 'ocean', background: true });
   assert.equal(audioIntent({ ...input, preferences: { ...defaults, homeEnabled: false } }).kind, 'silent');
   assert.equal(audioIntent({ ...input, phase: 'running', preferences: { ...defaults, sessionSound: 'silence' } }).kind, 'silent');
   assert.equal(audioIntent({ ...input, phase: 'running', preferences: { ...defaults, sessionVolume: 0 } }).kind, 'silent');
+});
+test('Playback gain halves Home and session loudness, including background, without changing fades or preferences', async () => {
+  const f = audioFixture();
+  const preferences = Object.freeze({ ...defaults, sessionSound: 'ocean_music', homeVolume: .8, sessionVolume: .6 });
+  const input = { ready: true, foreground: true, phase: null, completionPending: false, starting: false, preferences };
+  f.controller.setIntent(audioIntent(input)); await flush(); f.clock.advance(1250);
+  assert.ok(Math.abs(f.players[0].volume - .2) < 1e-9);
+  f.clock.advance(1250); assert.equal(f.players[0].volume, .4);
+  f.controller.setIntent(audioIntent({ ...input, phase: 'running' })); f.clock.advance(1000); await flush();
+  f.clock.advance(1500); assert.equal(f.players[0].volume, .3);
+  f.controller.setIntent(audioIntent({ ...input, phase: 'running', foreground: false }));
+  assert.equal(f.players[0].volume, .3); assert.equal(f.players[0].locked, true); assert.equal(f.players.length, 1);
+  assert.equal(preferences.homeVolume, .8); assert.equal(preferences.sessionVolume, .6);
+  assert.deepEqual(audioIntent({ ...input, preferences: { ...preferences, homeVolume: 0 } }), silent());
+  f.controller.dispose();
+});
+test('Saved user-selected volumes round-trip unchanged while reopened playback uses the quieter gain', async (t) => {
+  const filename = disk(t); let store = await openStore(connection(filename), context(1));
+  const preferences = { ...defaults, homeVolume: .6, sessionVolume: .8 };
+  await store.settings.saveAudioPreferences(preferences); await store.close();
+  store = await openStore(connection(filename), context(1));
+  try {
+    const loaded = await store.settings.loadAudioPreferences(); assert.deepEqual(loaded, preferences);
+    const input = { ready: true, foreground: true, phase: null, completionPending: false, starting: false, preferences: loaded };
+    assert.deepEqual(audioIntent(input), home(.3));
+    assert.deepEqual(audioIntent({ ...input, phase: 'running' }), { ...meditation(.4), source: 'ocean' });
+    assert.deepEqual(audioIntent({ ...input, phase: 'running', foreground: false }), { ...meditation(.4), source: 'ocean', background: true });
+  } finally { await store.close(); }
 });
 test('Audio defaults and independently saved volumes/choices survive close/reopen without changing legacy preferences or XP', async (t) => {
   const filename = disk(t); let conn = connection(filename); let store = await openStore(conn, context(1));
@@ -158,12 +186,14 @@ test('Audio defaults and independently saved volumes/choices survive close/reope
   } finally { await store.close(); }
 });
 test('V5 migration preserves V4 history, timer, dismissal, old settings and immutable XP receipts', async (t) => {
-  const filename = disk(t); const conn = connection(filename); const store = await openStore(conn, context(1));
-  await save(store.meditations, session()); await store.application.dismissExplanation(context(1).timestamp);
-  const before = await store.meditations.loadProgressionState(); const prefs = await store.settings.loadPreferences();
+  const { writeLegacyFixture, api, data } = require('./helpers.cjs');
+  const filename = disk(t); const conn = connection(filename);
+  const before = api.recordSession(api.createProgressionState(context(1)), session());
+  const prefs = data('preferences.js').DEFAULT_PREFERENCES;
+  await writeLegacyFixture(conn, 4, before, prefs);
+  await conn.run('UPDATE application_preferences SET explanation_dismissed_at = ? WHERE id = 1', [context(1).timestamp]);
   const draft = domain('meditation/timer.js').startOpenEndedTimer('migration-timer', before.asOf.timestamp, before.asOf.timeZone);
-  await store.timer.save(draft);
-  conn.raw.exec('DROP TABLE audio_preferences; DELETE FROM schema_migrations WHERE version=5;'); await store.close();
+  await conn.run('INSERT INTO meditation_timer VALUES (1, ?)', [JSON.stringify(draft)]); await conn.close();
   const reopened = await openStore(connection(filename), before.asOf);
   try {
     assert.deepEqual(await reopened.settings.loadAudioPreferences(), defaults);
@@ -172,7 +202,7 @@ test('V5 migration preserves V4 history, timer, dismissal, old settings and immu
     assert.equal(reopened.initialExplanationDismissed, true); assert.equal((await reopened.meditations.getMeditationHistory()).length, 1);
   } finally { await reopened.close(); }
 });
-for (const change of [{ homeEnabled: null }, { homeEnabled: 1 }, { homeVolume: NaN }, { homeVolume: -1 }, { sessionVolume: 1.01 }, { sessionVolume: Infinity }, { sessionSound: 'waves' }, { openingBellEnabled: 'true' }, { closingBellEnabled: null }, { version: 2 }]) {
+for (const change of [{ homeEnabled: null }, { homeEnabled: 1 }, { homeVolume: NaN }, { homeVolume: -1 }, { sessionVolume: 1.01 }, { sessionVolume: Infinity }, { sessionSound: 'waves' }, { openingBellEnabled: 'true' }, { closingBellEnabled: null }, { version: 3 }]) {
   test(`Invalid audio preferences rejected: ${JSON.stringify(change)}`, async (t) => {
     assert.throws(() => decodeAudioPreferences({ ...defaults, ...change }), (e) => e.code === 'INVALID_DATA');
     const { settings } = await fixture(t); await assert.rejects(settings.saveAudioPreferences({ ...defaults, ...change }), (e) => e.code === 'INVALID_DATA');
@@ -262,4 +292,22 @@ test('A source still unable to play on foreground receives a fresh bounded load 
   const f = audioFixture(); f.backend.autoPlay = false; f.controller.setIntent({ ...meditation(.2), background: true }); await flush();
   f.clock.advance(60000); assert.equal(f.notices.length, 0); f.controller.setIntent(meditation(.2));
   f.clock.advance(14999); assert.equal(f.notices.length, 0); f.clock.advance(1); assert.equal(f.notices.at(-1), 'unavailable'); f.controller.dispose();
+});
+
+test('Environment changes fade out and release the old source; live volume changes preserve the new loop position',async()=>{
+  const f=audioFixture();const create=f.backend.create.bind(f.backend);
+  f.backend.create=source=>{const p=create();p.source=source;return p;};
+  f.controller.setIntent({...meditation(.15),source:'ocean'});await flush();f.clock.advance(1500);
+  f.controller.setIntent({...meditation(.15),source:'rain'});f.clock.advance(500);
+  assert.ok(f.players[0].volume>0&&f.players[0].volume<.15);f.clock.advance(500);await flush();
+  assert.equal(f.players[0].removed,true);assert.equal(f.players[0].subscribed,false);assert.equal(f.players[1].source,'rain');
+  f.clock.advance(1500);f.controller.setIntent({...meditation(.2),source:'rain'});f.clock.advance(1000);
+  assert.equal(f.players[1].volume,.2);assert.equal(f.players[1].plays,1);f.controller.dispose();
+});
+
+test('Locking during an environment change starts the requested source and cannot retain old Home/session audio',async()=>{
+  const f=audioFixture();const create=f.backend.create.bind(f.backend);f.backend.create=source=>{const p=create();p.source=source;return p;};
+  f.controller.setIntent({...meditation(.15),source:'ocean'});await flush();f.clock.advance(1500);
+  f.controller.setIntent({...meditation(.1),source:'storm',background:true});await flush();
+  assert.equal(f.players[0].removed,true);assert.equal(f.players[1].source,'storm');assert.equal(f.players[1].volume,.1);f.controller.dispose();
 });

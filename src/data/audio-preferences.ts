@@ -2,18 +2,22 @@ import { object, requireData } from './database/validation';
 
 /** Separate from legacy timer/gong preferences; never reinterpret old sound IDs. */
 export interface AudioPreferences {
-  readonly version: 1;
+  readonly version: 2;
   readonly homeEnabled: boolean;
   readonly homeVolume: number;
-  readonly sessionSound: 'ocean_music' | 'silence';
+  readonly sessionSound: 'ocean_music' | 'ocean' | 'rain' | 'storm' | 'brown_noise' | 'silence';
   readonly sessionVolume: number;
   readonly openingBellEnabled: boolean;
   readonly closingBellEnabled: boolean;
+  readonly bellVolume: number;
+  readonly intervalSeconds: 300 | 600 | 900 | null;
+  readonly hapticsEnabled: boolean;
 }
 
 export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = Object.freeze({
-  version: 1, homeEnabled: true, homeVolume: 0.15, sessionSound: 'ocean_music',
-  sessionVolume: 0.15, openingBellEnabled: false, closingBellEnabled: false,
+  version: 2, homeEnabled: true, homeVolume: 0.15, sessionSound: 'ocean',
+  sessionVolume: 0.15, openingBellEnabled: true, closingBellEnabled: true,
+  bellVolume: 0.18, intervalSeconds: null, hapticsEnabled: false,
 });
 
 function boolean(value: unknown): boolean {
@@ -27,11 +31,13 @@ function volume(value: unknown): number {
 }
 export function decodeAudioPreferences(value: unknown): AudioPreferences {
   const row = object(value);
-  requireData(row.version === 1, 'Unsupported audio preferences version');
-  requireData(row.sessionSound === 'ocean_music' || row.sessionSound === 'silence', 'Unsupported meditation sound');
+  requireData(row.version === 2, 'Unsupported audio preferences version');
+  requireData(typeof row.sessionSound === 'string' && ['ocean_music','ocean','rain','storm','brown_noise','silence'].includes(row.sessionSound), 'Unsupported meditation sound');
+  requireData(row.intervalSeconds === null || row.intervalSeconds === 300 || row.intervalSeconds === 600 || row.intervalSeconds === 900, 'Unsupported bell interval');
   return Object.freeze({
-    version: 1, homeEnabled: boolean(row.homeEnabled), homeVolume: volume(row.homeVolume),
-    sessionSound: row.sessionSound, sessionVolume: volume(row.sessionVolume),
+    version: 2, homeEnabled: boolean(row.homeEnabled), homeVolume: volume(row.homeVolume),
+    sessionSound: row.sessionSound as AudioPreferences['sessionSound'], sessionVolume: volume(row.sessionVolume),
     openingBellEnabled: boolean(row.openingBellEnabled), closingBellEnabled: boolean(row.closingBellEnabled),
+    bellVolume: volume(row.bellVolume), intervalSeconds: row.intervalSeconds as AudioPreferences['intervalSeconds'], hapticsEnabled: boolean(row.hapticsEnabled),
   });
 }

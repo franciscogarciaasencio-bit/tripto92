@@ -10,7 +10,7 @@ test('Release explicitly activates V2; three-minute session persists receipt and
   assert.equal(result.snapshot.lifetimeXpCenti,4526);
   assert.equal(result.completion.journey.creditsAdded,1);
   assert.equal(result.journey.metrics.realDays,1);
-  assert.ok(result.journey.level.number>=2);
+  assert.equal(result.journey.level.number,0); assert.equal(result.journey.fraction,4526/12000);
   const state=await store.meditations.loadProgressionState();
   assert.equal(state.awards[0].rulesVersion,'progression_v2');
 });
@@ -33,22 +33,21 @@ test('Ordinary/double/capped feedback is immutable across duplicate saves and na
 });
 for(const target of ['INSERT INTO journey_completions','INSERT INTO journey_checkpoint','DELETE FROM meditation_timer','COMMIT']) {
   test(`Failure at ${target} rolls back session, receipt, level and credit feedback`,async t=>{
-    const {conn,store}=await fixture(t); const s=session({minutes:3});
+    const {conn,store}=await fixture(t); const s=session({minutes:60});
     conn.failOnce(sql=>sql.startsWith(target));
     await assert.rejects(store.meditations.completePractice(s,s.endedAt),/Simulated/);
     assert.equal((await store.meditations.loadProgressionState()).sessions.length,0);
-    assert.equal(conn.raw.prepare('SELECT level FROM journey_checkpoint').get().level,1);
+    assert.equal(conn.raw.prepare('SELECT level FROM journey_checkpoint').get().level,0);
     assert.equal(conn.raw.prepare('SELECT COUNT(*) n FROM journey_completions').get().n,0);
     assert.equal((await store.meditations.completePractice(s,s.endedAt)).completion.journey.creditsAdded,1);
   });
 }
 test('Actual V3 upgrade backfills credits only, retaining old XP/qualification/achievement/preferences/summary',async t=>{
-  const file=disk(t); let conn=connection(file); let store=await openStore(conn,context(1));
-  await save(store.meditations,session({minutes:3})); await save(store.meditations,session({day:2,minutes:10}));
-  const before=await store.meditations.loadProgressionState(), prefs=await store.settings.loadPreferences();
-  await store.close(); conn=connection(file);
-  conn.raw.exec('DROP TABLE audio_preferences; DROP TABLE journey_completions; DROP TABLE journey_checkpoint; DROP TABLE application_preferences; DELETE FROM schema_migrations WHERE version>=4;');
-  await conn.close(); conn=connection(file); store=await release(conn,context(3));
+  const {writeLegacyFixture,data}=require('./helpers.cjs');
+  const file=disk(t); let conn=connection(file);
+  const before=api.recordSession(api.recordSession(api.createProgressionState(context(1)),session({minutes:3})),session({day:2,minutes:10}));
+  const prefs=data('preferences.js').DEFAULT_PREFERENCES;
+  await writeLegacyFixture(conn,3,before,prefs); await conn.close(); conn=connection(file); let store=await release(conn,context(3));
   const after=await store.meditations.loadProgressionState();
   assert.deepEqual(after.awards,before.awards); assert.deepEqual(after.sessions,before.sessions);
   assert.deepEqual(after.highestRankAchieved,before.highestRankAchieved);
@@ -76,6 +75,7 @@ test('Reopening, decay, dismissal and finished recovery preserve permanent progr
 });
 test('Bogus peak fails closed; cannot grant an unearned new maximum',async t=>{
   const {conn,store}=await fixture(t);
+  const s=session({minutes:60}); await store.meditations.completePractice(s,s.endedAt);
   assert.throws(()=>conn.raw.exec('UPDATE journey_checkpoint SET level=0'),/cannot decrease|CHECK/);
   conn.raw.exec('UPDATE journey_checkpoint SET level=125');
   await assert.rejects(store.meditations.getCurrentPracticeProgress(context(2)),/requirements/);

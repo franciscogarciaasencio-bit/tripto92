@@ -7,6 +7,6 @@ export type { DatabaseOptions } from './database/database';
 export type { MeditationStore } from './database/store';
 export type { StoredMeditationSession } from './database/decoders';
 export type { MeditationPreferences } from './preferences';
-export type { MeditationRepository, HistoryQuery } from './repositories/meditation-repository';
+export type { MeditationRepository, HistoryQuery, PracticeDetails } from './repositories/meditation-repository';
 export type { SettingsRepository } from './repositories/settings-repository';
 export type { PracticeCompletion } from './database/completions';

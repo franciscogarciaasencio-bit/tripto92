@@ -1,6 +1,7 @@
 import { BASIS_POINTS, assertNonnegativeInteger, freeze } from './numeric';
 import { V1_RANKS } from './ranks';
 import type { ProgressionRules, ProgressionState } from './types';
+import { CONTINUOUS_CONSISTENCY, isLinearConsistency, LINEAR_CONSISTENCY_V1 } from './consistency';
 
 export const PROGRESSION_V1: ProgressionRules = freeze({
   version: 'progression_v1',
@@ -25,10 +26,23 @@ export const PROGRESSION_V2: ProgressionRules = freeze({
   practiceDayEligibility: 'completed_minimum',
 });
 
+/** Short finished runs earn prospectively; qualifying practice-day/credit minimums stay at three minutes. */
+export const PROGRESSION_V3: ProgressionRules = freeze({
+  ...PROGRESSION_V2, version: 'progression_v3', earningsAlgorithm: 'linear_short_logarithmic_v1',
+});
+export const PROGRESSION_V4: ProgressionRules = freeze({
+  ...PROGRESSION_V3, version: 'progression_v4', continuousConsistency: CONTINUOUS_CONSISTENCY,
+});
+
+/** Prospective equal contributions; released V1–V4 receipts and configurations remain untouched. */
+export const PROGRESSION_V5: ProgressionRules = freeze({
+  ...PROGRESSION_V4, version: 'progression_v5', continuousConsistency: LINEAR_CONSISTENCY_V1,
+});
+
 /** Validate and detach caller-owned configuration. A version identifies an entire frozen ruleset. */
 export function captureRules(rules: ProgressionRules): ProgressionRules {
   if (!rules.version.trim()) throw new RangeError('rules version is required');
-  if (rules.earningsAlgorithm !== 'logarithmic_v1' || rules.decayAlgorithm !== 'capped_daily_v1') {
+  if ((rules.earningsAlgorithm !== 'logarithmic_v1' && rules.earningsAlgorithm !== 'linear_short_logarithmic_v1') || rules.decayAlgorithm !== 'capped_daily_v1') {
     throw new RangeError('Unsupported progression algorithm');
   }
   for (const [name, value] of Object.entries({
@@ -53,6 +67,16 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     throw new RangeError('Duration cap/reward must support qualification minimum');
   }
   if (rules.practiceDayEligibility !== undefined && rules.practiceDayEligibility !== 'completed_minimum') throw new RangeError('Unsupported practice-day policy');
+  if (rules.continuousConsistency) {
+    const c = rules.continuousConsistency;
+    for (const [key, value] of Object.entries(c)) if (key !== 'algorithm') assertNonnegativeInteger(value, 'continuous consistency');
+    if (isLinearConsistency(c)) {
+      if (!c.contributionUnits || !c.targetContributions || c.scale !== c.contributionUnits * c.targetContributions ||
+          c.inactiveRetentionMillionths > 1_000_000 || !c.halfLifeDays) throw new RangeError('Invalid linear consistency configuration');
+    } else if ('algorithm' in c || c.scale !== 1_000_000 || c.growthBasisPoints > BASIS_POINTS ||
+      c.inactiveRetentionMillionths > c.scale || c.halfLifeDays === 0) throw new RangeError('Invalid continuous consistency configuration');
+    assertNonnegativeInteger(c.scale * (BASIS_POINTS + rules.maximumConsistencyBonusBasisPoints), 'continuous consistency ratio');
+  }
   for (const value of [...rules.occasionWeightsBasisPoints, rules.dailyDecayBasisPoints, rules.protectedFloorBasisPoints]) {
     assertNonnegativeInteger(value, 'basis points');
     if (value > BASIS_POINTS) throw new RangeError('Rate/weight exceeds 100%');
@@ -90,6 +114,7 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     occasionWeightsBasisPoints: [...rules.occasionWeightsBasisPoints],
     consistencyWindowDays: rules.consistencyWindowDays,
     maximumConsistencyBonusBasisPoints: rules.maximumConsistencyBonusBasisPoints,
+    ...(rules.continuousConsistency ? { continuousConsistency: { ...rules.continuousConsistency } } : {}),
     inactivityGraceDays: rules.inactivityGraceDays,
     dailyDecayBasisPoints: rules.dailyDecayBasisPoints,
     dailyDecayCapCentiXp: rules.dailyDecayCapCentiXp,

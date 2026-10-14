@@ -1,19 +1,16 @@
-# Ona audio asset
+# Meditation Choir provenance
 
-**Meditation Choir — zazz.sound.design**
+Meditation Choir by zazz.sound.design was supplied by the user under
+[CC0](https://creativecommons.org/publicdomain/zero/1.0/): no licensing fees,
+royalties, permission or mandatory attribution, including commercial use.
 
-- License: **CC0 (public domain dedication)**, as supplied by the user.
-- Terms: https://creativecommons.org/publicdomain/zero/1.0/
-- No licensing fees, royalties, permission or mandatory attribution, including commercial use.
-- Local file: `meditation-choir.wav`
-- Changes: **none**. Byte-for-byte copy of the supplied recording; no conversion,
+- meditation-choir.wav is an unchanged byte-for-byte copy, with no conversion,
   trimming, compression or normalization.
-- Format: PCM WAV, stereo, 24-bit, 48,000 Hz; 76.502458 seconds; 22,032,752 bytes.
-- SHA-256: `b974de6aa17ae128b89a53dcc1619c7f0debcf17a5f81993c91d76a3a7227a85`
+- PCM WAV, stereo, 24-bit, 48 kHz; 76.502458 seconds; 22,032,752 bytes.
+- SHA-256: b974de6aa17ae128b89a53dcc1619c7f0debcf17a5f81993c91d76a3a7227a85
+- Home uses Choir; saved ocean_music meditation choices still select it.
 
-Home and meditation share this recording and the existing looping player.
-The old recording has been removed; its attribution requirements no longer apply.
-The stored `ocean_music` preference ID and existing sound-control label are retained
-for compatibility with saved choices; they now select Meditation Choir.
-Default Home/session volume remains 0.15; existing user volumes are preserved.
-No bell recordings are changed or added.
+Original ambience lives in meditation/; acoustic CC0 bells and matching interval tracks
+live in bells-v2/. See their READMEs and docs/AUDIO.md for reproduction/provenance.
+The retired original progression swell's source remains in
+scripts/generate-progression-cue.py, generating an ignored development master only.

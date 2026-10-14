@@ -1,0 +1,57 @@
+{
+  "collection": "ona_acoustic_bells_v2",
+  "retrievedOn": "2026-10-13",
+  "publisher": "BigSoundBank",
+  "author": "Joseph SARDIN",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "publisherLicenseUrl": "https://bigsoundbank.com/licenses.html",
+  "sourcePageLicenseExcerpt": "CC0 (public domain): Free and royalty-free",
+  "rightsReview": "Each source page identifies CC0. The publisher permits commercial use, modification and redistribution, including in apps, without fees or permission. Credit and donations are optional. No account or subscription was used.",
+  "sources": {
+    "1110": {
+      "title": "Tibetan Bowl Struck #1",
+      "url": "https://bigsoundbank.com/tibetan-bowl-struck-s1110.html",
+      "file": "1110.wav",
+      "sha256": "77bd1f1d355a1108e34df6b3ae00428f3d9f5871ea43f7a1c3a1d9606160d242",
+      "sampleRate": 48000,
+      "bits": 16,
+      "channels": 1,
+      "recording": "Indoor; Tascam DR-40 and Sennheiser ME66",
+      "selection": "Ending: lower approximately 305 Hz mode, longest natural decay. Trim the pre-strike room noise and soften the upper resonances."
+    },
+    "2553": {
+      "title": "Tibetan bowl struck #2",
+      "url": "https://bigsoundbank.com/tibetan-bowl-struck-2-s2553.html",
+      "file": "2553.wav",
+      "sha256": "73b2aa78457b36194431325b4fe07476c93415b4b8d67f96f94a778fbcfd8cd5",
+      "sampleRate": 48000,
+      "bits": 24,
+      "channels": 1,
+      "recording": "Studio; Sound Devices MixPre-3 and Sennheiser ME66",
+      "selection": "Starting: approximately 474 Hz lower mode; gentler measured strike than #3 and less upper-band prominence than #4."
+    },
+    "2554": {
+      "title": "Tibetan bowl struck #3",
+      "url": "https://bigsoundbank.com/tibetan-bowl-struck-3-s2554.html",
+      "file": "2554.wav",
+      "sha256": "6f122359549cfa8d91735f99da0423f4167e6dcfed62f44cf45ab81ec8d62b58",
+      "sampleRate": 48000,
+      "bits": 24,
+      "channels": 1,
+      "recording": "Studio; Sound Devices MixPre-3 and Sennheiser ME66",
+      "selection": "Interval: similar approximately 473 Hz mode to the starting bowl, shorter decay. Soften its sharper strike and master below the other roles."
+    },
+    "2555": {
+      "title": "Tibetan bowl struck #4",
+      "url": "https://bigsoundbank.com/tibetan-bowl-struck-4-s2555.html",
+      "file": "2555.wav",
+      "sha256": "547ab16046e659240a17900cb4bba5889c812b4466bb2e7ca207b6361e174d57",
+      "sampleRate": 48000,
+      "bits": 24,
+      "channels": 1,
+      "recording": "Studio; Sound Devices MixPre-3 and Sennheiser ME66",
+      "selection": "Retained comparison, not selected: strongest measured mode near 2.4 kHz, more early energy than #2. Selection is analytical, pending listening."
+    }
+  }
+}

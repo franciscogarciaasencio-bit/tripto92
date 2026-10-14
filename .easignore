@@ -1,0 +1,32 @@
+# Preserve the repository's normal exclusions in EAS uploads.
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+.kotlin/
+*.orig.*
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+credentials.json
+.env*.local
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+example/
+artifacts/
+__pycache__/
+
+# Development evidence/source masters remain in Git, outside the native build archive.
+docs/evidence/
+scripts/audio-sources/
+assets/audio/bells-v2/audition.html

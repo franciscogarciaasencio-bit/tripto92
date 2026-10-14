@@ -1,283 +1,145 @@
 # Application architecture
 
-## Layers and entry points
+## Layers
 
-- `src/app/`: Ona Expo Router screens, with a headerless stack and no tabs. Screens contain no SQL or XP calculations.
-- `src/ui/`: approved design tokens, typography, outlined controls, wave geometry and launch motion.
-- `src/application/ona-provider.tsx`: owns one database, startup, preferences, timer lifecycle and save/retry handshake.
-- `src/application/audio-provider.tsx` and `src/audio/`: one independent sound owner, pure playback policy/controller, native/web adapters. See [AUDIO.md](AUDIO.md).
-- `src/domain/`: pure TypeScript progression. **Never import SQLite, React, React Native or Expo here.**
-- `src/data/index.ts`: application-facing storage API. Future screens call repositories, never SQL.
-- `src/data/database/database.ts`: the only Expo SQLite adapter. Opens a private native connection.
-- `src/data/repositories/`: session/progression and typed settings operations.
-
-Read [ONA_UI.md](ONA_UI.md) for design provenance, the implemented flow and device verification.
-
-Read [GAME_SYSTEM.md](GAME_SYSTEM.md) for game rules and calendar semantics. Persistence does not change them.
-The data validators reuse a few pure domain validation/consistency helpers; no earning formula is replayed on load.
-
-## Public API and startup
-
-```ts
-import { initializeDatabase } from '@/data';
-
-// The caller captures an explicit timestamp, localDate and IANA timeZone.
-const store = await initializeDatabase(asOf);
-const snapshot = store.initialSnapshot;
-const preferences = await store.settings.loadPreferences();
-
-await store.meditations.recordCompletedMeditation(session, createdAt);
-const history = await store.meditations.getMeditationHistory({ limit: 50, offset: 0 });
-const state = await store.meditations.loadProgressionState();
-const laterSnapshot = await store.meditations.getCurrentProgressionSnapshot(laterAsOf);
-await store.settings.savePreferences(updatedPreferences);
-await store.close();
-```
-
-Own one store at application lifecycle level. Initialization configures SQLite, applies migrations,
-restores and validates state, settles complete days to `asOf`, and commits the updated checkpoint.
-`initialSnapshot` describes that completed startup; ask for a new snapshot when time advances.
-`loadProgressionState` reads the persisted cursor without advancing it. Snapshot retrieval commits advancement.
-Repeated opens/requests at the same context do not repeat decay. A returning meditation uses `recordSession`
-and its normal earnings/decay rules.
-
-All timestamps are UTC Unix **milliseconds** (safe integers), durations are whole **seconds**, and
-all XP is integer **centi-XP**. Never persist display-rounded XP. History returns `{ session, createdAt }`
-in descending completion order, with insertion sequence resolving ties; pagination is bounded to 1,000 rows.
-Offset pagination should be refreshed if a new meditation is inserted between pages.
-
-The caller supplies a stable globally unique session ID (use a UUID in the future timer) and a creation
-timestamp at or after completion. The original creation timestamp wins on retry. IDs are opaque nonempty
-strings; SQLite enforces uniqueness within the database. This layer neither creates IDs nor reads a clock.
-Submit completed pending sessions **before** advancing beyond their completion timestamp. Backdated edits,
-overlapping sessions and clock rollback fail explicitly, following the domain's chronological contract.
-
-## Schema and source of truth
-
-The V1 SQL lives in `src/data/database/schema.ts`.
-
-| Table | Meaning / authority |
+| Location | Responsibility |
 | --- | --- |
-| `meditation_sessions` | Immutable session history, original qualification decision/version, creation timestamp and ordering. |
-| `progression_awards` | Immutable incremental receipts, including zero-XP qualifying receipts, fixed-point XP and breakdown. One receipt per qualifying session. |
-| `progression_rules` | Immutable, ordered snapshots of every rules configuration used. |
-| `progression_checkpoint` | Singleton **authoritative continuation state**: current balance, as-of context, settlement cursor, highest achievement, active version, occasions and ledger counts. |
-| `meditation_preferences` | Singleton typed preferences document. |
-| `meditation_timer` | V2 singleton durable running/paused/pending-completion cursor; removed with the corresponding completion transaction. |
-| `practice_completions` | V3 immutable before/after progression at the completion event, plus first Home acknowledgement. Presentation/recovery metadata, never an authoritative balance. |
-| `journey_checkpoint` | V4 permanent highest legitimately unlocked lifetime level, display version and actual achievement timestamp. |
-| `journey_completions` | V4 immutable credit delta, date credits and lifetime level transition for that completion. |
-| `application_preferences` | V4 first explanation dismissal; independent of unchanged meditation preferences. |
-| `audio_preferences` | V5 validated versioned Home/session sound preferences; independent of legacy preferences and progression. |
-| `schema_migrations` | Ordered schema versions and names already applied. |
+| src/app | Expo Router routes; no SQL or reward calculations |
+| src/ui | Components, visual tokens, pure geometry and cosmetic reward plans |
+| src/application/ona-provider.tsx | One owned store, startup, timer actions, operation lock, save/retry handshake |
+| src/application/audio-provider.tsx, src/audio | Owned ambience/session players and pure playback policy; see AUDIO.md |
+| src/domain | Plain TypeScript meditation/progression; forbidden from importing persistence, UI or device APIs |
+| src/data/index.ts, repositories | Small application-facing storage API |
+| src/data/database/database.ts | Only native Expo SQLite adapter; raw connection never reaches screens |
 
-Lifetime XP is reconstructed by summing stored receipts; total meditation time is reconstructed from
-session activity. Current rank, consistency and other display fields are domain projections. These values
-are not independently stored balances that can diverge. Occasions are validated against receipt chains
-and session membership on load. Historical rule snapshots, qualification decisions, award timestamps,
-breakdowns and session references remain intact.
+Read [Game system](GAME_SYSTEM.md) for rules, [UI](ONA_UI.md) for presentation.
 
-**The checkpoint is not a disposable cache.** Receipts alone cannot recover past decay/version-switch
-timing or a historical highest rank after arbitrary rule changes. If an initialized database has a missing
-checkpoint, malformed data, inconsistent ledger or unsupported version, the operation fails with a
-`PersistenceError`; it does not delete data, replay earnings, repair balances, or create a replacement
-checkpoint. Only a genuinely new schema receives empty initial state and defaults. A future recovery tool
-or backup policy must handle damaged databases explicitly. No event journal or automatic repair is included.
+The forest selector in src/domain/forest/growth.ts derives from the validated habit
+checkpoint's highestLevel; it adds no authoritative stored value or earning rule.
+UI asset definitions/geometry are separate. Explicit practice reset clears the existing
+achievement and therefore vegetation; inactivity decay does not remove growth.
 
-## Atomicity and concurrency
+## Public storage API and startup
 
-Each public operation uses a serialized queue on a private connection. `BEGIN IMMEDIATE` acquires the
-SQLite write lock **before** loading the checkpoint. Session completion then calls the existing domain
-engine and appends only new sessions/receipts/rules, updates the checkpoint, and commits as one transaction.
-Any error rolls back the complete operation. A rollback failure makes the connection unusable until reopened.
-Closing waits for queued operations. Separate connections must also acquire SQLite's writer lock and reload
-the latest checkpoint; no cached balance is used. Lock timeouts surface errors for an explicit retry.
+initializeDatabase(asOf) opens a private SQLite connection, configures foreign keys,
+busy timeout, WAL/FULL synchronization and applies migrations transactionally. It
+restores/validates history and continuation, recovers pending finished timers **before**
+advancing time, settles complete days, activates the released V5 rules prospectively,
+and supplies initialSnapshot, initialJourney, initialHabit, initialTimer and initialCompletion.
 
-We use explicit transaction SQL because this connection is private and every query is queued; no ambient
-Expo queries can join its transaction. Foreign keys are enabled on that same connection. WAL and FULL
-synchronous mode are requested. Inputs are bound parameters, not interpolated SQL. Duplicate IDs with
-identical session content are no-ops, including after later decay; conflicting content fails. Primary keys,
-unique session-to-award links, foreign keys and append-only UPDATE/DELETE triggers add database protection.
-There is no public raw-award import or generic state-save method.
+Own one MeditationStore for the application lifecycle; close waits for queued operations.
 
-## Rule versions and validation
+| Repository operation | Contract |
+| --- | --- |
+| meditations.completePractice(session, createdAt) | Atomic session/rewards/checkpoints/summary; returns presentation result |
+| meditations.recordCompletedMeditation(session, createdAt) | Same durable completion path; compatibility snapshot result |
+| meditations.getMeditationHistory({ limit, offset }) | Descending endedAt, insertion sequence breaks ties; max 1,000 per page |
+| meditations.getPracticeDetails(id) | Read-only captured session and original centi-Ripple award; null if missing/deleted |
+| meditations.loadProgressionState() | Reads current continuation without advancing time |
+| meditations.getCurrentPracticeProgress(asOf) | Advances/persists only unsettled decay, returns snapshot + current journey + habit |
+| meditations.getPendingCompletion(), acknowledgeCompletion(id, at) | Recover and acknowledge saved presentation, never re-award |
+| meditations.resetAllPracticeData(asOf) | Confirmed permanent deletion; retains preferences |
+| settings.load/savePreferences(), load/saveAudioPreferences() | Strict typed preference documents |
+| timer repository | Durable running/paused/finished cursor; no UI-owned alternative timer state |
 
-`decoders.ts`, `validation.ts`, and `integrity.ts` form the untrusted-row boundary. They check required
-types, finite safe integers, dates, timestamp ranges, duration bounds, session ordering, receipt relationships,
-occasion totals, protected balance bounds, rank identity and checkpoint counts. Invalid/null data is rejected.
-Time-zone identifiers are checked for syntax and retained verbatim; their membership in an IANA database
-and timestamp/date correspondence belong to the capturing timer. The storage layer does not consult the
-device's current zone or remap historical dates. This avoids differences between device tzdb versions.
+All clock context is explicit: safe-integer UTC milliseconds, captured localDate/IANA
+timeZone; completed durations are integer seconds and XP remains integer centi-XP.
+Application creates stable UUIDs. Original createdAt wins on identical retry.
+Submit pending finished sessions before advancing beyond their completion timestamp.
+Backdated/overlapping sessions and clock rollback fail explicitly. Refresh history
+pagination if a new record appears between pages; calendar loads every page.
+Practice-detail reads decode the session and immutable award under their registered
+versions. They never advance progression, acknowledge a completion or reconstruct a
+reward with current rules. Legacy sessions work without a presentation receipt.
 
-The registry always retains V1/V2 and checks stored configuration against registered
-definitions, ignoring JSON object key order. Adding a known future version to `supportedRules` does **not**
-activate it. The native V4 release deliberately upgrades V1 to V2 after recovering pending completions
-and settling old decay. It cannot downgrade a known future version. Use `store.meditations.changeRules(version, asOf)` for a deliberate transition: the domain
-settles old decay, preserves old receipts and open-occasion terms, and then activates new rules atomically.
-Retain V1 in future releases. Unknown versions fail explicitly, including when an older app opens newer data.
-An actual new algorithm also requires a domain evaluator as described in GAME_SYSTEM.md.
+## Atomicity and source of truth
 
-Validation detects malformed and inconsistent data, not coordinated tampering with otherwise coherent
-values. No cryptographic integrity seal or independent decay journal is claimed.
+Every operation, including reads and close, joins a serialized private queue.
+BEGIN IMMEDIATE acquires SQLite's writer lock **before** loading continuation. Completion
+appends the session, incremental awards, rule snapshots, immutable completion/journey/habit
+receipts; updates continuation/achievements; deletes the corresponding timer; then commits.
+Failure rolls back everything. Failed rollback poisons the connection until reopened.
+Separate connections reload continuation under the same writer lock. Primary/unique keys,
+foreign keys and immutable UPDATE/DELETE triggers supplement application validation.
+Identical stable-ID retries are no-ops; conflicting payloads fail, even after later decay.
+No public raw-award import or generic state-save operation exists.
 
-## Migrations and preferences
+Sessions, rule snapshots and award receipts are authoritative history. Lifetime totals
+derive from receipts in the active generation; meditation time derives from sessions.
+Progression/habit checkpoints are **authoritative continuation, not disposable caches**:
+receipts alone cannot recover historical settlement/version-switch timing or peaks.
+Completion animation plans are immutable presentation metadata, never another balance.
+No launch recalculates old rewards with current formulas. Unsupported versions, missing
+initialized checkpoints or inconsistent ledgers fail with PersistenceError; they never
+trigger automatic deletion, fabricated balances or silent repair. A new database alone
+receives empty state/defaults. Explicit backup/corruption-recovery tooling is not built.
 
-`migrations.ts` contains the ordered `MIGRATIONS` list. V2 adds the timer without modifying V1.
-V3 adds completion metadata and assigns `mode='timed'` to V2 timer JSON; no historical
-session/award/rule/checkpoint/preferences content is rewritten. New open cursors use
-`mode='open_ended'` and a null target. V4 adds permanent journey/application metadata without rewriting V1–V3 records.
-To add V5, append `{ version: 5, name, sql }`;
-keep released migrations unchanged.
-Initialization runs outstanding migrations and their markers transactionally,
-together with checkpoint validation. An up-to-date database is not recreated. Unknown or mismatched migration
-history fails closed. Future shape changes must migrate stored JSON as well as SQL columns; for changes that
-cannot be expressed in SQLite SQL, extend a migration with a small typed transformation deliberately.
-The tests demonstrate real V1/V2→V3 and V4→V5 upgrades, a future sequential V6 addition and transactional DDL rollback. Destructive changes to protected
-history require an explicit migration decision, never disabling triggers during ordinary writes.
+V5 has one Consistency score for the bonus and five-dot bar. Immutable activation rows
+identify source/target versions, logical asOf, history prefix and carried momentum.
+They are authoritative version boundaries; checkpoints track their count, not a second
+copy of the score. Loads validate prefix/order and exact settled source momentum.
+appendTransition appends them with rules/checkpoint in the same transaction. Missing or
+corrupt anchors fail explicitly. Original V1–V4 awards and their receipt endpoints survive.
+loadCompletion uses the captured qualification algorithm and immutable habit receipt for
+linear endpoints, even without an award (zero-active save); old fourteen-day endpoints
+remain a historical read-only projection. No historical XP is rewritten.
 
-Legacy meditation preferences use an extensible typed JSON object, not arbitrary keys. Defaults: 10 minutes, no ambience,
-no periodic gong, ambience volume 0.3 and gong volume 0.5. Durations/intervals are positive integer seconds,
-volumes are finite values in [0, 1], and sound IDs are opaque nonempty strings or null. Future preference
-fields/default changes require a migration for existing rows; corrupt preferences never silently become defaults.
+## Schema and migrations
 
-## Verification and limits
+V1 SQL: database/schema.ts. Ordered released migrations **1–10**: database/migrations.ts.
+schema_migrations tracks names/versions; startup validates the exact prefix. Migrations,
+markers and restored initial continuation share one transaction. Reopening current data
+is nondestructive. To extend, append migration **11**, add typed decoders/tests and document
+its meaning; never edit released definitions or reset a DB to make a migration pass.
 
-- `npm test`: original pure-domain suite plus repository/validation tests using Node 24+ built-in `node:sqlite`.
-- `npm run test:coverage`: both suites with Node coverage. No extra test dependency.
-- Tests compile data/domain code with strict TypeScript and no React/Expo ambient dependencies. The native
-  adapter is checked by the project typecheck and explicit native bundle smoke checks.
-- Real SQLite tests cover disk close/reopen, SQL constraints, rollback at several completion stages,
-  migrations, version transitions, corruption, and decay. They use the same production SQL and repositories.
-- These are **not native Expo runtime tests**. Verify force-close/relaunch, on-device filesystem behavior,
-  busy/error handling, and background/resume on both iOS and Android before production release.
-  Bundle/export success is not a signed native build or a device test.
-- Web exports include Expo SQLite's WASM worker. `metro.config.js` adds the WASM asset extension;
-  the Router plugin config declares COOP/COEP headers. A separately hosted export also needs those headers.
-  The exported app is tested with real browser SQLite; web SQLite is upstream alpha. On this Windows SDK 57
-  environment, dev-mode web bundling reports a missing worker chunk; production export works. No dependency patch is applied.
+| Tables | Purpose |
+| --- | --- |
+| meditation_sessions | Immutable captured history, qualification/version, createdAt, ordering |
+| progression_awards, progression_rules | Immutable incremental earning receipts and frozen configuration |
+| progression_consistency_activations | Immutable per-generation formula activation/context/prefix; settled momentum carry |
+| progression_checkpoint | Active generation's continuation, settlement cursor, occasions and ledger counts |
+| habit_checkpoints, habit_reward_receipts | Effective Ripples, highest level, decay cursor, migration seed; base/Consistency/bonus plans |
+| practice_completions | Immutable saved result and mutable first acknowledgement |
+| journey_checkpoint, journey_completions, journey_animation_receipts | Released lifetime projection/peak and captured older display receipts |
+| progression_generations | Old archival-reset boundaries and closed continuation |
+| legacy_journey_checkpoint, journey_legacy_peaks | Historical migration achievement provenance |
+| meditation_timer | One durable running/paused/pending cursor |
+| meditation_preferences, audio_preferences, application_preferences | Typed settings and independent onboarding preference |
+| schema_migrations | Applied ordered schema versions |
 
-V1 restores complete history to match the existing domain state model. That favors inspectability over
-large-history optimization; measure multi-year history on devices before introducing incremental hydration.
-The API has stable IDs, timestamped records and a repository boundary where a future optional sync adapter
-could sit. Sync/import conflict resolution and out-of-order historical imports are intentionally absent.
+Decoders/validation/integrity validate untrusted rows, IDs, dates/zones, finite safe
+integer times/XP, durations, known versions, ledger/occasion membership and receipt chains.
+Legacy records remain decoded under their captured versions. V9 upgrades audio preference
+JSON to version 2 while preserving old mute/source/volume/bell choices.
 
-## Durable timer and completion recovery
+## Timer, recovery and full reset
 
-`src/domain/meditation/timer.ts` is a pure timer cursor and explicit-zone calendar conversion, independent of React/Expo/SQLite.
-The caller supplies IDs, timestamps and zone. Start/pause/resume retain integer milliseconds; completion floors active and
-paused totals independently to whole seconds, matching the existing session contract. Paused time never earns XP.
-Wall-clock time includes running time while backgrounded or terminated. An expired legacy timed timer finishes at its calculated deadline,
-not the later reopening time. A paused timer remains paused indefinitely. Clock rollback fails explicitly; there is no guessed repair.
+The domain timer counts active milliseconds from a durable phase/changedAt cursor;
+pause time is separate. Current UI is open-ended; earlier timed cursors remain supported.
+The provider schedules one cancellable deadline for a running legacy timed cursor;
+idle, open-ended and paused practice schedule no expiry polling. Foreground/unlock
+rechecks the durable cursor, with overdue recovery retaining its captured zone. Foreground
+progress refresh waits for active operations and pending practice/summary resolution.
+Running recovery includes elapsed wall-clock time while closed; paused recovery excludes it.
+Finished pending cursors save before current-time advancement; stable ID handles a crash
+or lost COMMIT acknowledgement. The provider serializes actions and can reopen poisoned
+storage; no uncertain transaction closure is blindly replayed against cached balances.
 
-`store.timer.load()` / `.save(draft)` validate and serialize the one pending practice. Identity and target cannot change;
-the zone can change only once when an observed completion captures its completion zone,
-and a finished pending payload cannot be edited. The application serializes user operations, disables duplicate submissions,
-and persists phase transitions before acknowledging them. A save failure retains the exact finished payload in memory for Retry;
-the last successfully saved draft also remains in SQLite. If persisting the finish itself fails and the process dies, recovery uses
-that last durable cursor; an unsaved early-end intent cannot be promised to survive.
+After explicit confirmation and without a pending timer/completion, Reset All Practice
+Data deletes sessions, awards, archived generations, all peaks/receipts and timer/summary
+state child-first in one transaction. It suspends/restores only fixed deletion guards
+inside that transaction and creates empty Level 0 continuation. Settings, rules, schema
+markers and onboarding remain. A deletion timestamp boundary rejects stale retries,
+including sessions started exactly at that boundary. Application clears caches and
+increments practiceRevision; history/calendar discard late responses. Reopening cannot
+restore deleted data. resetProgression is an older archive-only API retained for data
+compatibility/tests; it is not the Settings action.
 
-During startup, `openStore` restores the draft **before** advancing progression. A finished/expired draft is converted to a session,
-saved via the unchanged progression engine, its receipts appended, its checkpoint updated and its draft deleted in one transaction.
-Then startup advances to the supplied current context. This prevents backdated-completion errors and duplicate decay/XP.
-`initialTimer` and V3's `initialCompletion` restore the session/completion screen;
-`recoveredSession` / `previousRank` remain available for compatibility.
-Normal `recordCompletedMeditation` also deletes a matching draft within its existing atomic transaction; identical retries remain no-ops.
-Application snapshot refreshes are suspended while a timer exists; callers must continue submitting pending completion before
-advancing past its end. There are no new authoritative XP values or changes to award/version semantics.
+## Verification and future boundaries
 
-The timer captures the device's IANA zone at **start** for recovery. Live/early completion captures the device's completion zone,
-as GAME_SYSTEM.md requires. For an endpoint that occurred while backgrounded/terminated, the app cannot know its location:
-recovery deliberately uses the saved practice zone rather than a possibly later travel zone. Completion date is computed at the
-actual endpoint in that explicit zone. A successfully persisted finished payload always retains its original completion zone.
-Stored historical sessions retain their original dates/zones. Intl conversion depends on the host tzdb;
-the progression engine continues to consume explicit historical dates and performs no conversion.
-
-## Open-ended completion and visible progression (V3)
-
-The open-ended timer never expires. Finish emits `completed`, including short runs;
-V1 eligibility remains five active minutes; the V4 app release activates prospective V2 three-minute eligibility. `timer.discard(id)` removes only an unfinished
-matching cursor, idempotently, with no session/award. Old timed cursors/history retain
-their original status/deadline semantics. Open running time includes locked/closed time;
-paused time is excluded using explicit wall-clock cursors, not interval ticks.
-
-`meditations.completePractice(session, createdAt)` returns `{ snapshot, completion }`.
-Its transaction appends the session/immutable award, checkpoints progression, captures
-before/after balances **after pre-earning decay**, inserts presentation metadata and
-deletes the matching timer. Startup uses the same `persistCompletion` helper before
-advancing to now. Stable IDs/exact duplicate content keep retries safe. Legacy
-`recordCompletedMeditation` still returns a snapshot for existing callers.
-
-`getCompletedPracticeCount()` queries saved sessions with `status='completed'`.
-The summary's earlier count is also derived from session sequence/history. No counter
-is independently incremented. Short completed sessions count; legacy early-ended
-history retains its XP but is excluded from this completed count.
-
-`getPendingCompletion()` restores an unacknowledged summary without earning again.
-`acknowledgeCompletion(id, explicitTimestamp)` persists the first Home acknowledgement,
-idempotently. Afterwards startup does not replay the summary. New stores expose
-`initialCompletion` and `initialCompletedPractices` alongside the existing startup fields.
-Pre-V3 records are not backfilled with guessed before/after balances or replayed summaries.
-
-Completion metadata is validated against stored incremental award amounts. UPDATE/DELETE
-triggers protect its balances; acknowledgement is the only mutable field. It is not used
-for current XP, lifetime XP, decay or highest achievement. Missing old metadata is valid;
-malformed existing metadata fails explicitly. Missing checkpoint policy remains unchanged.
-One startup query validates metadata; only the pending summary needs derived count queries.
-
-The old 100-level projection remains compatibility code only. Current lifetime progression is
-`progression/journey.ts`, independent of the old decaying balance. See the V4 policy below.
-Future sync remains above repositories.
-
-Next: physical-device lifecycle/accessibility/audio verification. See AUDIO.md for sound ownership and native-build limits.
-
-## Permanent habit journey (V4)
-
-Native startup registers historical earning configurations and deliberately activates progression_v2
-only from V1. Existing finished cursors recover under their previously active rules **first**.
-New completion uses three-minute eligibility. Old receipts, qualification flags, preferences, legacy
-highest named rank, settlement cursor and V3 completion summaries remain intact. Unknown versions fail.
-
-Saved validated sessions remain authoritative for practice credits and real dates; immutable receipts
-remain authoritative for lifetime XP. Nothing infers dates from XP/count. No new duplicated XP balance
-is stored. `journey_checkpoint` retains only a legitimately attained display version/level/timestamp,
-validated against the history and receipts that existed at that timestamp. SQL prevents decreases.
-Migration initializes this peak from actual reconstructed gates, never from a former XP-only peak.
-The legacy highest named rank remains separately in the original progression checkpoint.
-
-`completePractice` atomically appends session/award, updates both checkpoints, writes V3/V4 immutable
-completion metadata and deletes the matching timer. It returns `{ snapshot, journey, completion }`.
-`completion.journey` reports the original before/after level, credits added and date-credit total,
-unchanged on duplicate save or reopen. Pre-V4 summaries have null journey feedback: no invented
-historical event acknowledgement. Startup validates credit metadata and original before/after levels
-against saved session/receipt prefixes at completion time; an unearned milestone fails explicitly.
-Retries and uncertain commit recovery use the existing poisoned-connection reopen policy.
-
-`getCurrentPracticeProgress(asOf)` atomically settles legacy progression and returns
-`{ snapshot, journey }`; `initialJourney` is the startup equivalent. All UI imports this API, never SQL.
-The domain lifetime projection uses lifetime XP, credits, real dates and explicit elapsed time.
-The original snapshot supplies the **same consistency factor used by actual earning receipts**.
-
-V4 migration creates the three new tables, then backfills a peak only when migrating from a schema
-before V4. On an already-current database, a missing/invalid journey checkpoint fails instead of
-recreating one. Frozen completed sessions >=180 seconds can backfill credits and inform **future**
-V2 consistency, without awarding old 3–5-minute sessions XP. Malformed historical data fails closed.
-
-`store.application.isExplanationDismissed()` / `.dismissExplanation(explicitTimestamp)` persist the
-first dismissal idempotently. `initialExplanationDismissed` restores it. Meditation preferences keep
-their original typed shape/defaults. The opening is process-local UI state and is not the explanation.
-
-V5 adds only the audio preferences singleton. `settings.loadAudioPreferences()` and
-`saveAudioPreferences(typedPreferences)` validate version, booleans, supported sound
-and finite 0–1 volumes transactionally. Startup validates this row too; corruption is
-reported, never silently repaired/reset. Released migration defaults must stay frozen;
-future schema/preference versions require the next migration. Historical data, V4
-dismissal and awards are not rewritten. See AUDIO.md for defaults and lifecycle.
-
-Future earning changes use new registered configurations and explicit `changeRules`. Future journey
-threshold changes need a new display version and an explicit peak migration preserving original
-achievement terms; do not edit released thresholds or bypass maximum gates. SQLite stays out of
-`src/domain/`; future optional sync can sit above these repositories.
-
-Current hydration/credit validation favors integrity and readability over multi-year optimization.
-Credit metadata validation reads session prefixes at startup; profile large histories on devices
-before adding incremental summaries. No native filesystem, device failure or signed-build claim is made.
+npm run check covers pure domain plus real Node SQLite repository/migration/reset tests,
+fake-clock audio lifecycle and pure presentation plans. Node SQLite executes real SQL,
+not the Expo native bridge. Native exports verify imports/assets, not device lifecycle.
+Web SQLite additionally needs COOP/COEP headers; platform audio adapters share policies.
+No accounts/backend/sync are implemented. A future optional sync layer can sit above
+repositories using stable IDs, captured timestamps and versioned immutable receipts.

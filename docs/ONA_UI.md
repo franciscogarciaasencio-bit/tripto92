@@ -1,119 +1,186 @@
-# Ona native interface
+# Ona UI
 
-## Sources and diagnosis
+## Current identity and sources
 
-The approved original design is at
-C:/Users/fga31/.codex/visualizations/2026/10/01/01a0f891-1387-7610-8f16-c6add45aff15/ona-design/.
-This milestone applies the user's revised habit journey, exact sand colour and motion requirements.
-No HTML replacement, sea-opening animation, tabs, gradients, coloured badges or cards.
-The audio/onboarding milestone is documented in [AUDIO.md](AUDIO.md), including verification limits.
-Manrope Regular/Medium and existing wordmark/wave geometry remain the design sources.
+Preserve the approved Design 3 proportions and later user-supplied coastal/forest artwork:
+warm sand, restrained ink, generous space, minimal native controls and a single living wave.
+src/ui/theme.json defines background #F2E9DA and ink #141414; primitives.tsx supplies
+supporting tokens/components. Manrope Regular/Medium supports the system; editorial
+wordmark/headings/timer use Times New Roman on iOS/web and serif on Android.
+Do not introduce Expo starter styling, generic cards/gradients or new decorative motifs.
 
-The inspected clean baseline was 801b2d9. Its opening had a 500 ms full-opacity hold and
-was omitted for Reduced Motion/screen readers; its moving wave varied only 2.4 viewBox units
-and kept its phase loop active while paused/backgrounded. The rendered background was
-#F6F1E7. These are code findings; stale bundles or the user's iPhone accessibility settings
-were not independently observed and cannot be asserted as the cause of their report.
+assets/ona/design3/coastal-background.png is the byte-for-byte supplied Forest 2/1.png
+(853 × 1844) and assets/ona/forest/stage-0.png, stage-2.png–stage-5.png are the original
+supplied growth artwork. Highest achievement selects the forest in growth.ts (starting
+coast plus five richer stages), independently of current-level decay. Halo anchors align
+the sources, with uniform scale and gentle image crossfades; no PNG edits/tinting.
+Halo and shoreline remain stationary; wave-trace.json derives from the retained wave-overlay.png.
+The older background.png is an intentional design source, not runtime artwork. Source
+details live in that directory's README. Category SVGs and matching categories.json
+remain editable/parity-tested sources; category-icon.tsx renders them natively.
+The phone frame/status bar in references is not app artwork or a screenshot interface.
 
-## Entry, opening and theme
+## Routes and flow
 
-expo-router/entry → src/app/_layout.tsx → process-local Opening → first explanation or native Stack.
-Font readiness renders the root; Opening awaits native splash dismissal before starting its hold.
-SQLite startup proceeds underneath and never shortens the opening. Exact wordmark/tagline:
-**Ona / Build your meditation habit**. Entrance 300 ms, full hold 1100 ms, exit 350 ms.
-Tap skips without activating underlying Meditate. Reduced Motion and VoiceOver remove transitions
-but preserve the hold. Returns Home and background/resume do not remount it; a new process does.
+All navigation uses Expo Router. _layout.tsx mounts fonts, safe areas, OnaProvider,
+AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a headerless stack.
 
-src/ui/theme.json is the actual central #F2E9DA / #141414 source. Primitives, root, opening,
-stack content and every current screen use it. app.config.ts applies it to native config/splash
-backgrounds; app.json matches for tooling. Unused starter components/theme files are outside
-the active route/import graph. Screenshot background pixels are RGB(242,233,218).
-Native splash configuration requires a new binary; Expo Go controls its own host launch screen.
-[SDK 57 splash documentation](https://docs.expo.dev/versions/v57.0.0/sdk/splash-screen/).
+| Route | Screen |
+| --- | --- |
+| / | Home: sun/halo Meditate action, wave, current level/Ripples, Consistency bar |
+| /forest | Highest-achievement forest; native left swipe from Home, right swipe/back to Home |
+| /session | Open-ended active timer, pause/resume/finish/discard, sound controls |
+| /completion | Saved duration, earned Ripples, staged reward progress, Continue |
+| /practice | Journey calendar with saved dates/detail and level overview |
+| /info | Guide: Why Ona? and How to Meditate |
+| /preferences | Settings, sounds and confirmed Reset All Practice Data |
+| /history | Paginated saved meditation history |
+| /practice-detail?id=… | Read-only saved duration, pauses, historical local time and Ripples |
+| /credits | About Ona / sound provenance |
+| /how-progress-works | Secondary explanation of practice/progression |
+| /introduction | Manually opened four-chapter coastal introduction |
 
-The first explanation is short, scrollable, skippable, and stores dismissal. Start practising leads
-to Home, not a setup step. Journey → How it works expands the detailed rules. Pending
-timer/completion recovery takes precedence over a never-dismissed explanation.
+Home/Journey/Guide/Settings form the quiet bottom navigation; route filenames above
+are historical URLs, not unused legacy screens. Main flow: Home → Session → Completion →
+Home. Meditate begins immediately; no obsolete duration-setup screen is needed.
+The secondary sprout control on Home opens the same Forest route without a gesture.
+forest-pages.tsx composes the same Home/Forest surfaces as active and incoming pages.
+forest-swipe.tsx tracks horizontal drags on the UI thread, then settles or cancels with
+restrained easing. Router commits once after settling; the Forest stack transition is
+disabled to avoid a second slide. Buttons and Android Back share that transition, and
+return always dismisses to Home (including direct Forest links). Reduced Motion switches
+without spatial travel. Vertical Home scrolling remains native, with an explicit simultaneous
+recognizer; short/reversed, multi-touch and interrupted gestures cannot commit a stale route.
+Resize, focus loss, backgrounding and motion-preference changes cancel pending callbacks.
+Incoming surfaces are inert and excluded from accessibility. Home's scroll offset is a
+presentation-only provider ref, so returning preserves position; it never stores practice data.
+Offscreen waves stop rendering and rejoin the shared phase when needed. Images do not fade
+again on their first load during the route handoff; subsequent growth can still crossfade,
+while a reset immediately shows the starting artwork. Native gesture arbitration and frame
+pacing still require physical iPhone/Android verification.
+Forest uses six dedicated stream-garden views derived from the supplied entry reference,
+from two saplings to the mature framing canopy. Original coast PNGs still serve Home.
+assets/ona/forest/entry-generation.json records editing prompts/source provenance;
+forest-entry-artwork.json separates entry geometry from the Home halo landmarks.
+Every scene is uniformly scaled; headers/back/dots are native controls, with no baked UI.
+Opening shows the Ona wordmark/tagline, supports tap-to-skip, and keeps meaningful
+reading time with Reduced Motion/VoiceOver. The four-screen introduction is manual:
+Guide's contextual A quiet introduction link opens it after Why Ona. Home has no
+introduction button. No first-use gate is
+currently active; the old stored dismissal preference remains for compatibility.
+Welcome, meditation basics, Ripples/Consistency and the long-term journey use one
+replayable route. Back moves to the previous chapter (or the originating screen at
+the first chapter); Skip and Begin your practice return Home without starting a timer.
+The optional Consistency illustration is presentation-only and never saves rewards.
+Transitions are cancellation-guarded, respect live Reduced Motion and announce/focus
+chapter headings for screen readers. Body content scrolls on short phones/large type;
+the decorative welcome wordmark/tagline limit scaling to preserve the halo composition.
+Short phones use a compact wave-only chapter header so the essential journey text
+fits above the final action; the full coastal welcome remains available on all sizes.
 
-## Native routes and lifecycle
+## Presentation and motion
 
-- /: dominant one-tap Meditate; two quiet indicators for permanent lifetime practice and actual
-  recent consistency; Journey, saved-history count and preferences. Both bars appear for new users.
-- /session: count UP, hide/show time, Pause/Resume, Finish and deliberate discard.
-  Existing durable cursor/retry/recovery remain unchanged. Running locked/closed time counts;
-  Pause excludes it. No duration setup/selection.
-- /completion: confirmed atomic save; Well done, active duration, real saved-practice count,
-  immutable awarded XP, permanent level and all unmet gates. Durable credit feedback distinguishes
-  ordinary, double-day increment, already credited/capped and short history. Category transitions
-  receive a quiet acknowledgement; crossing 100 receives the exact habit milestone message.
-  Home acknowledges the summary. Old summaries never invent pre-migration event feedback.
-- /practice: native **Journey**. Permanent level/category/step/icon, two indicators, lifetime XP,
-  credits vs real dates, explanations and expandable 25-category/125-level list. Automatically
-  bring the current category into view; scroll upward for the overview and How progress works.
-  All future requirements/icons remain inspectable. Maximum has no next level, never exceeds 125.
-- /how-progress-works: explanation, early three-minute/six-hour examples, actual XP/consistency rules
-  and separate 365-date/elapsed-day safeguard.
-- /history, /preferences: retained real history/pagination and independent persisted Home/session audio choices.
-- /credits: approved recording attribution, source/license links; original recording unchanged.
+home-screen.tsx owns responsive Home composition and safe-area footer; coastal-scene.tsx
+shares artwork with meditation/completion. Keep wave, artwork and text in separate bands.
+OceanMotionProvider owns one UI-thread phase, shared across these routes. ocean-geometry.ts
+defines the **12-second** periodic curve deformation and 45.76/37.18 source-unit amplitudes
+(10% more than the preceding swell);
+ocean-wave.tsx applies native Reanimated animated SVG props. Background/other routes
+cancel work; navigation among Home/session/completion/introduction and timer pause do
+not restart the swell. The phase also remains alive through Forest so returning is continuous.
+Onboarding reuses the same native component, not another clock.
 
-All number/date rules are domain/repository outputs. No SQL or XP formula lives in screens.
-See GAME_SYSTEM.md for the complete threshold table, simulations and historical version policy;
-ARCHITECTURE.md documents V4 migration and immutable completion metadata.
+The user explicitly requested ambient wave motion with Reduce Motion enabled too:
+use live accessibility state to halve wave amplitude and ReduceMotion.Never for its
+phase. Other transitions/reward animations honor Reduced Motion and settle immediately.
+Never treat the wave as a breathing instruction or derive its phase from the timer/audio.
 
-## Wave and icon assets
+Current interaction refinements use shared timing in motion.ts and opacity-only
+QuietPressable feedback, without scaling controls or changing hit targets. One live
+MotionPreferenceProvider serves the app. Waves stay mounted through outgoing route
+fades; the shared provider still stops their clock on background/other routes.
+SessionTime alone updates at active-second boundaries and stops ticking while hidden,
+paused, unfocused or backgrounded; artwork and session controls do not tick with it.
+The launch introduction reveals restored content after its minimum hold, while Skip
+remains immediate. Home's starting label reflects an actual Begin, not a preference save.
+Content expansion uses restrained native layout/fade transitions. Completion entrance
+finishes before the reward sequence begins; a presentation-only departure snapshot
+retains the saved summary during Continue, without becoming an alternative save source.
+Sound previews fade briefly on Stop; background/disposal still releases immediately.
 
-Wave samples the ten original approved artwork contours along the **permanent** journey; their
-legacy asset IDs no longer select a visible rank. During practice, Reanimated changes cubic
-control/join heights by at most six drawing units in a 12-second sinusoidal cycle. Adjacent
-controls move together, preserving tangents. It changes shape, rather than translating a drawing.
-Pause smoothly settles over 1100 ms and stops the phase loop. Resume eases back in; full-cycle
-phase endpoints have identical sine values. Background cancels animation work, independently
-of the timer. Reduced Motion is static, including preference changes during a session.
-Animation props run on the native UI thread; no whole-screen frame renders. It is not a breathing pacer.
+CompletionContent consumes saved HabitRewardReceipt endpoints. reward-sequence.ts and
+use-premium-reward.ts implement base progress → Consistency → bonus progress. The content
+is keyed by session ID and captures its immutable receipt/endpoints once; prop copies cannot
+restart a running sequence. Reanimated completions advance stages. A crossing fades the
+label/track/fill together, commits the next React label while hidden, then reveals and fills.
+Large receipts keep all crossings with a restrained per-stage time budget. Base earnings
+crossfade to the saved total as the bonus arrives; zero rounded bonuses do not create a +0 line.
+The five dots use the same real Consistency endpoints. Continue stays available during playback;
+an immediate departure guard and Android Back share the durable acknowledgement path.
+Cosmetic animation cannot save or issue rewards. Cancellation, duplicate/delayed callbacks,
+navigation/backgrounding, live Reduced Motion and incompatible decayed/versioned endpoints
+settle to the actual final state. Accessibility exposes saved final progress independently
+of intermediate frames. No separate reward sound: ending-bell preference owns closure and
+its existing tail spans the visual sequence.
 
-assets/ona/categories.json contains 25 native path definitions; categories/ contains the matching
-editable SVGs. Shared 24×24 viewBox, monochrome 1.35 strokes, rounded joins/caps; optically shown
-at 28–32 logical pixels. IDs match central Journey category icon IDs. Update both sources together;
-a parity test prevents drift. icon-specimen.svg is the compact specimen. Every icon is integrated
-in the actual Journey with accessible names; icons are not substituted with emoji/placeholders.
+Ripples display as whole numbers; format-ripples.ts is the single formatter. Home
+Consistency is a label, continuous bar and five milestone dots, without bonus percentages,
+multipliers/day counters. V5 indicatorFraction is the actual bonus momentum score;
+ConsistencyBar animates its fill and dots on the UI thread without screen rerenders.
+Completion uses immutable habit endpoints for base → Consistency → bonus; old fourteen-day
+receipt endpoints remain historical. Category presentation resolves stable IDs into 25
+current names and original vectors; Level 0's Monkey Mind symbol is separate from Early Steps.
+Journey
+uses actual saved historical local dates; Guide describes a habit-building metaphor,
+never a scientific claim. Settings reset preserves unrelated preferences.
 
-## Evidence and verification limits
+Journey's monthly summary includes all saved practice (including short sessions),
+with captured practice days and active time only; it is not another Consistency score.
+Today returns to the current calendar date without changing historical assignments.
+history-screen.tsx uses a virtualized SectionList, groups by captured day, preserves
+repository order within each day and supports native pull-to-refresh. While more pages
+remain, day summaries say “shown”; loading/reset/navigation guards ignore stale reads.
+Guide's optional practical answers cover thoughts, short practice, returning, hiding
+the existing timer and Silence settings. Expansion follows Reduced Motion preferences.
+Tap a saved entry in History or the selected calendar day to open practice details.
+This reads the original receipt without replaying completion or changing any reward.
+History's day headers remain visible while scrolling. Details ignore late reads after
+leaving/reset; captured local-time labels never fall back to the current device zone.
+Returning from details retains loaded history pages and scroll position; new completion
+or reset invalidates them, and pull-to-refresh explicitly reloads the first page.
+Settings keeps its save action above navigation while the sound controls scroll.
+Unsaved sound changes are marked; Save changes uses the existing explicit save flow.
 
-See [browser evidence](evidence/2026-10-11/README.md): opening, explanation, Home, active practice,
-ordinary/double completion, current/future Journey and clearly labelled Level 100 test data.
-The wave recording contains actual browser-rendered curve motion and a smooth Pause; its sampled
-phases differ, while paused/Reduced Motion paths remain static. This is not iPhone evidence.
+coastal-composition.ts owns the new asset's source landmarks and uniform aspect ratio.
+Home, meditation and completion share CoastalScene. Small screens/large type scroll
+instead of squeezing the taller source into controls; navigation stays in the safe area.
+One continuous background crop contains only empty lower texture, never repeated
+strips or a duplicate halo/shoreline.
+The source PNG is neither tinted, stretched nor recompressed. Guide/intro use the same
+asset; completion and intro use deliberate landscape crops. Audio retry is available
+through existing sound controls, with no floating Resume sound/Play sound buttons.
 
-Automated checks: npm test (pure TS and real Node SQLite), npx tsc --noEmit, npm run lint,
-npx expo export --platform all; exported React Native web against browser SQLite.
-Browser checks cover the >=1-second actual full-opacity hold, skip/dismissal/reopening,
-rendered colours, all icons, inspectable future levels, active/paused/Reduced Motion curve,
-pause/reload recovery, actual ordinary/double credits and Level 100 recovery. Test wall-clock
-advances/fixture history are explicit; no fake product counters or debug route are shipped.
-Native exports/dev bundle do not verify a signed release, native filesystem or visible device motion.
+## Timer/data boundary and accessibility
 
-On iPhone: cold launch vs resume; tap skip; first explanation dismiss/reopen; warm sand across
-all screens; watch wave >=12 seconds; Pause/Resume; Reduce Motion; lock/force-close running,
-paused and pending completion; save 2:59 vs 3:00 active; double gap just below/exactly six hours;
-Journey gates/current auto-scroll; large text/VoiceOver; persistent history/preferences after restart.
+Screens render provider/repository results; pure domain computes rewards, qualification
+and levels. Durable timer actions/save/recovery belong to OnaProvider and repositories.
+Root navigation gives durable running/paused practice and pending completion priority over
+every restored route or incoming link. The opening reveal waits for that route to resolve;
+ordinary navigation remains available after acknowledgement/discard. Completion redirects
+only while focused. Android Back closes discard/reset confirmations first, pauses a running
+practice, and shares the guarded completion acknowledgement. Settings blocks Back while saving.
+Bottom navigation exposes explicit selected/disabled ARIA state as well as native state.
+UI ticks only display elapsed time; no rendered frame awards or persists progression.
+Finish/retry waits for durable completion; Continue acknowledges that existing result.
+Audio remains independently owned. Buttons have meaningful labels, selected/disabled
+states and practical touch targets; small phones/large text use bounded scrolling.
 
-From PowerShell:
+## Verification limits
 
-~~~powershell
-cd C:\Users\fga31\Documents\MeditationApp
-npx expo start --clear --go --port 8091
-~~~
-
-Computer/iPhone on the same Wi-Fi; scan the terminal QR with Camera. Verification used the
-additional --offline flag in a restricted environment; normal network mode lets the CLI resolve
-Expo configuration metadata. The app's saved data stays local. Select another port if occupied. Rebuild a native
-binary to assess the configured splash; Expo Go's host splash cannot be branded by JS changes.
-
-## Audio and onboarding follow-up
-
-The approved Meditation Choir recording now accompanies the opening/Home and optionally practice,
-with separate saved volume/mute choices. No sea opening animation, Garmin, reminders,
-account, sync or subscriptions are added here. Bell assets are still unavailable.
-First-use copy is now three short messages; exact rules live in Journey's expandable
-How it works. Home's compact bars omit formula/threshold text. See AUDIO.md and its
-browser evidence for the current milestone rather than the earlier first-use screenshots.
+Automated checks cover geometry, reward plans/cancellation and repository lifecycle.
+Earlier physical iPhone captures in docs/evidence/native-wave prove actual mounted SVG
+deformation and an 18-second phase, not current whole-screen performance or every setting.
+Browser screenshots are actual React Native web renders, not native-device proof.
+After significant UI changes, verify real iPhone/Android safe areas, text scaling,
+navigation, background/reopen, frame pacing and accessibility. Audio device limits are
+documented separately in [AUDIO.md](AUDIO.md).

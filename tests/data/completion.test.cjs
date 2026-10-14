@@ -146,16 +146,13 @@ test('A failed Home acknowledgement leaves the saved summary pending for retry',
 test('V2 pending timed cursor migrates to V3; historical awards and preferences are byte-for-byte unchanged', async t => {
   const filename = disk(t);
   const conn = connection(filename);
-  const { MIGRATIONS, migrate } = require('./helpers.cjs').data('database/migrations.js');
   const { createTransactions } = require('./helpers.cjs').data('database/connection.js');
-  const { appendTransition } = require('./helpers.cjs').data('database/records.js');
+  const { writeLegacyFixture } = require('./helpers.cjs');
   const prefs = require('./helpers.cjs').data('preferences.js').DEFAULT_PREFERENCES;
   let state = api.recordSession(api.createProgressionState(context(1)), session());
   const tx = createTransactions(conn);
   await tx.transaction(async sql => {
-    await migrate(sql, MIGRATIONS.slice(0, 2));
-    await appendTransition(sql, null, state, state.asOf.timestamp);
-    await sql.run('INSERT INTO meditation_preferences VALUES (1, ?)', [JSON.stringify(prefs)]);
+    await writeLegacyFixture(sql, 2, state, prefs);
     const timed = startTimer('legacy-running', 600, at(2, 9), 'UTC');
     const { mode, ...oldDraft } = timed;
     await sql.run('INSERT INTO meditation_timer VALUES (1, ?)', [JSON.stringify(oldDraft)]);
@@ -167,7 +164,8 @@ test('V2 pending timed cursor migrates to V3; historical awards and preferences 
   assert.equal(store.initialTimer.mode, 'timed');
   assert.equal(store.initialTimer.targetSeconds, 600);
   assert.equal(store.initialCompletion, null); // No guessed summaries for historical records.
-  assert.deepEqual(next.raw.prepare('SELECT * FROM progression_awards').all(), original);
+  assert.deepEqual(next.raw.prepare(`SELECT id, sequence, session_id, occasion_id, rules_version, awarded_at,
+    local_date, reward_date, xp_centi, breakdown_json FROM progression_awards`).all(), original);
   assert.deepEqual(await store.settings.loadPreferences(), prefs);
   await store.close();
 });

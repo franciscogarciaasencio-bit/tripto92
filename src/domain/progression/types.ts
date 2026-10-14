@@ -11,9 +11,41 @@ export interface RankDefinition {
   readonly theme: string;
 }
 
+/** Released V4's millionth-based asymptotic growth. Its stored shape stays unchanged. */
+export interface RemainingCapacityConsistency {
+  readonly scale: number;
+  readonly growthBasisPoints: number;
+  readonly inactiveRetentionMillionths: number;
+  readonly halfLifeDays: number;
+}
+
+/** Exact, equal contributions: sixty units of one million make the full score. */
+export interface LinearContributionConsistency {
+  readonly algorithm: 'linear_contributions_v1';
+  readonly scale: number;
+  readonly contributionUnits: number;
+  readonly targetContributions: number;
+  readonly inactiveRetentionMillionths: number;
+  readonly halfLifeDays: number;
+}
+export type ConsistencyConfiguration = RemainingCapacityConsistency | LinearContributionConsistency;
+
+/** Immutable prospective boundary. Old sessions are gates/history, never newly recalculated rewards. */
+export interface ConsistencyActivation {
+  readonly rulesVersion: string;
+  /** Null only for a genuinely empty new state; otherwise the frozen source formula. */
+  readonly previousRulesVersion: string | null;
+  /** Absolute activation time with its monotonic logical calendar date. */
+  readonly asOf: CalendarContext;
+  readonly sessionCount: number;
+  readonly awardCount: number;
+  /** Fixed integer units in the activated configuration's scale. */
+  readonly score: number;
+}
+
 export interface ProgressionRules {
   readonly version: string;
-  readonly earningsAlgorithm: 'logarithmic_v1';
+  readonly earningsAlgorithm: 'logarithmic_v1' | 'linear_short_logarithmic_v1';
   readonly decayAlgorithm: 'capped_daily_v1';
   readonly minimumActiveSeconds: number;
   /** Omitted in released V1: its historical qualification flags define practice days. */
@@ -28,6 +60,7 @@ export interface ProgressionRules {
   readonly occasionWeightsBasisPoints: readonly number[];
   readonly consistencyWindowDays: number;
   readonly maximumConsistencyBonusBasisPoints: number;
+  readonly continuousConsistency?: ConsistencyConfiguration;
   readonly inactivityGraceDays: number;
   readonly dailyDecayBasisPoints: number;
   readonly dailyDecayCapCentiXp: CentiXp;
@@ -54,6 +87,7 @@ export interface PracticeOccasion {
   readonly weightBasisPoints: number;
   readonly precedingActiveDays: number;
   readonly awardedCentiXp: CentiXp;
+  readonly awardedBaseCentiXp?: CentiXp;
 }
 
 export interface AwardBreakdown {
@@ -65,9 +99,13 @@ export interface AwardBreakdown {
   readonly consistencyDenominator: number;
   readonly previousOccasionCentiXp: CentiXp;
   readonly cumulativeOccasionCentiXp: CentiXp;
+  readonly incrementalBaseCentiXp?: CentiXp;
+  readonly bonusCentiXp?: CentiXp;
+  readonly continuousConsistencyScore?: number;
+  readonly continuousConsistencyDate?: LocalDate;
 }
 
-/** An append-only receipt. Zero-XP qualifying events also have receipts. */
+/** An append-only receipt. Reward-eligible events also receive a receipt when capped at zero XP. */
 export interface ProgressionAward {
   readonly id: string;
   readonly sessionId: string;
@@ -100,6 +138,8 @@ export interface ProgressionState {
   readonly currentProgressionCenti: CentiXp;
   readonly totalMeditationSeconds: number;
   readonly highestRankAchieved: RankAchievement;
+  /** Additive V5 continuation anchors. Absent in released V1–V4 checkpoints. */
+  readonly consistencyActivations?: readonly ConsistencyActivation[];
 }
 
 export interface ProgressSnapshot {
@@ -120,6 +160,9 @@ export interface ProgressSnapshot {
   readonly totalMeditationSeconds: number;
   readonly totalMeditationMinutes: number;
   readonly consistency: {
+    readonly fraction: number;
+    /** V5: the same score used for bonuses. Released V1–V4 retain their independent display projection. */
+    readonly indicatorFraction: number;
     readonly precedingActiveDays: number;
     readonly windowDays: number;
     readonly multiplier: number;

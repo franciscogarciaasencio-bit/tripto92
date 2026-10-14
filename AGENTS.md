@@ -1,47 +1,40 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# Working on Ona
 
-For progression work, read `docs/GAME_SYSTEM.md` for domain rules, public APIs, and historical-award guarantees. Run `npm test` when changing the domain.
+This is a mobile-first Expo SDK 57 / React Native / TypeScript application.
+Preserve current visuals, user data, historical awards and cross-platform behavior.
 
-For persistence work, read `docs/ARCHITECTURE.md` for repository APIs, migrations, atomic saves, and recovery policy. Keep SQLite out of `src/domain/` and run `npm test` after data-layer changes.
+- Active 20-session program: read docs/ONA_20_SESSION_PLAN.md on `continue`; implement
+  the requested number of substantial sessions, verify, update its log and stop.
+  Default to one per continue; Sessions 2–5 were explicitly authorized as one completed batch.
+  Preserve existing dirty work.
 
-For Ona UI work, read `docs/ONA_UI.md` for the approved design sources, native flow, timer lifecycle and verification limits. Keep XP calculations and SQL out of screens.
-
-## Expo has changed — do not trust your training data
-
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
-
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
-
-## Commands
-
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
-```
-
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+- Inspect Git status first; preserve unrelated changes. Trace imports, Router routes,
+  configuration and dynamic assets before declaring a file unused.
+- Read docs/ARCHITECTURE.md for repositories, migrations and recovery;
+  docs/GAME_SYSTEM.md for current/legacy rule boundaries;
+  docs/ONA_UI.md for design and motion; docs/AUDIO.md for sound ownership/provenance.
+- src/app contains Expo Router routes only. Keep components/hooks outside it;
+  use expo-router for navigation. Screens contain no SQL or earning formulas.
+- src/domain is plain TypeScript: no React, React Native, Expo, SQLite or UI/data imports.
+  Use src/domain/progression/index.ts; current displayed levels come from habit.ts,
+  not legacy ranks/levels or the compatibility balance in ProgressSnapshot.
+- Application code imports the storage API from src/data. Session completion is an
+  atomic repository operation; animation/audio callbacks never award or save rewards.
+- Preserve released rules V1–V5 and migrations 1–10. Add versioned rules or migration 11
+  for future changes; never recompute historical earnings or auto-reset corrupt data.
+- AudioProvider owns playback. Reuse its controllers; do not create screen-owned
+  players. Keep sound generators and asset provenance when retiring runtime assets.
+- Before touching Expo/React Native APIs, inspect package.json and fetch the matching
+  SDK docs at https://docs.expo.dev/versions/v57.0.0/ and https://docs.expo.dev/llms.txt.
+  Use npx expo install for SDK-compatible additions; avoid unrelated upgrades.
+- Do not manually create/edit ios or android folders. Use app config/plugins and a
+  development build when native configuration changes; Expo Go cannot apply plugins.
+- Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
+  the approved application ID and signing key; never commit credentials or APK artifacts.
+- Claude handoff: docs/CLAUDE_HANDOFF.md contains external setup/chat decisions. Session 12
+  native acceptance is pending (docs/ANDROID_ACCEPTANCE.md); do not start Session 13 automatically.
+- Node 24+ is required. Run npm run check before finishing; npm test covers domain,
+  persistence, audio and reward/geometry logic. Export all platforms after changing
+  imports, assets, dependencies or native config: npx expo export --platform all.
+- Report physical-device limits honestly: web rendering/export is not native audio,
+  locked-screen, accessibility or frame-pacing verification.

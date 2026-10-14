@@ -41,3 +41,9 @@ example
 # generated native folders
 /ios
 /android
+
+# Native release artifacts and local signing material
+/artifacts/
+credentials.json
+*.keystore
+__pycache__/

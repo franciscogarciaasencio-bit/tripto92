@@ -3,8 +3,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState } from 'react-native';
 
 import { initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
-import { finishTimer, pauseTimer, practiceContext, resumeTimer, settleTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
-import type { ProgressSnapshot, LifetimeJourney } from '@/domain/progression';
+import { finishTimer, pauseTimer, practiceContext, resumeTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
+import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
+import { watchTimerDeadline } from './practice-lifecycle';
 
 export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -22,12 +23,17 @@ function useApplication() {
   const [draft, setDraft] = useState<TimerDraft | null>(null);
   const [snapshot, setSnapshot] = useState<ProgressSnapshot | null>(null);
   const [journey, setJourney] = useState<LifetimeJourney | null>(null);
+  const [habit, setHabit] = useState<HabitCheckpoint | null>(null);
   const [explanationDismissed, setExplanationDismissed] = useState(false);
   const [preferences, setPreferences] = useState<MeditationPreferences | null>(null);
   const [audioPreferences, setAudioPreferences] = useState<AudioPreferences | null>(null);
   const [completion, setCompletion] = useState<PracticeCompletion | null>(null);
   const [completedPractices, setCompletedPractices] = useState(0);
   const [hasHistory, setHasHistory] = useState(false);
+  const [practiceRevision, setPracticeRevision] = useState(0);
+  const [foreground, setForeground] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  const [activation, setActivation] = useState(0);
+  const refreshOnReturn = useRef(false);
 
   const acceptDraft = useCallback((next: TimerDraft | null) => {
     timer.current = next;
@@ -48,6 +54,7 @@ function useApplication() {
         acceptDraft(opened.initialTimer);
         setSnapshot(opened.initialSnapshot);
         setJourney(opened.initialJourney);
+        setHabit(opened.initialHabit);
         setExplanationDismissed(opened.initialExplanationDismissed);
         setPreferences(savedPreferences);
         setAudioPreferences(savedAudioPreferences);
@@ -86,6 +93,7 @@ function useApplication() {
         acceptDraft(reopened.initialTimer);
         setSnapshot(reopened.initialSnapshot);
         setJourney(reopened.initialJourney);
+        setHabit(reopened.initialHabit);
         setExplanationDismissed(reopened.initialExplanationDismissed);
         setCompletion(reopened.initialCompletion);
         setCompletedPractices(reopened.initialCompletedPractices);
@@ -111,6 +119,7 @@ function useApplication() {
     const saved = await database.meditations.completePractice(session, Date.now());
     setSnapshot(saved.snapshot);
     setJourney(saved.journey);
+    setHabit(saved.habit);
     setCompletion(saved.completion);
     setCompletedPractices(saved.completion.completedPractices);
     setHasHistory(true);
@@ -118,35 +127,59 @@ function useApplication() {
   }), [operation, acceptDraft]);
 
   useEffect(() => {
-    const check = (observedLive = true) => {
-      const pending = timer.current;
-      if (!pending || locked.current || pending.phase !== 'running') return;
-      if (observedLive && AppState.currentState !== 'active') return;
-      try {
-        const zone = observedLive ? Intl.DateTimeFormat().resolvedOptions().timeZone : pending.timeZone;
-        const settled = settleTimer(pending, Date.now(), zone);
-        if (settled.phase === 'finished') void complete(settled);
-      } catch (failure) { setError(String(failure)); }
-    };
-    const interval = setInterval(check, 500);
     const listener = AppState.addEventListener('change', (state) => {
+      setForeground(state === 'active');
       if (state !== 'active') return;
-      check(false);
-      if (!timer.current) void operation(async (database) => {
-        const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
-        setSnapshot(progress.snapshot); setJourney(progress.journey);
-      });
+      refreshOnReturn.current = true;
+      setActivation(value => value + 1);
     });
-    return () => { clearInterval(interval); listener.remove(); };
-  }, [complete, operation]);
+    return () => listener.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!ready || busy || !foreground) return;
+    return watchTimerDeadline(draft, {
+      now: Date.now,
+      timeZone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+      schedule(callback, milliseconds) { const task = setTimeout(callback, milliseconds); return () => clearTimeout(task); },
+    }, finished => { void complete(finished); }, failure => setError(String(failure)));
+  }, [ready, busy, foreground, activation, draft, complete]);
+
+  useEffect(() => {
+    // Foreground events during a save are deferred, not dropped by the operation lock.
+    // A pending timer/summary owns recovery first; refresh after its durable resolution.
+    if (!ready || busy || !foreground || draft || completion || !refreshOnReturn.current) return;
+    refreshOnReturn.current = false;
+    void operation(async (database) => {
+      const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+      setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
+    });
+  }, [ready, busy, foreground, activation, draft, completion, operation]);
 
   const history = useCallback((offset = 0) => {
     if (!store.current) return Promise.reject(new Error('Storage is not ready'));
     return store.current.meditations.getMeditationHistory({ limit: 50, offset });
   }, []);
+  const practiceDetails = useCallback((id: string) => {
+    if (!store.current) return Promise.reject(new Error('Storage is not ready'));
+    return store.current.meditations.getPracticeDetails(id);
+  }, []);
+  useEffect(() => {
+    if (!ready || draft || completion) return;
+    const refresh = setInterval(() => {
+      if (AppState.currentState !== 'active' || locked.current) return;
+      const context = currentContext();
+      if (context.localDate === snapshot?.asOf.localDate) return;
+      void operation(async (database) => {
+        const progress = await database.meditations.getCurrentPracticeProgress(context);
+        setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
+      });
+    }, 60_000);
+    return () => clearInterval(refresh);
+  }, [ready, draft, completion, snapshot?.asOf.localDate, operation]);
 
   return {
-    ready, busy, error, draft, snapshot, journey, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices,
+    ready, busy, error, draft, snapshot, journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
     async saveAudioPreferences(next: AudioPreferences) {
       return operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
     },
@@ -200,17 +233,34 @@ function useApplication() {
         await database.timer.discard(pending.id);
         acceptDraft(null);
         const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
-        setSnapshot(progress.snapshot); setJourney(progress.journey);
+        setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
       });
     },
     async savePreferences(next: MeditationPreferences) {
       return operation(async (database) => { await database.settings.savePreferences(next); setPreferences(next); });
     },
+    async resetAllPracticeData() {
+      return operation(async (database) => {
+        if (timer.current || completion) throw new Error('Finish or discard your current practice and return Home before restarting your journey');
+        const restarted = await database.meditations.resetAllPracticeData(currentContext());
+        setSnapshot(restarted.snapshot);
+        setJourney(restarted.journey);
+        setHabit(restarted.habit);
+        acceptDraft(null);
+        setCompletion(null);
+        setCompletedPractices(0);
+        setHasHistory(false);
+        setPracticeRevision((revision) => revision + 1);
+      });
+    },
     history,
+    practiceDetails,
     async dismissCompletion() {
       if (!completion) return false;
       return operation(async (database) => {
         await database.meditations.acknowledgeCompletion(completion.session.id, Date.now());
+        const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+        setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
         setCompletion(null);
       });
     },

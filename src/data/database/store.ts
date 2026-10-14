@@ -12,6 +12,8 @@ import { appendTransition, loadState, writeCheckpoint } from './records';
 import { completedPracticeCount, pendingCompletion, persistCompletion, validateCompletions } from './completions';
 import { loadJourney } from './journey';
 import { createApplicationRepository, loadExplanationDismissal } from '../repositories/application-repository';
+import { loadHabit } from './habit';
+import { DEFAULT_AUDIO_PREFERENCES } from '../audio-preferences';
 
 /** Internal factory shared by native adapter and real SQLite tests; application code uses initializeDatabase. */
 export async function openStore(connection: SqlConnection, input: CalendarContext, supportedRules?: readonly ProgressionRules[], activateRulesVersion?: string) {
@@ -23,6 +25,7 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
     await connection.exec('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;');
     const restored = await database.transaction(async (sql) => {
       const migration = await migrate(sql);
+      if (migration.previousVersion < 5) await sql.run('UPDATE audio_preferences SET preferences_json=? WHERE id=1', [JSON.stringify(DEFAULT_AUDIO_PREFERENCES)]);
       if (migration.previousVersion === 0) {
         await appendTransition(sql, null, createProgressionState(asOf), asOf.timestamp);
         await sql.run('INSERT INTO meditation_preferences(id, preferences_json) VALUES (1, ?)', [JSON.stringify(DEFAULT_PREFERENCES)]);
@@ -40,7 +43,11 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       }
       state = advanceProgression(state, asOf);
       // Deliberate release policy supplied by the native adapter, AFTER old pending completions and old decay.
-      if (activateRulesVersion && state.activeRulesVersion === 'progression_v1' && state.activeRulesVersion !== activateRulesVersion) {
+      const releasedUpgrade = (state.activeRulesVersion === 'progression_v1' && activateRulesVersion !== 'progression_v1') ||
+        (['progression_v1', 'progression_v2', 'progression_v3'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v4') ||
+        (['progression_v1', 'progression_v2', 'progression_v3', 'progression_v4'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v5') ||
+        (['progression_v1', 'progression_v2'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v3');
+      if (activateRulesVersion && releasedUpgrade) {
         const changed = changeProgressionRules(state, registry.get(activateRulesVersion), asOf);
         await appendTransition(sql, state, changed, asOf.timestamp);
         state = changed;
@@ -48,10 +55,11 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       await loadPreferences(sql);
       await loadAudioPreferences(sql);
       await writeCheckpoint(sql, state);
-      await validateCompletions(sql, state);
+      const habit = await loadHabit(sql, state, migration.previousVersion < 8 || releasedUpgrade);
+      await validateCompletions(sql, registry);
       const dismissed = await loadExplanationDismissal(sql);
       return { initialSnapshot: getProgressSnapshot(state, asOf), initialTimer: draft?.phase === 'finished' ? null : draft,
-        initialJourney: await loadJourney(sql, state), initialExplanationDismissed: dismissed !== null,
+        initialJourney: habit?.journey ?? await loadJourney(sql, state), initialHabit: habit?.checkpoint ?? null, initialExplanationDismissed: dismissed !== null,
         recoveredSession, previousRank, initialCompletion: await pendingCompletion(sql),
         initialCompletedPractices: await completedPracticeCount(sql) };
     });

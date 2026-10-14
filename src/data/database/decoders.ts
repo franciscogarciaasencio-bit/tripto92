@@ -1,6 +1,6 @@
 import { validateSession } from '../../domain/meditation/session';
-import { createProgressionState, PROGRESSION_V1, PROGRESSION_V2 } from '../../domain/progression';
-import type { CalendarContext, MeditationSession, ProgressionAward, ProgressionRules, ProgressionState, RankDefinition } from '../../domain/progression';
+import { createProgressionState, PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5 } from '../../domain/progression';
+import type { CalendarContext, MeditationSession, ProgressionAward, ProgressionRules, ProgressionState, RankDefinition, ConsistencyActivation } from '../../domain/progression';
 import { PersistenceError } from './errors';
 import { array, canonical, integer, json, localDate, object, requireData, text, timestamp, timeZone } from './validation';
 
@@ -52,6 +52,9 @@ export function decodeAwardRow(value: unknown): ProgressionAward {
       weightBasisPoints: integer(b.weightBasisPoints), precedingActiveDays: integer(b.precedingActiveDays),
       consistencyNumerator: integer(b.consistencyNumerator, 1), consistencyDenominator: integer(b.consistencyDenominator, 1),
       previousOccasionCentiXp: integer(b.previousOccasionCentiXp), cumulativeOccasionCentiXp: integer(b.cumulativeOccasionCentiXp),
+      ...(b.incrementalBaseCentiXp !== undefined ? { incrementalBaseCentiXp: integer(b.incrementalBaseCentiXp),
+        bonusCentiXp: integer(b.bonusCentiXp), continuousConsistencyScore: integer(b.continuousConsistencyScore),
+        continuousConsistencyDate: localDate(b.continuousConsistencyDate) } : {}),
     },
   };
 }
@@ -68,12 +71,13 @@ function decodeOccasion(value: unknown): ProgressionState['occasions'][number] {
     rulesVersion: text(row.rulesVersion), ordinalInDay: integer(row.ordinalInDay, 1),
     weightBasisPoints: integer(row.weightBasisPoints), precedingActiveDays: integer(row.precedingActiveDays),
     awardedCentiXp: integer(row.awardedCentiXp),
+    ...(row.awardedBaseCentiXp !== undefined ? { awardedBaseCentiXp: integer(row.awardedBaseCentiXp) } : {}),
   };
 }
 
 export type CheckpointMetadata = Pick<ProgressionState,
   'schemaVersion' | 'asOf' | 'settledThroughDate' | 'activeRulesVersion' | 'occasions' | 'highestRankAchieved'> & {
-    readonly sessionCount: number; readonly awardCount: number; readonly ruleSetCount: number;
+    readonly sessionCount: number; readonly awardCount: number; readonly ruleSetCount: number; readonly consistencyActivationCount: number;
   };
 
 export function checkpointMetadata(state: ProgressionState): CheckpointMetadata {
@@ -81,6 +85,7 @@ export function checkpointMetadata(state: ProgressionState): CheckpointMetadata 
     schemaVersion: state.schemaVersion, asOf: state.asOf, settledThroughDate: state.settledThroughDate,
     activeRulesVersion: state.activeRulesVersion, occasions: state.occasions, highestRankAchieved: state.highestRankAchieved,
     sessionCount: state.sessions.length, awardCount: state.awards.length, ruleSetCount: state.ruleSets.length,
+    consistencyActivationCount: state.consistencyActivations?.length ?? 0,
   };
 }
 export function decodeCheckpoint(value: unknown): CheckpointMetadata & { readonly currentProgressionCenti: number } {
@@ -94,13 +99,21 @@ export function decodeCheckpoint(value: unknown): CheckpointMetadata & { readonl
     activeRulesVersion: text(meta.activeRulesVersion), occasions: array(meta.occasions, decodeOccasion),
     highestRankAchieved: { rank: decodeRank(best.rank), rulesVersion: text(best.rulesVersion), achievedAt: timestamp(best.achievedAt) },
     sessionCount: integer(meta.sessionCount), awardCount: integer(meta.awardCount), ruleSetCount: integer(meta.ruleSetCount, 1),
+    consistencyActivationCount: meta.consistencyActivationCount === undefined ? 0 : integer(meta.consistencyActivationCount),
   };
+}
+
+export function decodeConsistencyActivation(value: unknown): ConsistencyActivation {
+  const row = object(value);
+  return { rulesVersion: text(row.rulesVersion), asOf: decodeContext(row.asOf),
+    previousRulesVersion: row.previousRulesVersion === null ? null : text(row.previousRulesVersion),
+    sessionCount: integer(row.sessionCount), awardCount: integer(row.awardCount), score: integer(row.score) };
 }
 
 /** Explicit allowlist. New releases register new versions AND retain historical definitions. */
 export function createRulesRegistry(supported: readonly ProgressionRules[] = [PROGRESSION_V1]) {
   const registry = new Map<string, ProgressionRules>();
-  for (const rules of [PROGRESSION_V1, PROGRESSION_V2, ...supported]) {
+  for (const rules of [PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, ...supported]) {
     const captured = createProgressionState({ timestamp: 0, localDate: '1970-01-01', timeZone: 'UTC' }, rules).ruleSets[0]!;
     const existing = registry.get(captured.version);
     if (existing && canonical(existing) !== canonical(captured)) throw new Error('Conflicting registered rules version');

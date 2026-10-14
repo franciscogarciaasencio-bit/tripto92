@@ -6,5 +6,5 @@ export default {
   ...config.expo, backgroundColor: theme.background,
   android: { ...config.expo.android, adaptiveIcon: { ...config.expo.android.adaptiveIcon, backgroundColor: theme.background } },
   plugins: config.expo.plugins.map((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen'
-    ? [plugin[0], { backgroundColor: theme.background }] : plugin),
+    ? [plugin[0], { ...(typeof plugin[1] === 'object' ? plugin[1] : {}), backgroundColor: theme.background }] : plugin),
 };

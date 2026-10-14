@@ -1,12 +1,13 @@
 import { sameSession, validateSession, type MeditationSession } from '../meditation/session';
 import { dateFromDay, dayNumber, validateContext, type CalendarContext } from './calendar';
 import { decayOneDay, protectedFloor } from './decay';
-import { occasionEarnings } from './earnings';
-import { freeze, safeAdd } from './numeric';
+import { isRewardEligible, occasionEarnings } from './earnings';
+import { freeze, multiplyRatio, safeAdd } from './numeric';
 import { occasionForSession, qualifyingDates } from './occasions';
 import { rankForProgress } from './ranks';
 import { captureRules, PROGRESSION_V1, rulesForVersion } from './rules';
 import type { ProgressionAward, ProgressionRules, ProgressionState } from './types';
+import { isLinearConsistency, progressionConsistency, sessionConsistency } from './consistency';
 
 export function createProgressionState(asOf: CalendarContext, rules: ProgressionRules = PROGRESSION_V1): ProgressionState {
   validateContext(asOf);
@@ -20,6 +21,10 @@ export function createProgressionState(asOf: CalendarContext, rules: Progression
     sessions: [], occasions: [], awards: [],
     lifetimeXpCenti: 0, currentProgressionCenti: 0, totalMeditationSeconds: 0,
     highestRankAchieved: { rank: captured.ranks[0]!, rulesVersion: captured.version, achievedAt: asOf.timestamp },
+    ...(captured.continuousConsistency && isLinearConsistency(captured.continuousConsistency) ? {
+      consistencyActivations: [{ rulesVersion: captured.version, previousRulesVersion: null,
+        asOf: { ...asOf }, sessionCount: 0, awardCount: 0, score: 0 }],
+    } : {}),
   });
 }
 
@@ -78,14 +83,17 @@ export function recordSession(state: ProgressionState, session: MeditationSessio
     sessions: [...settled.sessions, { session: { ...session }, qualified, qualificationRulesVersion: rules.version }],
     totalMeditationSeconds: safeAdd(settled.totalMeditationSeconds, session.activeDurationSeconds),
   };
-  if (!qualified) return freeze(withHistory);
+  if (!isRewardEligible(session, rules)) return freeze(withHistory);
 
   // Use pre-append history: today's record must not influence its own bonus.
   const occasion = occasionForSession(settled, session);
   const originalRules = rulesForVersion(settled, occasion.rulesVersion);
-  const breakdown = occasionEarnings(occasion, originalRules);
+  const consistency = originalRules.continuousConsistency ? sessionConsistency(settled, withHistory, originalRules.continuousConsistency) : null;
+  const breakdown = { ...occasionEarnings(occasion, originalRules, consistency?.score ?? 0),
+    ...(consistency ? { continuousConsistencyDate: consistency.localDate } : {}) };
   const increment = breakdown.cumulativeOccasionCentiXp - breakdown.previousOccasionCentiXp;
-  const updatedOccasion = { ...occasion, awardedCentiXp: breakdown.cumulativeOccasionCentiXp };
+  const updatedOccasion = { ...occasion, awardedCentiXp: breakdown.cumulativeOccasionCentiXp,
+    ...(breakdown.incrementalBaseCentiXp !== undefined ? { awardedBaseCentiXp: (occasion.awardedBaseCentiXp ?? 0) + breakdown.incrementalBaseCentiXp } : {}) };
   const replacesLast = settled.occasions[settled.occasions.length - 1]?.id === occasion.id;
   const award: ProgressionAward = {
     id: `award:${session.id}`, sessionId: session.id, occasionId: occasion.id,
@@ -109,12 +117,31 @@ export function changeProgressionRules(state: ProgressionState, rules: Progressi
     throw new Error('A rules version cannot be reused for different configuration');
   }
   const settled = advanceProgression(state, asOf);
+  if (settled.activeRulesVersion === captured.version) return settled;
+  const previousConfig = rulesForVersion(settled).continuousConsistency;
+  if (previousConfig && isLinearConsistency(previousConfig) &&
+      (!captured.continuousConsistency || !isLinearConsistency(captured.continuousConsistency))) {
+    throw new RangeError('Linear consistency cannot downgrade to legacy rules; use a new explicit continuation version');
+  }
   if (protectedFloor(settled.lifetimeXpCenti, captured) > settled.currentProgressionCenti) {
     throw new Error('Raising the floor above current progression requires an explicit migration');
   }
+  const config = captured.continuousConsistency;
+  const activation = config && isLinearConsistency(config) ? (() => {
+    if (settled.consistencyActivations?.some(anchor => anchor.rulesVersion === captured.version)) {
+      throw new RangeError('A linear consistency version cannot be reactivated; use a new rules version');
+    }
+    const previous = rulesForVersion(settled).continuousConsistency;
+    const carry = previous ? progressionConsistency(settled, previous) : null;
+    return { rulesVersion: captured.version, previousRulesVersion: settled.activeRulesVersion, asOf: { ...settled.asOf,
+      localDate: carry?.localDate ?? dateFromDay(Math.max(dayNumber(settled.asOf.localDate), dayNumber(settled.settledThroughDate) + 1)) },
+      sessionCount: settled.sessions.length, awardCount: settled.awards.length,
+      score: carry && previous ? multiplyRatio(carry.score, config.scale, previous.scale) : 0 };
+  })() : null;
   return freeze(updateBest({
     ...settled,
     activeRulesVersion: captured.version,
     ruleSets: existing ? settled.ruleSets : [...settled.ruleSets, captured],
+    ...(activation ? { consistencyActivations: [...(settled.consistencyActivations ?? []), activation] } : {}),
   }));
 }

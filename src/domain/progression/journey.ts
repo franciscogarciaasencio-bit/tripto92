@@ -2,7 +2,9 @@ import { sameSession, validateSession, type MeditationSession } from '../meditat
 import { assertNonnegativeInteger, freeze, safeAdd } from './numeric';
 import type { ProgressionState } from './types';
 
-export const JOURNEY_VERSION = 'ona_journey_v2';
+export const JOURNEY_VERSION = 'ona_journey_v3';
+export const LEGACY_JOURNEY_VERSION = 'ona_journey_v2';
+export const HABIT_JOURNEY_VERSION = 'ona_habit_levels_v1';
 export const PRACTICE_CREDIT_RULES = freeze({ minimumActiveSeconds: 180, doubleGapMilliseconds: 6 * 3_600_000,
   maximumCreditsPerDate: 2, maximumLevel: 125, finalElapsedDays: 365, millisecondsPerDay: 86_400_000 });
 const categoryDefinitions = [
@@ -27,7 +29,7 @@ export interface JourneyLevel {
 /** Balancing constants live here. Three nonlinear curves distribute the time gates throughout the journey. */
 const pacing = freeze({ finalXpCenti: 3_000_000, finalCredits: 365, finalRealDays: 365,
   xpExponent: 1.75, creditExponent: 1.4, dayExponent: 1.8 });
-export const JOURNEY_LEVELS: readonly JourneyLevel[] = freeze(Array.from({ length: PRACTICE_CREDIT_RULES.maximumLevel }, (_, index) => {
+export const LEGACY_JOURNEY_LEVELS: readonly JourneyLevel[] = freeze(Array.from({ length: PRACTICE_CREDIT_RULES.maximumLevel }, (_, index) => {
   const ratio = index / (PRACTICE_CREDIT_RULES.maximumLevel - 1);
   return { number: index + 1, category: JOURNEY_CATEGORIES[Math.floor(index / 5)]!, categoryStep: index % 5 + 1,
     xpCenti: Math.round(pacing.finalXpCenti * ratio ** pacing.xpExponent),
@@ -36,11 +38,35 @@ export const JOURNEY_LEVELS: readonly JourneyLevel[] = freeze(Array.from({ lengt
     elapsedDays: index === PRACTICE_CREDIT_RULES.maximumLevel - 1 ? PRACTICE_CREDIT_RULES.finalElapsedDays : 0 };
 }));
 
+/** V3 changes levels only. Released Ripple rewards and V2 thresholds stay frozen. */
+export const JOURNEY_PACING = freeze({ firstXpCenti: 12_000, linearXpCenti: 1_400_000,
+  curvedXpCenti: 1_588_000, exponent: 1.75 });
+export const JOURNEY_LEVELS: readonly JourneyLevel[] = freeze(LEGACY_JOURNEY_LEVELS.map((level, index) => {
+  const ratio = index / (PRACTICE_CREDIT_RULES.maximumLevel - 1);
+  return { ...level, xpCenti: Math.round(JOURNEY_PACING.firstXpCenti + JOURNEY_PACING.linearXpCenti * ratio +
+    JOURNEY_PACING.curvedXpCenti * ratio ** JOURNEY_PACING.exponent) };
+}));
+/** Current habit levels follow effective Ripples; only entry and the maximum retain calendar gates. */
+export const HABIT_LEVEL_PACING = freeze({ firstXpCenti: 12_000, linearXpCenti: 1_400_000, curvedXpCenti: 2_688_000, exponent: 1.75 });
+export const HABIT_LEVELS: readonly JourneyLevel[] = freeze(JOURNEY_LEVELS.map((level,index) => {
+  const ratio = index / (PRACTICE_CREDIT_RULES.maximumLevel - 1);
+  return { ...level, xpCenti: Math.round(HABIT_LEVEL_PACING.firstXpCenti + HABIT_LEVEL_PACING.linearXpCenti * ratio +
+    HABIT_LEVEL_PACING.curvedXpCenti * ratio ** HABIT_LEVEL_PACING.exponent), credits: 1,
+    realDays: level.number === 125 ? 365 : 1 };
+}));
+
+/** Starting state outside the numbered table; stable 1–125 identities and categories remain unchanged. */
+export const JOURNEY_PRELUDE: JourneyLevel = freeze({ number: 0, category: JOURNEY_CATEGORIES[0]!, categoryStep: 0,
+  xpCenti: 0, credits: 0, realDays: 0, elapsedDays: 0 });
+
 export interface JourneyMetrics {
+  readonly effectiveXpCenti?: number;
   readonly lifetimeXpCenti: number; readonly credits: number; readonly realDays: number;
   readonly firstPracticeAt: number | null; readonly asOf: number;
 }
 export interface JourneyAchievement { readonly version: string; readonly level: number; readonly achievedAt: number }
+/** Legacy mode exists only to validate already-stored summaries made before the Level 0 prelude. */
+export interface JourneyProjectionOptions { readonly legacyLevelOneStart?: boolean; readonly version?: string }
 export function practiceCreditOutcome(session: MeditationSession, creditsAdded: number, dateCredits: number) {
   validateSession(session);
   assertNonnegativeInteger(creditsAdded, 'creditsAdded'); assertNonnegativeInteger(dateCredits, 'dateCredits');
@@ -80,40 +106,67 @@ export function practiceCredits(sessions: readonly MeditationSession[]) {
   });
   return freeze({ dates, credits: dates.reduce((n, day) => safeAdd(n, day.credits), 0), realDays: dates.length, firstPracticeAt });
 }
-function remaining(metrics: JourneyMetrics, level: JourneyLevel) {
+function remaining(metrics: JourneyMetrics, level: JourneyLevel, legacyLevelOneStart = false) {
   const elapsed = metrics.firstPracticeAt === null ? 0 : Math.max(0, (metrics.asOf - metrics.firstPracticeAt) / PRACTICE_CREDIT_RULES.millisecondsPerDay);
-  return { xpCenti: Math.max(0, level.xpCenti - metrics.lifetimeXpCenti), credits: Math.max(0, level.credits - metrics.credits),
-    realDays: Math.max(0, level.realDays - metrics.realDays), elapsedDays: Math.max(0, level.elapsedDays - elapsed) };
+  const preludeGate = level.number === 1 && !legacyLevelOneStart;
+  return { xpCenti: Math.max(0, level.xpCenti - (metrics.effectiveXpCenti ?? metrics.lifetimeXpCenti)),
+    credits: Math.max(0, (preludeGate ? 1 : level.credits) - metrics.credits),
+    realDays: Math.max(preludeGate && metrics.firstPracticeAt === null ? 1 : 0,
+      (preludeGate ? 1 : level.realDays) - metrics.realDays), elapsedDays: Math.max(0, level.elapsedDays - elapsed) };
 }
-export function getLifetimeJourney(metrics: JourneyMetrics, highest: JourneyAchievement | null = null) {
+export function getLifetimeJourney(metrics: JourneyMetrics, highest: JourneyAchievement | null = null, options: JourneyProjectionOptions = {}) {
   for (const name of ['lifetimeXpCenti', 'credits', 'realDays', 'asOf'] as const) assertNonnegativeInteger(metrics[name], name);
+  if (metrics.effectiveXpCenti !== undefined) assertNonnegativeInteger(metrics.effectiveXpCenti, 'effectiveXpCenti');
   if (metrics.firstPracticeAt !== null) assertNonnegativeInteger(metrics.firstPracticeAt, 'firstPracticeAt');
   if (metrics.firstPracticeAt !== null && metrics.firstPracticeAt > metrics.asOf) throw new RangeError('Practice is in the future');
-  let level = JOURNEY_LEVELS[0]!;
-  for (const candidate of JOURNEY_LEVELS) {
-    if (Object.values(remaining(metrics, candidate)).some((n) => n > 0)) break;
+  const legacyLevelOneStart = options.legacyLevelOneStart === true;
+  const version = options.version ?? JOURNEY_VERSION;
+  if (![JOURNEY_VERSION, LEGACY_JOURNEY_VERSION, HABIT_JOURNEY_VERSION].includes(version)) throw new RangeError('Unsupported journey version');
+  const levels = version === HABIT_JOURNEY_VERSION ? HABIT_LEVELS : version === LEGACY_JOURNEY_VERSION ? LEGACY_JOURNEY_LEVELS : JOURNEY_LEVELS;
+  let level = legacyLevelOneStart ? levels[0]! : JOURNEY_PRELUDE;
+  for (const candidate of levels) {
+    if (Object.values(remaining(metrics, candidate, legacyLevelOneStart)).some((n) => n > 0)) break;
     level = candidate;
   }
   if (highest) {
-    if (highest.version !== JOURNEY_VERSION || !Number.isSafeInteger(highest.level) || highest.level < 1 || highest.level > 125 ||
+    if (![JOURNEY_VERSION, LEGACY_JOURNEY_VERSION, HABIT_JOURNEY_VERSION].includes(highest.version) || !Number.isSafeInteger(highest.level) || highest.level < 0 || highest.level > 125 ||
       !Number.isSafeInteger(highest.achievedAt) || highest.achievedAt < 0 || highest.achievedAt > metrics.asOf) throw new RangeError('Invalid journey achievement');
-    level = JOURNEY_LEVELS[Math.max(level.number, highest.level) - 1]!;
+    const retainedLevel = Math.max(level.number, highest.level);
+    level = retainedLevel === 0 ? JOURNEY_PRELUDE : levels[retainedLevel - 1]!;
   }
-  const next = JOURNEY_LEVELS[level.number] ?? null;
-  const missing = next ? remaining(metrics, next) : { xpCenti: 0, credits: 0, realDays: 0, elapsedDays: 0 };
+  const next = levels[level.number] ?? null;
+  const missing = next ? remaining(metrics, next, legacyLevelOneStart) : { xpCenti: 0, credits: 0, realDays: 0, elapsedDays: 0 };
   const segment = (value: number, lower: number, upper: number) => upper <= lower ? 1 : Math.max(0, Math.min(1, (value - lower) / (upper - lower)));
   const elapsed = metrics.firstPracticeAt === null ? 0 : (metrics.asOf - metrics.firstPracticeAt) / PRACTICE_CREDIT_RULES.millisecondsPerDay;
-  const fraction = next ? Math.min(segment(metrics.lifetimeXpCenti, level.xpCenti, next.xpCenti),
-    segment(metrics.credits, level.credits, next.credits), segment(metrics.realDays, level.realDays, next.realDays),
+  const enteringJourney = next?.number === 1 && !legacyLevelOneStart;
+  const fraction = next ? version === HABIT_JOURNEY_VERSION ? segment(metrics.effectiveXpCenti ?? metrics.lifetimeXpCenti, level.xpCenti, next.xpCenti) : Math.min(segment(metrics.effectiveXpCenti ?? metrics.lifetimeXpCenti, level.xpCenti, next.xpCenti),
+    segment(metrics.credits, level.credits, enteringJourney ? 1 : next.credits),
+    metrics.firstPracticeAt === null && enteringJourney ? 0 : segment(metrics.realDays, level.realDays, enteringJourney ? 1 : next.realDays),
     next.elapsedDays > 0 ? segment(elapsed, level.elapsedDays, next.elapsedDays) : 1) : 1;
-  return freeze({ version: JOURNEY_VERSION, level, next, missing, fraction, metrics: { ...metrics } });
+  return freeze({ version, level, next, missing, fraction, metrics: { ...metrics } });
 }
 export type LifetimeJourney = ReturnType<typeof getLifetimeJourney>;
-export function getJourneyFromState(state: ProgressionState, highest: JourneyAchievement | null = null) {
+export interface JourneyProgressSegment { readonly level: number; readonly from: number; readonly to: number }
+export interface JourneyProgressTransition {
+  readonly version: string; readonly beforeLevel: number; readonly afterLevel: number;
+  readonly segments: readonly JourneyProgressSegment[];
+}
+/** A cosmetic plan from actual projections. Running it never mutates progression. */
+export function getJourneyProgressTransition(before: LifetimeJourney, after: LifetimeJourney): JourneyProgressTransition {
+  if (before.version !== after.version || after.level.number < before.level.number) throw new RangeError('Invalid journey transition');
+  const segments: JourneyProgressSegment[] = [];
+  for (let level = before.level.number; level <= after.level.number; level++) {
+    segments.push({ level, from: level === before.level.number ? before.fraction : 0,
+      to: level === after.level.number ? after.fraction : 1 });
+  }
+  return freeze({ version: after.version, beforeLevel: before.level.number, afterLevel: after.level.number, segments });
+}
+export function getJourneyFromState(state: ProgressionState, highest: JourneyAchievement | null = null, options: JourneyProjectionOptions = {}) {
   const credit = practiceCredits(state.sessions.map((entry) => entry.session));
   return getLifetimeJourney({ lifetimeXpCenti: state.lifetimeXpCenti, credits: credit.credits, realDays: credit.realDays,
-    firstPracticeAt: credit.firstPracticeAt, asOf: state.asOf.timestamp }, highest);
+    firstPracticeAt: credit.firstPracticeAt, asOf: state.asOf.timestamp }, highest, options);
 }
 export function journeyLabel(level: JourneyLevel): string {
+  if (level.number === 0) return `Level 0 · ${level.category.name}`;
   return `Level ${level.number} · ${level.category.name} · ${level.categoryStep} of 5`;
 }

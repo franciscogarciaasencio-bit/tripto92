@@ -1,0 +1,9 @@
+{
+  "coast_0": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/0.png", "sha256": "f988715a3cbe4541b1f96f124fdbcad434bc098a9d2d3a95c90edb0970b54eb9" },
+  "coast_1": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/1.png", "sha256": "8b4c197da02529904fbc800c62c1d99f0a3828184029c7a5646fb0e89bfe8fc9" },
+  "coast_2": { "width": 863, "height": 1822, "haloX": 431, "haloY": 744, "source": "Forest 2/2.png", "sha256": "f4c3ca47c76222f825565de8e6d1080194d53550efe902fcafd4e215e56ee289" },
+  "coast_3": { "width": 853, "height": 1844, "haloX": 426, "haloY": 739, "source": "Forest 2/3.png", "sha256": "67689482b95065fbc517effaeb81a47770eba6a4792e8cbde150c695e5b6e663" },
+  "coast_4": { "width": 853, "height": 1844, "haloX": 426, "haloY": 742, "source": "Forest 2/4.png", "sha256": "fe09b072357c7955df9a4b9b221f7120f0a1eb55fac1e8a5741543a3c97628b2" },
+  "coast_5": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/5.png", "sha256": "94eb5147658d68e1faf783b8e2a5f7fc7071510171d6f55fb224afda301fbba4" },
+  "entry": { "width": 853, "height": 1844, "sceneTop": 260, "sceneBottom": 1750, "source": "Forest 2/Forest entry.png", "sha256": "dd5605d7589ca39d470b86239507a3c75814e7d8b4dbca2a2acf3e93dfc87b2f" }
+}

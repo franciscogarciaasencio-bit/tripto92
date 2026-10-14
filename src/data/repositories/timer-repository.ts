@@ -2,6 +2,7 @@ import { validateTimer, type TimerDraft } from '../../domain/meditation/timer';
 import type { SqlConnection, Transactions } from '../database/connection';
 import { PersistenceError } from '../database/errors';
 import { object, requireData, text } from '../database/validation';
+import { currentGeneration, permitsPracticeStart } from '../database/generations';
 
 function decodeDraft(input: unknown): TimerDraft {
   const value = object(input);
@@ -17,7 +18,11 @@ function decodeDraft(input: unknown): TimerDraft {
 export async function loadTimer(sql: SqlConnection): Promise<TimerDraft | null> {
   const row = (await sql.all('SELECT draft_json FROM meditation_timer WHERE id = 1'))[0];
   if (!row) return null;
-  try { return decodeDraft(JSON.parse(text(object(row).draft_json))); }
+  try {
+    const draft = decodeDraft(JSON.parse(text(object(row).draft_json)));
+    requireData(permitsPracticeStart(await currentGeneration(sql), draft.startedAt), 'Timer predates the current progression reset boundary');
+    return draft;
+  }
   catch (error) { throw new PersistenceError('INVALID_DATA', `Cannot restore timer: ${String(error)}`); }
 }
 
@@ -35,6 +40,7 @@ export function createTimerRepository(database: Transactions) {
     async save(input: TimerDraft) {
       const draft = decodeDraft(input);
       return database.transaction(async (sql) => {
+        requireData(permitsPracticeStart(await currentGeneration(sql), draft.startedAt), 'Timer predates the current progression reset boundary');
         const current = await loadTimer(sql);
         requireData(!current || current.id === draft.id, 'A meditation is already in progress');
         requireData(!current || draft.changedAt >= current.changedAt, 'Timer cursor cannot move backwards');

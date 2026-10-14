@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ona — acoustic bell review</title>
+<style>
+body{background:#f8efdf;color:#272820;font:16px/1.65 system-ui;max-width:720px;margin:48px auto;padding:0 24px}h1,h2{font-family:Georgia,serif;font-weight:400}h1{font-size:36px}h2{margin-top:36px}button,select{font:inherit;color:inherit;background:transparent;border:1px solid #b5af9d;border-radius:8px;padding:10px 16px;margin:5px}button:focus-visible,select:focus-visible{outline:2px solid #656d4b}small{display:block;color:#626455}fieldset{border:0;padding:0}legend{font-weight:600}output{display:block;min-height:28px}audio{width:100%;margin:16px 0}a{color:inherit}
+</style>
+<h1>Ona · Acoustic bells</h1>
+<p>Acoustic masters used by Ona. Listening and physical-device acceptance remain pending.</p>
+<label for="gain">Listening level</label>
+<select id="gain"><option value="0.09">Ona default (quiet)</option><option value="0.25">Detail review (louder)</option></select>
+<small>Start quietly. Device volume also affects loudness. Source comparisons use constant gain to match the masters' opening energy.</small>
+<section id="sounds"></section>
+<audio id="player" controls preload="none"></audio>
+<output id="status" aria-live="polite">Choose a sound.</output>
+<button id="stop">Stop</button>
+<p><a href="README.md">Mastering notes and verification limits</a> · <a href="../../../scripts/audio-sources/bells/provenance.json">CC0 source evidence</a></p>
+<script>
+const player = document.getElementById('player');
+const status = document.getElementById('status');
+const gain = document.getElementById('gain');
+let sourceGain = 1;
+let revision = 0;
+function stop() { revision++; player.pause(); player.removeAttribute('src'); player.load(); status.textContent = 'Stopped.'; }
+async function play(url, title, adjustment) {
+  stop(); const current = revision; sourceGain = adjustment;
+  player.src = url; player.volume = Math.min(1, Number(gain.value) * sourceGain);
+  status.textContent = title;
+  try { await player.play(); } catch (error) { if (current === revision) status.textContent = `Unable to play: ${error.message}`; }
+}
+async function prepare() {
+const response = await fetch('analysis.json');
+if (!response.ok) throw new Error('Cannot load analysis.json');
+const report = await response.json();
+for (const [title, file] of [['Starting', 'start.wav'], ['Ending', 'end.wav'], ['Interval', 'interval.wav']]) {
+  const entry = report.assets[file], id = entry.profile.source;
+  const adjustment = entry.measurements.firstTwoSecondsRms / report.sources[id].firstTwoSecondsRms;
+  const group = document.createElement('fieldset');
+  const legend = document.createElement('legend'); legend.textContent = title; group.append(legend);
+  for (const [label, url, volume] of [
+    ['Master', file, 1], ['Original, matched energy', `../../../scripts/audio-sources/bells/${id}.wav`, adjustment],
+  ]) { const button = document.createElement('button'); button.textContent = label;
+    button.onclick = () => play(url, `${title} · ${label}`, volume); group.append(button); }
+  document.getElementById('sounds').append(group);
+}
+const alternate = document.createElement('button'); alternate.textContent = 'Alternate #4, matched to Start';
+alternate.onclick = () => play('../../../scripts/audio-sources/bells/2555.wav', 'Unselected alternate #4', report.assets['start.wav'].measurements.firstTwoSecondsRms / report.sources['2555'].firstTwoSecondsRms);
+document.getElementById('sounds').append(alternate);
+}
+prepare().catch(error => { status.textContent = `Serve this page over localhost: ${error.message}`; });
+gain.onchange = () => { player.volume = Math.min(1, Number(gain.value) * sourceGain); };
+document.getElementById('stop').onclick = stop;
+document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+window.addEventListener('pagehide', stop);
+</script>
+</html>

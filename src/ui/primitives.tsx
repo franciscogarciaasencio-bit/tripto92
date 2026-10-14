@@ -1,9 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextProps, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import theme from './theme.json';
+import { QuietPressable } from './quiet-pressable';
 
 export const colors = { ...theme, secondary: 'rgba(20,20,20,0.72)', border: 'rgba(20,20,20,0.62)', line: 'rgba(20,20,20,0.18)' };
+export const serifFont = Platform.select({ ios: 'Times New Roman', android: 'serif', default: 'Times New Roman' });
 const typography = StyleSheet.create({
   body: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeRegular' },
   label: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeMedium' },
@@ -20,11 +22,10 @@ export function Type({ role = 'body', style, ...props }: Omit<TextProps, 'role'>
 export function Action({ children, onPress, quiet = false, disabled = false, label, textRole }: {
   children: string; onPress: () => void; quiet?: boolean; disabled?: boolean; label?: string; textRole?: keyof typeof typography;
 }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label ?? children} accessibilityState={{ disabled }}
-    disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.action, quiet ? styles.quiet : styles.outline,
-      { opacity: disabled ? 0.4 : pressed ? 0.55 : 1 }]}>
+  return <QuietPressable accessibilityRole="button" accessibilityLabel={label ?? children} accessibilityState={{ disabled }}
+    disabled={disabled} onPress={onPress} style={[styles.action, quiet ? styles.quiet : styles.outline]}>
     <Type role={textRole ?? (quiet ? 'secondary' : 'label')} style={{ textAlign: 'center' }}>{children}</Type>
-  </Pressable>;
+  </QuietPressable>;
 }
 export function Screen({ children, style, scroll = true }: { children?: ReactNode; style?: ViewStyle; scroll?: boolean }) {
   const insets = useSafeAreaInsets();
@@ -46,7 +47,7 @@ export function Notice({ children }: { children: string | null }) {
 export function ChoiceRow({ label, value, onPress, divider = true }: { label: string; value: string; onPress?: () => void; divider?: boolean }) {
   const content = <><Type style={{ flex: 1 }}>{label}</Type><Type style={{ color: colors.secondary }}>{value}</Type></>;
   const rowStyle = [styles.row, !divider && { borderBottomWidth: 0 }];
-  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} style={rowStyle}>{content}</Pressable> : <View style={rowStyle}>{content}</View>;
+  return onPress ? <QuietPressable accessibilityRole="button" onPress={onPress} style={rowStyle}>{content}</QuietPressable> : <View style={rowStyle}>{content}</View>;
 }
 export function formatTime(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;

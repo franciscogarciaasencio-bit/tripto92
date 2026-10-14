@@ -47,4 +47,48 @@ function corruptCheckpoint(conn, change) {
   change(meta);
   conn.raw.prepare('UPDATE progression_checkpoint SET metadata_json = ?').run(JSON.stringify(meta));
 }
-module.exports = { ...domainHelpers, data, connection, fixture, disk, openStore, save, checkpoint, corruptCheckpoint };
+/** Real released SQL shape, rather than pretending that deleting new markers downgrades a DB. */
+async function writeLegacyFixture(conn, version, state, preferences = data('preferences.js').DEFAULT_PREFERENCES) {
+  const { migrate, MIGRATIONS } = data('database/migrations.js');
+  const { checkpointMetadata } = data('database/decoders.js');
+  const { api } = domainHelpers;
+  await migrate(conn, MIGRATIONS.slice(0, version));
+  for (const [index, rules] of state.ruleSets.entries()) await conn.run('INSERT INTO progression_rules VALUES (?, ?, ?)',
+    [rules.version, index + 1, JSON.stringify(rules)]);
+  for (const [index, entry] of state.sessions.entries()) {
+    const s = entry.session;
+    await conn.run(`INSERT INTO meditation_sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${version >= 6 ? ', ?' : ''})`,
+      [s.id, index + 1, s.startedAt, s.endedAt, s.activeDurationSeconds, s.pausedDurationSeconds, s.status,
+        s.localDate, s.timeZone, s.endedAt, entry.qualified ? 1 : 0, entry.qualificationRulesVersion, ...(version >= 6 ? [1] : [])]);
+  }
+  for (const [index, a] of state.awards.entries()) await conn.run(`INSERT INTO progression_awards VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?${version >= 6 ? ', ?' : ''})`,
+    [a.id, index + 1, a.sessionId, a.occasionId, a.rulesVersion, a.awardedAt, a.localDate, a.rewardDate, a.xpCenti, JSON.stringify(a.breakdown), ...(version >= 6 ? [1] : [])]);
+  await conn.run('INSERT INTO progression_checkpoint VALUES (1, ?, ?)', [state.currentProgressionCenti, JSON.stringify(checkpointMetadata(state))]);
+  await conn.run('INSERT INTO meditation_preferences VALUES (1, ?)', [JSON.stringify(preferences)]);
+  if (version >= 3) {
+    const first = state.sessions[0]?.session;
+    let prefix = api.createProgressionState(first ? { timestamp: first.startedAt, localDate: first.localDate, timeZone: first.timeZone } : state.asOf, state.ruleSets[0]);
+    for (const entry of state.sessions) {
+      if (entry.qualificationRulesVersion !== prefix.activeRulesVersion) prefix = api.changeProgressionRules(prefix,
+        state.ruleSets.find(r => r.version === entry.qualificationRulesVersion), prefix.asOf);
+      const s = entry.session;
+      const before = api.advanceProgression(prefix, { timestamp: s.endedAt, localDate: s.localDate, timeZone: s.timeZone });
+      const after = api.recordSession(prefix, s);
+      await conn.run('INSERT INTO practice_completions(session_id, before_progression_centi, after_progression_centi) VALUES (?, ?, ?)',
+        [s.id, before.currentProgressionCenti, after.currentProgressionCenti]);
+      if (version >= 4) {
+        const a = api.getJourneyFromState(before, null, { legacyLevelOneStart: version < 6, version: api.LEGACY_JOURNEY_VERSION });
+        const b = api.getJourneyFromState(after, null, { legacyLevelOneStart: version < 6, version: api.LEGACY_JOURNEY_VERSION });
+        const dateCredits = api.practiceCredits(after.sessions.map(e => e.session)).dates.find(d => d.localDate === s.localDate)?.credits ?? 0;
+        await conn.run(`INSERT INTO journey_completions VALUES (?, ?, ?, ?, ?${version >= 6 ? ', ?' : ''})`, [s.id, a.level.number, b.level.number,
+          b.metrics.credits - a.metrics.credits, dateCredits, ...(version >= 6 ? [2] : [])]);
+      }
+      prefix = after;
+    }
+  }
+  if (version >= 4) {
+    const peak = api.getJourneyFromState(state, null, { legacyLevelOneStart: version < 6, version: api.LEGACY_JOURNEY_VERSION });
+    await conn.run(`INSERT INTO journey_checkpoint VALUES (1, ${version >= 6 ? '1, ' : ''}?, ?, ?)`, [api.LEGACY_JOURNEY_VERSION, peak.level.number, state.asOf.timestamp]);
+  }
+}
+module.exports = { ...domainHelpers, data, connection, fixture, disk, openStore, save, checkpoint, corruptCheckpoint, writeLegacyFixture };

@@ -1,5 +1,6 @@
 import { Asset } from 'expo-asset';
 import type { AudioBackend, PlaybackStatus } from './controller';
+import { ambienceAsset } from './assets';
 
 /** SDK 57's web play() discards HTMLMediaElement.play()'s rejected Promise.
  * Use the browser boundary directly so blocked autoplay is a controlled sound notice.
@@ -7,8 +8,8 @@ import type { AudioBackend, PlaybackStatus } from './controller';
  */
 export const audioBackend: AudioBackend = {
   configure: async () => {},
-  create() {
-    const asset = Asset.fromModule(require('../../assets/audio/meditation-choir.wav'));
+  create(source = 'ocean_music') {
+    const asset = Asset.fromModule(ambienceAsset(source));
     const media = new Audio(asset.localUri ?? asset.uri);
     media.volume = 0; media.loop = true; media.preload = 'auto';
     let removeListener: (() => void) | null = null;

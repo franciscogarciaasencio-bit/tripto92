@@ -100,8 +100,19 @@ test('Exactly 25 stable categories and 125 nonlinear monotone level definitions'
 for (const level of api.JOURNEY_LEVELS) {
   test(`Lifetime level ${level.number}: inclusive boundaries and each missing gate`,()=>{
     const m=metrics({lifetimeXpCenti:level.xpCenti,credits:level.credits,realDays:level.realDays});
+    if(level.number===1) {
+      // The released table still starts at zero; entering it now additionally needs real qualifying practice.
+      assert.equal(api.getLifetimeJourney(m).level.number,0);
+      const entered={...m,credits:1,realDays:1};
+      assert.equal(api.getLifetimeJourney(entered).level.number,1);
+      for(const key of ['credits','realDays']) {
+        const below=api.getLifetimeJourney({...entered,[key]:0});
+        assert.equal(below.level.number,0); assert.equal(below.fraction,0);
+      }
+      assert.equal(api.getLifetimeJourney({...entered,firstPracticeAt:null}).level.number,0);
+      return;
+    }
     assert.equal(api.getLifetimeJourney(m).level.number,level.number);
-    if(level.number===1) return;
     for(const key of ['lifetimeXpCenti','credits','realDays']) {
       const below=api.getLifetimeJourney({...m,[key]:m[key]-1});
       assert.ok(below.level.number<level.number); assert.ok(below.fraction<1);
@@ -115,10 +126,10 @@ test('Maximum requires BOTH 365 real dates and elapsed days even with excessive 
   assert.ok(api.getLifetimeJourney({...m,asOf:m.asOf-1}).level.number<125);
   assert.ok(api.getLifetimeJourney({...m,firstPracticeAt:null}).level.number<125);
 });
-test('First ten-minute practice unlocks a level; lifetime journey survives decay and a stored legitimate peak',()=>{
+test('First ten-minute practice advances the prelude; lifetime journey survives decay and a stored legitimate peak',()=>{
   let state=api.recordSession(api.createProgressionState(context(1),api.PROGRESSION_V2),session());
   const before=api.getJourneyFromState(state);
-  assert.ok(before.level.number>=2);
+  assert.equal(before.level.number,0); assert.equal(before.fraction,8000/12000);
   state=api.advanceProgression(state,context(100));
   assert.ok(state.currentProgressionCenti<state.lifetimeXpCenti);
   assert.equal(api.getJourneyFromState(state).level.number,before.level.number);

@@ -2,16 +2,22 @@
   "expo": {
     "name": "Ona",
     "slug": "MeditationApp",
+    "owner": "tripto92",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meditationapp",
+    "extra": {
+      "eas": { "projectId": "3ec57447-1b2b-428b-a9cf-dd0216e351b5" }
+    },
     "userInterfaceStyle": "light",
     "backgroundColor": "#F2E9DA",
     "ios": {
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.meditation.ona",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#F2E9DA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,7 +35,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F2E9DA"
+          "backgroundColor": "#F2E9DA",
+          "android": { "image": "./assets/images/native-splash-transparent.png", "imageWidth": 1 }
         }
       ],
       "expo-sqlite",

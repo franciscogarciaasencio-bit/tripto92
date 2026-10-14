@@ -1,7 +1,9 @@
 import type { ProgressionState } from '../../domain/progression';
-import { dayNumber } from '../../domain/progression/calendar';
+import { dayNumber, dateFromDay } from '../../domain/progression/calendar';
 import { protectedFloor } from '../../domain/progression/decay';
 import { consistencyRatio } from '../../domain/progression/earnings';
+import { isRewardEligible, sessionConsistency } from '../../domain/progression';
+import { multiplyRatio } from '../../domain/progression/numeric';
 import { rulesForVersion } from '../../domain/progression/rules';
 import { canonical, integer, requireData } from './validation';
 
@@ -31,16 +33,16 @@ export function validateIntegrity(state: ProgressionState): void {
       'Historical qualification conflicts with its rules');
     previousEnd = session.endedAt;
   }
-  const qualifying = state.sessions.filter((entry) => entry.qualified);
-  requireData(qualifying.length === state.awards.length, 'A qualifying session is missing its receipt');
-  for (const [index, entry] of qualifying.entries()) {
+  const rewarded = state.sessions.filter((entry) => isRewardEligible(entry.session, rulesForVersion(state, entry.qualificationRulesVersion)));
+  requireData(rewarded.length === state.awards.length, 'A reward-eligible session is missing its receipt');
+  for (const [index, entry] of rewarded.entries()) {
     const award = state.awards[index]!;
     requireData(award.sessionId === entry.session.id && award.id === `award:${entry.session.id}` &&
       award.awardedAt === entry.session.endedAt && award.localDate === entry.session.localDate, 'Receipt does not match its session');
     rulesForVersion(state, award.rulesVersion);
   }
   requireData(canonical(state.occasions.flatMap((occasion) => occasion.sessionIds)) ===
-    canonical(qualifying.map((entry) => entry.session.id)), 'Occasions do not match qualifying history');
+    canonical(rewarded.map((entry) => entry.session.id)), 'Occasions do not match reward-eligible history');
 
   let position = 0;
   const dayCounts = new Map<string, number>();
@@ -49,7 +51,7 @@ export function validateIntegrity(state: ProgressionState): void {
   for (const occasion of state.occasions) {
     requireData(occasion.sessionIds.length > 0, 'Empty practice occasion');
     const originalRules = rulesForVersion(state, occasion.rulesVersion);
-    const first = qualifying[position]!;
+    const first = rewarded[position]!;
     const ordinal = (dayCounts.get(occasion.rewardDate) ?? 0) + 1;
     dayCounts.set(occasion.rewardDate, ordinal);
     requireData(occasion.id === `occasion:${first.session.id}` && occasion.startedAt === first.session.startedAt &&
@@ -66,28 +68,59 @@ export function validateIntegrity(state: ProgressionState): void {
       if (consistencyDays.has(day)) preceding++;
     }
     requireData(occasion.precedingActiveDays === preceding, 'Invalid captured consistency');
-    if (previousOccasion) requireData(occasion.startedAt - previousOccasion.endedAt >=
-      rulesForVersion(state, previousOccasion.rulesVersion).occasionSeparationSeconds * 1000, 'Incorrect occasion separation');
+    if (previousOccasion) {
+      const previousRules = rulesForVersion(state, previousOccasion.rulesVersion);
+      // V3 short/early-ended practice cannot extend a frozen older occasion that excluded it.
+      const incompatibleBoundary = originalRules.earningsAlgorithm !== 'logarithmic_v1' &&
+        (!isRewardEligible(first.session, previousRules) || (!!originalRules.continuousConsistency && !previousRules.continuousConsistency) ||
+          state.consistencyActivations?.some(anchor => anchor.rulesVersion === originalRules.version &&
+            anchor.asOf.timestamp >= previousOccasion!.endedAt && anchor.asOf.timestamp <= first.session.endedAt &&
+            anchor.sessionCount === state.sessions.findIndex(entry => entry.session.id === first.session.id)));
+      requireData(incompatibleBoundary || occasion.startedAt - previousOccasion.endedAt >=
+        previousRules.occasionSeparationSeconds * 1000, 'Incorrect occasion separation');
+    }
     const ratio = consistencyRatio(occasion.precedingActiveDays, originalRules);
     let active = 0;
     let earned = 0;
+    let baseEarned = 0;
     let lastEnd = occasion.startedAt;
     for (const id of occasion.sessionIds) {
-      const entry = qualifying[position]!;
+      const entry = rewarded[position]!;
       const award = state.awards[position++]!;
       active = integer(active + entry.session.activeDurationSeconds);
       requireData(entry.session.startedAt - lastEnd < originalRules.occasionSeparationSeconds * 1000, 'Incorrect occasion extension');
       lastEnd = entry.session.endedAt;
       const b = award.breakdown;
+      let capturedRatio = ratio;
+      if (originalRules.continuousConsistency) {
+        const c = originalRules.continuousConsistency;
+        requireData(b.continuousConsistencyDate && dayNumber(b.continuousConsistencyDate) >= dayNumber(award.localDate) &&
+          dayNumber(b.continuousConsistencyDate) <= dayNumber(state.settledThroughDate) + 1, 'Invalid settled consistency date');
+        const priorSessions = state.sessions.filter((entry) => entry.session.endedAt <= award.awardedAt && entry.session.id !== id);
+        const priorIds = new Set(priorSessions.map((entry) => entry.session.id));
+        const priorState = { ...state, sessions: priorSessions, awards: state.awards.filter((award) => priorIds.has(award.sessionId)),
+          activeRulesVersion: award.rulesVersion,
+          consistencyActivations: (state.consistencyActivations ?? []).filter(anchor => anchor.sessionCount <= priorSessions.length && anchor.asOf.timestamp <= award.awardedAt),
+          asOf: { timestamp: award.awardedAt, localDate: b.continuousConsistencyDate, timeZone: entry.session.timeZone },
+          settledThroughDate: dateFromDay(dayNumber(b.continuousConsistencyDate) - 1) };
+        const score = sessionConsistency(priorState, { ...priorState, sessions: [...priorSessions, entry] }, c).score;
+        capturedRatio = { numerator: c.scale * 10_000 + score * originalRules.maximumConsistencyBonusBasisPoints, denominator: c.scale * 10_000 };
+        const cumulativeBase = multiplyRatio(b.baseCentiXp, occasion.weightBasisPoints, 10_000);
+        requireData(b.continuousConsistencyScore === score && b.incrementalBaseCentiXp === cumulativeBase - baseEarned &&
+          b.bonusCentiXp === multiplyRatio(b.incrementalBaseCentiXp, score * originalRules.maximumConsistencyBonusBasisPoints, c.scale * 10_000) &&
+          award.xpCenti === b.incrementalBaseCentiXp + b.bonusCentiXp, 'Invalid continuous reward breakdown');
+        baseEarned = cumulativeBase;
+      }
       requireData(award.sessionId === id && award.occasionId === occasion.id && award.rulesVersion === occasion.rulesVersion &&
         award.rewardDate === occasion.rewardDate && b.occasionActiveSeconds === active && b.weightBasisPoints === occasion.weightBasisPoints &&
-        b.precedingActiveDays === occasion.precedingActiveDays && b.consistencyNumerator === ratio.numerator && b.consistencyDenominator === ratio.denominator &&
+        b.precedingActiveDays === occasion.precedingActiveDays && b.consistencyNumerator === capturedRatio.numerator && b.consistencyDenominator === capturedRatio.denominator &&
         b.previousOccasionCentiXp === earned && b.cumulativeOccasionCentiXp === integer(earned + award.xpCenti), 'Invalid cumulative award chain');
       earned = b.cumulativeOccasionCentiXp;
-      priorDays.add(dayNumber(entry.session.localDate));
+      if (entry.qualified) priorDays.add(dayNumber(entry.session.localDate));
     }
     requireData(occasion.endedAt === lastEnd && occasion.activeDurationSeconds === active && occasion.awardedCentiXp === earned,
       'Occasion checkpoint conflicts with receipts');
+    if (originalRules.continuousConsistency) requireData(occasion.awardedBaseCentiXp === baseEarned, 'Invalid continuous base checkpoint');
     previousOccasion = occasion;
   }
 }

@@ -1,118 +1,106 @@
-# Ona sound and short onboarding
+# Ona audio
 
-## Ownership and API
+## Sounds, rights and reproduction
 
-`src/application/audio-provider.tsx` mounts once underneath OnaProvider. It owns one
-audio controller for the process, never one per screen/render. `src/audio/policy.ts`
-maps readiness, explicit session phase, pending completion, foreground and saved
-preferences to Home/session/silent intent. Audio never reads or writes XP, a timer
-cursor or session history. No domain, timer or balancing files changed.
+The active bells are real acoustic bowl recordings by Joseph SARDIN / BigSoundBank,
+released under CC0 with no mandatory attribution, fee or permission. assets/audio/bells-v2
+contains the mastered clips and matching sparse interval tracks. Its README describes
+comparison, mastering and remaining subjective/native listening checks. Original 48 kHz
+recordings, source URLs, rights evidence and hashes remain in scripts/audio-sources/bells.
+master-acoustic-bells.py reproduces the PCM bank; build-bell-timelines.py builds/verifies
+timelines from that exact interval master. Regenerate timelines whenever Interval changes.
+bell-timing.ts holds sample-verified cleanup ceilings; native end events release normally.
 
-`src/audio/controller.ts` is plain TypeScript. It exposes `setIntent`, `retry` and
-`dispose`; a small backend and clock boundary enables deterministic tests. One
-shared looping player preserves its position across Home/session changes. Fades
-are cancellable, native mode configuration is serialized, and revision guards stop
-old Promises from reviving playback. Home enters over 2.5 seconds, session over 1.5;
-stopping/changing owner/volume uses a one-second fade. Playback starts at zero and
-the fade waits for actual playback, avoiding a full-volume late load.
+Ocean/Rain/Storm/Brown Noise remain original deterministic procedural DSP in
+assets/audio/meditation. Its README and analysis.json document provenance/measurements.
+generate-meditation-sounds.py retains the historical complete generator, now writing to
+ignored .expo/sound/legacy-dsp so it cannot overwrite current assets. Acoustic recordings
+are external CC0 material, not original Ona synthesis. Everything is bundled offline.
 
-`backend.ts` uses SDK 57 **expo-audio** and the local WAV. Home/session use
-`mixWithOthers`, so Ona does not deliberately pause another music app. SDK 57
-exposes no reliable other-music detection API. Active session audio enables native
-background mode; Android also enables its required media service/lock controls.
-Home, paused, completed and discarded sessions release that background ownership.
-Native config enables playback, disables recording and adds no microphone permission.
+| Sound | Character / asset |
+| --- | --- |
+| Starting bell | Soft acoustic strike, approximately 474 Hz lower mode; 13.24 seconds |
+| Ending bell | Deeper approximately 305 Hz mode, 29.92-second natural resonance |
+| Interval bell | Related approximately 473 Hz mode, quieter 9.06-second strike |
+| Ocean, Rain, Storm | Layered evolving circular synthesis, three-minute stereo AAC loops |
+| Brown Noise | Warm circular spectral synthesis, three-minute lossless FLAC loop |
+| Silence | No ambience; optional bells remain independent |
+| Choir | Unchanged user-supplied CC0 Meditation Choir; Home and optional meditation source |
 
-`backend.web.ts` resolves the same bundled asset with **expo-asset** and uses
-HTMLAudioElement. SDK 57's web play method discards the browser play Promise;
-the small web boundary catches autoplay denial instead. Native uses expo-audio.
-Browser/iOS Safari policies may prevent autoplay/programmatic volume; use native
-Ona for iPhone listening. No internet track URL or streaming service is used.
+Choir's one-time provenance/hash is in assets/audio/README.md; saved ocean_music IDs
+still select it. The earlier progression swell is retired, with its original synthesis
+script retained. That script writes only an ignored development master; there is no
+runtime cue/player or fallback closing sound to conflict with ending-bell settings.
+Essential design/audio source files are not obsolete just because they are not imported.
 
-## Lifecycle and failure policy
+## Ownership and preferences
 
-- Home ambience starts when the app/store is ready, including the opening/first use.
-  It can continue on non-session pages such as Journey/Preferences.
-- Meditate begins a Home fade immediately, independently of saving the timer.
-  Session selection/volume then take ownership. Silence pauses the actual player.
-- Pause and Finish fade out; discard never plays a closing bell. Pending completion
-  stays silent, including save failure/recovery. Returning Home restores its saved choice.
-- Backgrounding Home stops **immediately** inside the AppState callback. JavaScript
-  fade timers can suspend, so a cosmetic fade must not leave Home audio playing.
-- Active native session playback/looping can continue while JavaScript is suspended.
-  Entering background settles its target volume immediately, including a partial fade
-  or delayed source load. This avoids freezing Home/session transitions at the wrong
-  volume. Native configuration/first-play startup may still require JS before suspension;
-  test locking immediately after Meditate as well as after playback starts.
-- An unexpected playback stop fails closed, leaves the meditation timer untouched,
-  and shows **Resume sound**. No automatic retry over a call. Explicit Resume/retry
-  restores sound softly. OS media Pause affects sound, not active meditation time;
-  pause the practice in Ona to exclude time.
-- Failed loading, mode configuration or playback shows **Play sound**, never a
-  saving/navigation error. A 15-second foreground first-play watchdog releases failed
-  sources. Background suspends this watchdog; foreground grants a fresh load window
-  so a JS timer cannot mistake suspended status delivery for a failed native load.
-  Retry creates a fresh failed player; interruption retry retains position.
-- Cleanup cancels fades/watchdogs, removes listeners and releases the player.
+AudioProvider owns one ambience controller and one session-sound controller. Policies
+and fake-clock-testable controllers live in src/audio; backend(.web).ts and
+session-backend(.web).ts implement platform playback. assets.ts is the local catalogue.
+No screen owns a player; sound never changes timer, rewards, persistence or wave phase.
 
-## Preferences and presentation
+Settings → Meditation Sounds offers ambience selection/previews, independent ambience
+and bell volumes, starting/ending toggles, Off/5/10/15-minute intervals and optional
+gentle haptics. Done persists typed preferences; Back cancels edits. Previews use edited
+volumes, are exclusive/bounded, and stop on navigation/background; they cannot overlap
+a running meditation. Session controls change ambience live. Home retains simple mute.
+There is no floating Resume sound/Play sound action on Home or meditation. After a
+failure, Home mute→unmute explicitly retries; opening the meditation speaker controls
+also retries interrupted playback. Resume still restores paused session sound normally.
+Stopping a preview uses a short fade; switching, beginning a meditation, backgrounding
+or disposal cancels stale fades and cannot release a newer player.
 
-Migration **V5** creates a validated `audio_preferences` singleton with typed JSON,
-version 1. Defaults: Home enabled at 0.15, Ocean music session at 0.15, both bells off.
-Home mute and live session selection/volume persist transactionally. Settings edits
-persist on Done; Back cancels them. Unknown versions/malformed values fail explicitly,
-without resetting a saved mute preference. Original meditation/gong preferences are
-preserved; their former placeholder sound IDs are not repurposed.
+New defaults: Ocean 0.15, start/end enabled, bell volume 0.18, intervals disabled,
+haptics disabled; Home Choir 0.15 enabled. MASTER_PLAYBACK_GAIN = 0.5 applies once to
+actual output, never repeatedly to stored preferences. Migration 9 upgrades preference
+version 1 → 2 while preserving old choices. Malformed/future values fail explicitly.
 
-Controls: Home Sound on/off; session Sound → Ocean music/Silence and volume;
-Preferences → separate Home/session volumes and Sound credits. No suitable bells
-exist: both independent preference fields are reserved, and their UI shows Unavailable.
-No replacement bells or falsely labelled waves-only option were added.
+## Lifecycle and background policy
 
-The opening animation/wordmark are unchanged. First-use copy has three short messages,
-with persisted Start practising/Skip dismissal. Returning users reach Meditate directly.
-Home hides formula/threshold text. Journey retains the exact three-minute/six-hour
-rules, XP/consistency and final-year requirements in expandable **How it works**;
-the inspectable level requirements remain available. See GAME_SYSTEM.md for rules.
+- Ambience volume changes reuse the same player. Source changes fade out/release then
+  fade in. Loops use native decoder playback, not JS end-event restarts. Home is
+  foreground-only; active meditation may continue in background with mixed audio mode.
+- Start plays only after a successful live Begin; restoration never replays it.
+  End plays once when finished and can resonate through Completion/Continue to Home.
+  A new session replaces that tail. Ending Off means a genuinely quiet finish.
+  Pausing/live bell mute stops relevant tones; slow-loading start/end clips drop after
+  two seconds rather than arriving late. Preview load watchdogs are bounded too.
+  Cleanup deadlines begin at actual playback and allow the full clip plus a one-second
+  safety margin; the old 25-second ending cutoff no longer truncates the acoustic tail.
+- Interval assets are sparse six-hour native timelines, beginning silently, with
+  bells at 300/600/900 active seconds and subsequent intervals. Pause stops their clock;
+  resume/recovery seeks to active time, excluding pauses. Serialized revision-guarded
+  seeks prevent stale playback; missed bells do not create catch-up bursts.
+- On Android, audible ambience owns the foreground media service; with Silence/zero
+  ambience the interval timeline (or opening tone when appropriate) owns it. Never
+  create competing background owners. OS media Pause affects sound, not the saved timer.
+- Unexpected media stops fail closed; explicit Resume sound realigns playback. Cleanup
+  cancels timers/listeners and attempts background release, pause and removal separately
+  so one native error cannot strand a player. No late async seek/load can revive disposal.
+- Optional live-action haptics use Soft on iOS and frequent-tick on Android; web is silent.
 
-## Recording and verification
+## Size, analysis and verification limits
 
-See [asset details](../assets/audio/README.md). **Meditation Choir** by
-**zazz.sound.design**, CC0 (public domain dedication, supplied by the user), is
-bundled unchanged. No mandatory attribution or licensing fees apply.
-The previous recording and its attribution requirements have been removed.
-The 24-bit stereo 48 kHz WAV is ~22 MB, with silent endpoint samples.
-Native loop=true uses the platform player; no JS end-of-track restart or overlapping
-tracks. Listening through the full 76.5-second loop on iPhone remains necessary.
-The existing `ocean_music` preference ID/label is retained to preserve saved choices
-and UI; both Home and sessions now play Meditation Choir. Defaults stay at 0.15.
+All assets are local at 24 kHz except unchanged Choir. The new collection is about
+39.56 MB, including 19.33 MB of sparse interval timelines; native decoders stream
+only selected files. Intervals stop after six active hours; ambience/timing continue.
 
-`npm test` runs the original domain/SQLite tests plus pure controller/policy tests,
-real SQLite audio preference migration/round trips/rollback/corruption tests, and
-WAV hash/format/endpoint verification. No new testing framework was added.
-TypeScript, lint, iOS/Android/web exports, config introspection and an iOS Metro dev
-bundle are checked. Exports include the exact WAV hash for both native platforms.
-See [browser evidence](evidence/2026-10-11-audio/README.md) for rendered UI/playback
-checks. Browser autoplay denial and pause are simulated, not actual phone calls.
-The web preview needs its local server and may request media byte ranges: a forced
-browser-network-offline seek was not successful. There is no offline web/PWA claim.
+Generation analysis checks headroom/DC, soft attacks/tails, >0.99 decoded/master
+correlation, ordinary-sized wrap steps and first/second/final interval timing. Brown Noise
+uses lossless FLAC because AAC testing revealed a boundary mismatch. These checks
+do not prove subjective realism or native decoder gaplessness.
 
-**Expo Go** can check foreground sound, controls, timer and saved choices with SDK 57.
-Its development assets come from Metro; this is not a cold offline native-install test.
-A rebuilt development/standalone binary is required to apply the background-audio
-config. Exports/config inspection do not prove physical-device background playback.
+npm run check exercises migrations, persisted preferences, sound policy/controllers,
+previews, pause/resume/recovery, interruptions, cleanup and asset hashes/envelopes.
+Browser verification in docs/evidence/meditation-sounds used real decoded playback;
+it is not physical-device listening. Exports likewise do not test native audio.
 
-On the iPhone, verify: quiet initial loudness with headphones/speaker; mute after
-force-close; session Silence/separate volume; full 1:16.5 loop without clicks/gaps;
-Pause/Resume/Finish/discard and rapid taps; another music app, real incoming call,
-headphone disconnect; lock for >4 minutes in a new native build; Home background
-silence; cold standalone launch in airplane mode; screen reader/large text.
+Use an SDK-compatible Expo Go for foreground checks. A **rebuilt development/standalone
+binary** is required to apply enableBackgroundPlayback in app.json. Physical iPhone and
+Android review remains required for 20–60-minute loops, speaker/headphone loudness,
+immediate locking, calls/audio focus, route changes, cold offline recovery and haptics.
+Native background mode and interruption behavior depend on OS/device policy.
 
-```powershell
-cd C:\Users\fga31\Documents\MeditationApp
-npx expo start --clear --go --port 8092
-```
-
-Scan the QR code with the iPhone on the same Wi-Fi. Do not assume Expo Go supplies
-this project's native background configuration. Future audio changes stay above
-the repositories and domain; add any later assets with explicit license information.
+SDK 57 references: [Audio](https://docs.expo.dev/versions/v57.0.0/sdk/audio/),
+[Haptics](https://docs.expo.dev/versions/v57.0.0/sdk/haptics/).
