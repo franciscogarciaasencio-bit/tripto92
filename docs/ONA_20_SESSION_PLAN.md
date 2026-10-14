@@ -596,3 +596,27 @@ across restart, abandoned pushes, reset removals and preference clocks. Existing
 were updated only for the new migration count/V10 fixtures. TypeScript, lint and all-platform
 export pass. No network code, dependency or UI change yet.
 
+### 14 — Complete (2026-10-14): Supabase schema, isolation and import contracts
+
+supabase/migrations/20261014120000_ona_sync.sql: per-user ledger heads, an append-only
+revision log (unique push IDs), multi-version ledger rows (added/removed revisions with a
+partial unique index allowing one live version per key, table allowlist, hash/size checks)
+and settings documents. RLS on all four tables (select own rows only); Supabase's broad default
+grants are explicitly revoked, so clients cannot insert/update/delete directly. Writes go
+through `security definer` functions with an empty search_path: `ona_push_ledger` (validated,
+size-limited, atomic compare-and-swap; a retried push ID returns its original revision even
+after the head moves; any bad removal/addition rolls back everything), `ona_ledger_changes`
+(security invoker; exact diff between any two revisions, or a full state from 0),
+`ona_save_setting` (newest edit wins, deterministic device tie-break) and
+`ona_delete_my_cloud_data`. Anonymous callers have no table or function access.
+
+Verification uses @electric-sql/pglite 0.5.8 (exact, dev-only; real Postgres in WebAssembly)
+with a Supabase stub (anon/authenticated roles, broad default privileges, auth.uid()). Eight
+tests: anon denial, direct-write denial, two-account isolation (rows/heads/revisions/settings/
+cross-account removal/deletion), CAS/idempotency/rollback/constraint failures, size limit,
+real device ledgers through JSONB into a second device (identical rows/state), every
+historical state and every from→to diff across practice, reset and later practice, and
+settings ordering. **904 tests** (511 domain + 393 data), TypeScript/lint pass. Lockfile
+changes are only the new dev dependency (installed with npm 11 to match the owner's).
+No Supabase project exists yet; the owner creates it with guidance in Session 15.
+
