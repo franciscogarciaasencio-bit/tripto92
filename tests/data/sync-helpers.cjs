@@ -47,16 +47,27 @@ function pgliteCloud(s, user) {
   return cloud;
 }
 
-/** A phone signed in to `user`, with its own clock. */
-async function phone(t, s, user = 'a', start = context(1)) {
-  const conn = connection();
-  const store = await openStore(conn, start, undefined, 'progression_v5');
+/** A phone signed in to `user`, with its own clock; `file` makes it survive restarts. */
+async function phone(t, s, user = 'a', start = context(1), file = ':memory:') {
+  let conn = connection(file);
+  let store = await openStore(conn, start, undefined, 'progression_v5');
   t.after(() => store.close());
   await store.sync.bindAccount(USERS[user]);
   const cloud = pgliteCloud(s, user);
   let clock = start.timestamp;
   const device = {
-    store, cloud, conn,
+    get store() { return store; },
+    get conn() { return conn; },
+    cloud,
+    /** Close and reopen the app from the same file (process death / relaunch). */
+    async restart() {
+      if (file === ':memory:') throw new Error('restart needs a file-backed phone');
+      await store.close();
+      conn = connection(file);
+      store = await openStore(conn, { timestamp: clock, localDate: new Date(clock).toISOString().slice(0, 10), timeZone: 'UTC' }, undefined, 'progression_v5');
+      t.after(() => store.close());
+      await store.sync.bindAccount(USERS[user]);
+    },
     setTime(timestamp) { clock = timestamp; },
     now: () => clock,
     async practice(session) {

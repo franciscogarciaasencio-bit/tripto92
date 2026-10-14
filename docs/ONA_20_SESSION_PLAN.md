@@ -707,3 +707,26 @@ identity on the server, deleted-copy refusal and re-save, and first sign-in gues
 TypeScript, lint and iOS/Android/web exports pass. Real Google/Supabase use still awaits the
 owner's project; the SQL file is final for this program.
 
+### 18 — Complete (2026-10-14): integrated cloud, reinstall, offline and recovery testing
+
+Phones in tests can now be file-backed and restarted (process death/relaunch). Eight integrated
+scenarios against the real Supabase SQL: (1) reinstall on a new phone restores 40 days of
+history, awards, current/highest level, Consistency, forest stage, practice details and all three
+preference documents exactly, and the restored phone then earns identically; (2) process death
+between recording a push and hearing back resends it once after relaunch; (3) a failure in the
+middle of importing cloud practice rolls back completely with guards restored, and the next sync
+merges; (4) three weeks offline keep every practice and upload in one push; (5) a phone opened
+days later settles decay to the same values as the practicing phone; (6) practice captured in
+another time zone keeps its date/zone everywhere; (7) a year of daily practice uploads and
+restores (≈1.4 MB, upload 0.6 s, restore 4.3 s in the in-process database: evidence, not a device
+benchmark); (8) sign-out/in reopens the same account file from disk and keeps syncing.
+
+Capacity finding: the progression checkpoint lists every occasion (~130 KB after a year) and the
+cloud keeps every version, so storage grows ~25 MB per person-year. Fine for the owner and a small
+group on the free plan; documented in SYNC.md with the compaction design needed before wider
+release. Not changed now, deliberately, to avoid risky retention logic without real usage data.
+
+Verification: **942 tests** (511 domain + 431 data), TypeScript and lint pass. No app source
+changes in this session beyond test helpers and documentation. Real Google sign-in and a hosted
+Supabase project remain owner setup; device sync remains to be exercised with real credentials.
+

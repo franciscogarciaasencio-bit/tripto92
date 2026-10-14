@@ -177,6 +177,21 @@ Guest data is never deleted or merged automatically. Signing out returns to it.
   `auth.uid()`, validate table names, key/row sizes and payload limits.
 - A person can delete all of their cloud data from the Account screen.
 
+## Capacity (measured, Session 18)
+
+A year of daily practice is about 1.4 MB of ledger rows (365 practices: sessions, awards,
+receipts) plus a progression checkpoint that grows to about 130 KB because it lists every
+occasion. A first restore downloads the whole year (about 4 s in the in-process test
+database). Each later push carries only the new practice's rows plus the changed checkpoint
+singletons, so a daily push is small at first and around 130 KB after a year.
+
+The cloud keeps every version of each row so that any past revision can be rebuilt for a
+merge. Because the checkpoint is rewritten on every push, storage grows roughly as
+(checkpoint size × pushes): about 25 MB per person-year. That is comfortable for the owner and
+a small group on Supabase's free 500 MB, but not for many users. **Before wider release**, add
+server-side compaction that keeps old checkpoint versions only for a retention window, and
+teach merges to set aside (rather than reorder) practice older than that window.
+
 ## Failure behavior
 
 Offline, server errors or validation failures never block meditation. Sync shows a
