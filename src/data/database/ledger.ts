@@ -41,6 +41,12 @@ export type LedgerTable = (typeof LEDGER_TABLES)[number]['name'];
  */
 export const CONTINUATION_TABLES: readonly LedgerTable[] = ['progression_checkpoint', 'habit_checkpoints', 'journey_checkpoint'];
 export const isSignificant = (diff: LedgerDiff) => [...diff.removes, ...diff.adds].some((ref) => !CONTINUATION_TABLES.includes(ref.table));
+/**
+ * Whether a ledger records anything a person did: a practice, a set-aside practice or a reset.
+ * A freshly created file has none, so it adopts the cloud instead of merging with it.
+ */
+export const recordsPractice = (rows: readonly LedgerRow[]) => rows.some((row) => row.table === 'meditation_sessions' ||
+  row.table === 'sync_set_aside_sessions' || (row.table === 'progression_generations' && row.row.boundary_json !== null));
 export const LEDGER_FORMAT = 'ona_ledger_v1';
 /** Number of applied migrations the ledger's row shapes correspond to. */
 export const LEDGER_SCHEMA_VERSION = MIGRATIONS.length;

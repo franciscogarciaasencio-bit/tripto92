@@ -2,11 +2,15 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { cloudAuth, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
+import { cloudAuth, cloudLedger, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
 import { databaseNameFor, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
 import { watchTimerDeadline } from './practice-lifecycle';
+import { syncLedger, type MergeRemote } from './sync-engine';
+import { failurePhase, type SyncStatus } from './sync-status';
+
+const SYNC_INTERVAL = 15 * 60_000;
 
 export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -55,6 +59,47 @@ function useApplication() {
     setDraft(next);
   }, []);
 
+  // Optional account sync. Never blocks meditation: it runs beside the operation lock, every local
+  // step is one atomic transaction, and imports refuse while a practice is open.
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ phase: 'idle', lastSyncedAt: null });
+  const syncRunning = useRef(false);
+  const syncAgain = useRef(false);
+  const runSync = useCallback(async () => {
+    const database = store.current;
+    if (!cloudLedger || !accountRef.current || !database) return;
+    if (syncRunning.current) { syncAgain.current = true; return; }
+    syncRunning.current = true;
+    setSyncStatus((status) => ({ ...status, phase: 'syncing' }));
+    try {
+      do {
+        syncAgain.current = false;
+        const merge: MergeRemote = async () => { throw new Error('Combining practice from two phones is not available yet'); };
+        const result = await syncLedger({
+          sync: database.sync, cloud: cloudLedger, now: Date.now, uuid: randomUUID, calendar: currentContext, merge,
+          busy: async () => timer.current !== null || (await database.meditations.getPendingCompletion()) !== null,
+        });
+        if (store.current !== database) return; // The account changed meanwhile; its own sync will run.
+        if (result.status === 'synced') {
+          if (result.action === 'pulled' || result.action === 'merged') {
+            const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+            setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
+            setCompletedPractices(await database.meditations.getCompletedPracticeCount());
+            setHasHistory((await database.meditations.getMeditationHistory({ limit: 1 })).length > 0);
+            setPracticeRevision((revision) => revision + 1);
+          }
+          if (result.documents.includes('meditation_preferences')) setPreferences(await database.settings.loadPreferences());
+          if (result.documents.includes('audio_preferences')) setAudioPreferences(await database.settings.loadAudioPreferences());
+          if (result.documents.includes('application_preferences')) setExplanationDismissed(await database.application.isExplanationDismissed());
+          setSyncStatus({ phase: 'synced', lastSyncedAt: (await database.sync.loadState()).lastSyncedAt });
+        } else {
+          setSyncStatus((status) => ({ ...status, phase: status.lastSyncedAt === null ? 'idle' : 'synced' }));
+        }
+      } while (syncAgain.current && store.current === database);
+    } catch (failure) {
+      if (store.current === database) setSyncStatus((status) => ({ ...status, phase: failurePhase(failure) }));
+    } finally { syncRunning.current = false; }
+  }, []);
+
   useEffect(() => {
     if (!cloudAuth) return;
     let disposed = false;
@@ -86,6 +131,7 @@ function useApplication() {
         setHasHistory(history.length > 0);
         setCompletion(opened.initialCompletion);
         setCompletedPractices(opened.initialCompletedPractices);
+        setSyncStatus({ phase: 'idle', lastSyncedAt: opened.initialSync.lastSyncedAt });
         setPracticeRevision((revision) => revision + 1);
         setSwitching(false);
         setReady(true);
@@ -183,6 +229,21 @@ function useApplication() {
     });
   }, [ready, busy, foreground, activation, draft, completion, operation]);
 
+  // Sync when a signed-in ledger opens, on return to the app, and quietly every 15 minutes.
+  useEffect(() => {
+    if (!ready || switching || !account || !cloudLedger) return;
+    void runSync();
+  }, [ready, switching, account, runSync]);
+  useEffect(() => {
+    if (!ready || !account || !foreground || activation === 0) return;
+    void runSync();
+  }, [ready, account, foreground, activation, runSync]);
+  useEffect(() => {
+    if (!ready || !account || !foreground || !cloudLedger) return;
+    const interval = setInterval(() => { void runSync(); }, SYNC_INTERVAL);
+    return () => clearInterval(interval);
+  }, [ready, account, foreground, runSync]);
+
   const history = useCallback((offset = 0) => {
     if (!store.current) return Promise.reject(new Error('Storage is not ready'));
     return store.current.meditations.getMeditationHistory({ limit: 50, offset });
@@ -222,6 +283,8 @@ function useApplication() {
     ready, busy: busy || switching, error, draft, snapshot,
     cloudAvailable: cloudAuth !== null,
     account: account ?? null,
+    syncStatus,
+    syncNow: () => runSync(),
     /** Google sign-in, then open this account's own practice file. Returns false if cancelled. */
     async signIn() {
       if (!cloudAuth) return false;
@@ -244,10 +307,14 @@ function useApplication() {
       } catch (failure) { setError(String(failure)); return false; }
     }, journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
     async saveAudioPreferences(next: AudioPreferences) {
-      return operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
+      const saved = await operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
+      if (saved) void runSync();
+      return saved;
     },
     async dismissExplanation() {
-      return operation(async (database) => { await database.application.dismissExplanation(Date.now()); setExplanationDismissed(true); });
+      const saved = await operation(async (database) => { await database.application.dismissExplanation(Date.now()); setExplanationDismissed(true); });
+      if (saved) void runSync();
+      return saved;
     },
     retryInitialization: () => { setReady(false); setError(null); setAttempt((value) => value + 1); },
     async begin() {
@@ -300,7 +367,9 @@ function useApplication() {
       });
     },
     async savePreferences(next: MeditationPreferences) {
-      return operation(async (database) => { await database.settings.savePreferences(next); setPreferences(next); });
+      const saved = await operation(async (database) => { await database.settings.savePreferences(next); setPreferences(next); });
+      if (saved) void runSync();
+      return saved;
     },
     async resetAllPracticeData() {
       return operation(async (database) => {
@@ -314,18 +383,20 @@ function useApplication() {
         setCompletedPractices(0);
         setHasHistory(false);
         setPracticeRevision((revision) => revision + 1);
-      });
+      }).then((done) => { if (done) void runSync(); return done; });
     },
     history,
     practiceDetails,
     async dismissCompletion() {
       if (!completion) return false;
-      return operation(async (database) => {
+      const done = await operation(async (database) => {
         await database.meditations.acknowledgeCompletion(completion.session.id, Date.now());
         const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
         setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
         setCompletion(null);
       });
+      if (done) void runSync();
+      return done;
     },
   };
 }

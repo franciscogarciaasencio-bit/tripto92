@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, View } from 'react-native';
 import { useOna } from '@/application/ona-provider';
+import { describeSync } from '@/application/sync-status';
 import { Action, colors, Header, Notice, Screen, Type } from './primitives';
 
 /** Optional Google account: a quiet place to keep practice safe across phones. */
@@ -10,6 +11,11 @@ export function AccountScreen() {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const between = !app.draft && !app.completion;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(tick);
+  }, []);
   const back = useCallback(() => {
     if (app.busy) return;
     if (confirmSignOut) setConfirmSignOut(false);
@@ -42,7 +48,8 @@ export function AccountScreen() {
       </> : <>
         <Type role="secondary">Signed in with Google</Type>
         <Type role="heading">{app.account.email ?? 'Google account'}</Type>
-        <Type role="secondary">Your practice in this account is saved on this phone.</Type>
+        <Type role="secondary" accessibilityLiveRegion="polite">{describeSync(app.syncStatus, now)}</Type>
+        <Action quiet disabled={app.syncStatus.phase === 'syncing'} onPress={() => { void app.syncNow(); }}>Save now</Action>
         <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderColor: colors.line }}>
           <Action quiet disabled={app.busy || !between} onPress={() => setConfirmSignOut(true)}>Sign out</Action>
         </View>

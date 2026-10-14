@@ -648,3 +648,31 @@ restores, callback parsing, namespace naming, RPC request shape and failure clas
 TypeScript, lint and iOS/Android/web exports pass. Real Google sign-in needs the owner's
 Supabase project and a rebuilt binary (Expo Go works via `exp://**`); not yet exercised.
 
+### 16 — Complete (2026-10-14): upload/download engine, retries and settings sync
+
+Design refinement found while building: a practice made offline on another phone can predate
+the settlement time of the cloud's newest state, so replaying onto that state would be
+"backdated". Each cloud revision now records its settlement time (`as_of`) and
+`ona_ledger_revision_before(time, max)` finds a safe earlier base (used by Session 17 merges).
+Migration 12 keeps the synced base rows' content locally (no re-downloading history) and
+adds preference acknowledgement clocks. A ledger recording no practice adopts the cloud.
+
+src/application/sync-engine.ts (plain TypeScript, injected cloud/clock/IDs): bounded cycle that
+resends a durable in-flight push (idempotent push ID), pulls the diff since the synced revision,
+refuses newer ledger formats (`SyncUpgradeRequired`), re-downloads a missing base once, pushes
+significant local changes with compare-and-swap, adopts the cloud when local changes are only
+re-settled time, never imports while a practice or unacknowledged completion is open, and hands
+true two-sided changes to a merge hook. Preferences sync per document, newest edit winning on
+server and phone; the Guide dismissal is one-way. The provider runs sync when a signed-in ledger
+opens, on return to the app, every 15 minutes while active, after a saved practice is acknowledged,
+after preference saves and after reset, outside the operation lock (meditation is never blocked),
+refreshing progress/history/preferences after downloads. The Account screen shows one calm status
+line (saved time, offline, sign in again, update needed) and "Save now".
+
+Verification: **923 tests** (511 domain + 412 data). Ten engine tests run two real SQLite phones
+against the real Supabase SQL on PGlite: guest no-op, first upload and idle confirmation, second
+phone download plus incremental follow-up both ways, lost push response resent exactly once, offline
+retry, time-only adoption, waiting during an open practice, newer-format refusal, preference
+ordering across phones, and base re-download. TypeScript, lint and all-platform exports pass.
+Merging two phones that both practiced offline is Session 17.
+

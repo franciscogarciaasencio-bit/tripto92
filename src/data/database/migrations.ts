@@ -241,6 +241,13 @@ export const MIGRATIONS: readonly Migration[] = [
     CREATE TRIGGER sync_set_aside_sessions_immutable_delete BEFORE DELETE ON sync_set_aside_sessions
       BEGIN SELECT RAISE(ABORT, 'Set-aside practice is immutable'); END;
   ` },
+  { version: 12, name: 'sync_base_rows_and_document_acknowledgement', sql: `
+    -- The last synced cloud state is kept locally (content, not only hashes) so merges and
+    -- imports never need to download history the device already has.
+    ALTER TABLE sync_manifest ADD COLUMN row_json TEXT;
+    ALTER TABLE sync_document_clocks ADD COLUMN synced_at INTEGER
+      CHECK(synced_at IS NULL OR (typeof(synced_at) = 'integer' AND synced_at >= 0));
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

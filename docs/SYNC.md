@@ -71,10 +71,17 @@ limits every read to `auth.uid()`; clients cannot write tables directly.
 
 - `sync_state`: device ID, bound account ID (null for guest), last synced revision,
   one durable in-flight push, last successful sync time.
-- `sync_manifest`: row key → hash for the state at the last synced revision. Local
-  changes are *derived* by diffing the current export against it, so the outbox cannot
-  lose events: a crash before acknowledgement simply recomputes the same diff.
-- `sync_document_clocks`: last local edit time of each preference document.
+- `sync_manifest`: the cloud state at the last synced revision (key, hash and content,
+  migration 12). Local changes are *derived* by diffing the current export against it, so
+  the outbox cannot lose events: a crash before acknowledgement recomputes the same diff.
+  Keeping the content means pulls and merges never re-download history already on the phone.
+- `sync_document_clocks`: last local edit time of each preference document and the time
+  the cloud last confirmed it.
+
+A ledger that records no practice (no sessions, set-aside practices or reset boundary), such
+as a brand-new account file, never pushes over or merges with the cloud; it adopts it.
+Each revision also records its settlement time (`as_of`), so a merge can find a revision
+early enough to replay late-arriving practices in order (`ona_ledger_revision_before`).
 
 ### Namespaces
 

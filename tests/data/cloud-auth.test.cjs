@@ -112,12 +112,12 @@ test('Supabase RPC client sends authenticated, parameterized calls and validates
     { status: 204, body: '' },
   ]);
   const client = createSupabaseLedger(config, async () => 'token-1', fetch);
-  assert.deepEqual(await client.push({ pushId: 'p', expectedRevision: 2, deviceId: 'd', kind: 'upload', schemaVersion: 11, removes: [], adds: [] }),
+  assert.deepEqual(await client.push({ pushId: 'p', expectedRevision: 2, deviceId: 'd', kind: 'upload', schemaVersion: 12, asOf: 5, removes: [], adds: [] }),
     { status: 'applied', revision: 3 });
   assert.equal(calls[0].url, 'https://abc.supabase.co/rest/v1/rpc/ona_push_ledger');
   assert.equal(calls[0].init.headers.Authorization, 'Bearer token-1');
   assert.equal(calls[0].init.headers.apikey, 'sb_publishable_k');
-  assert.deepEqual(calls[0].body, { p_push_id: 'p', p_expected_revision: 2, p_device_id: 'd', p_kind: 'upload', p_schema_version: 11, p_removes: [], p_adds: [] });
+  assert.deepEqual(calls[0].body, { p_push_id: 'p', p_expected_revision: 2, p_device_id: 'd', p_kind: 'upload', p_schema_version: 12, p_as_of: 5, p_removes: [], p_adds: [] });
   assert.equal((await client.changes(0)).head, 3);
   assert.deepEqual(calls[1].body, { p_from: 0, p_to: null });
   assert.equal((await client.saveSetting('audio_preferences', { a: 1 }, 9, 'd')).updatedAt, 9);
@@ -141,4 +141,21 @@ test('Cloud failures are classified for retry decisions and never leak as unknow
   assert.equal(await kind([{ status: 200, body: '<html>' }]), 'server');
   assert.equal(await kind([{ status: 200, body: { revision: -1, head: 0, schemaVersion: null, adds: [], removes: [] } }]), 'server');
   assert.equal(await kind([], null), 'signed_out');
+});
+
+test('Sync status reads calmly and maps failures to actionable states', () => {
+  const { describeSync, failurePhase } = require(path.join(process.env.DATA_BUILD_DIR, '..', 'application', 'sync-status.js'));
+  const now = 10 * 86_400_000;
+  assert.equal(describeSync({ phase: 'idle', lastSyncedAt: null }, now), 'Your practice will be saved to your account.');
+  assert.equal(describeSync({ phase: 'synced', lastSyncedAt: now - 30_000 }, now), 'Saved to your account just now.');
+  assert.equal(describeSync({ phase: 'synced', lastSyncedAt: now - 5 * 60_000 }, now), 'Saved to your account 5 minutes ago.');
+  assert.equal(describeSync({ phase: 'synced', lastSyncedAt: now - 3 * 3_600_000 }, now), 'Saved to your account 3 hours ago.');
+  assert.equal(describeSync({ phase: 'synced', lastSyncedAt: now - 30 * 3_600_000 }, now), 'Saved to your account yesterday.');
+  assert.match(describeSync({ phase: 'offline', lastSyncedAt: null }, now), /safe on this phone/);
+  assert.match(describeSync({ phase: 'upgrade', lastSyncedAt: now }, now), /Update Ona/);
+  assert.equal(failurePhase(new CloudError('offline', 'x')), 'offline');
+  assert.equal(failurePhase(new CloudError('server', 'x')), 'offline');
+  assert.equal(failurePhase(new CloudError('signed_out', 'x')), 'signed_out');
+  assert.equal(failurePhase(Object.assign(new Error('x'), { name: 'SyncUpgradeRequired' })), 'upgrade');
+  assert.equal(failurePhase(new Error('Disk full')), 'error');
 });

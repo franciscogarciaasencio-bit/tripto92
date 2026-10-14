@@ -42,7 +42,7 @@ test('Migration 11 gives every ledger file its own device identity and an unboun
   assert.deepEqual(a.store.initialSync, first);
 });
 
-test('A released V10 file upgrades to migration 11 without touching practice', async (t) => {
+test('A released V10 file upgrades through the sync migrations without touching practice', async (t) => {
   const file = disk(t);
   let conn = connection(file), store = await release(conn, context(1));
   await practice(store, session({ day: 1 }));
@@ -51,7 +51,7 @@ test('A released V10 file upgrades to migration 11 without touching practice', a
   conn = connection(file); conn.raw.exec(DROP_SYNC_MIGRATION); await conn.close();
   conn = connection(file); store = await release(conn, context(1, 12));
   t.after(() => store.close());
-  assert.equal(conn.raw.prepare('SELECT MAX(version) v FROM schema_migrations').get().v, 11);
+  assert.equal(conn.raw.prepare('SELECT MAX(version) v FROM schema_migrations').get().v, 12);
   const after = await store.meditations.loadProgressionState();
   assert.deepEqual(after.sessions, before.sessions); assert.deepEqual(after.awards, before.awards);
   assert.equal(after.lifetimeXpCenti, before.lifetimeXpCenti);
@@ -181,8 +181,9 @@ test('A durable in-flight push survives restart; acknowledgement adopts its targ
   let conn = connection(file), store = await release(conn, context(1));
   await store.sync.bindAccount('user-a');
   await practice(store, session({ day: 1 }));
-  const { diff, snapshot } = await store.sync.localChanges();
-  const push = { pushId: 'push-1', expectedRevision: 0, kind: 'upload', diff, target: [...ledger.manifestOf(snapshot.rows)] };
+  const { diff, asOf } = await store.sync.localChanges();
+  const push = { pushId: 'push-1', expectedRevision: 0, kind: 'upload', diff, asOf };
+  await assert.rejects(store.sync.beginPush({ ...push, expectedRevision: 3 }), /synced revision/);
   await store.sync.beginPush(push);
   await assert.rejects(store.sync.beginPush({ ...push, pushId: 'push-2' }), /still pending/);
   await store.close();
@@ -192,6 +193,7 @@ test('A durable in-flight push survives restart; acknowledgement adopts its targ
   assert.equal(restored.pushId, 'push-1');
   assert.deepEqual(rowSet({ rows: restored.diff.adds }), rowSet({ rows: diff.adds }));
   await assert.rejects(store.sync.completePush('push-x', 1, at(1, 13)), /Unknown/);
+  await assert.rejects(store.sync.completePush('push-1', 2, at(1, 13)), /skips a revision/);
   await store.sync.completePush('push-1', 1, at(1, 13));
   const state = await store.sync.loadState();
   assert.equal(state.syncedRevision, 1); assert.equal(state.inflight, null); assert.equal(state.lastSyncedAt, at(1, 13));
@@ -206,8 +208,8 @@ test('An abandoned (conflicting) push leaves the manifest and revision untouched
   const { store } = await open(t);
   await store.sync.bindAccount('user-a');
   await practice(store, session({ day: 1 }));
-  const { diff, snapshot } = await store.sync.localChanges();
-  await store.sync.beginPush({ pushId: 'p', expectedRevision: 0, kind: 'upload', diff, target: [...ledger.manifestOf(snapshot.rows)] });
+  const { diff, snapshot, asOf } = await store.sync.localChanges();
+  await store.sync.beginPush({ pushId: 'p', expectedRevision: 0, kind: 'upload', diff, asOf });
   await store.sync.abandonPush('p');
   const state = await store.sync.loadState();
   assert.equal(state.inflight, null); assert.equal(state.syncedRevision, 0);

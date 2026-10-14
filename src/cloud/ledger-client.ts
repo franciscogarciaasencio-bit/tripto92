@@ -17,6 +17,8 @@ export interface PushRequest {
   readonly deviceId: string;
   readonly kind: 'upload' | 'merge';
   readonly schemaVersion: number;
+  /** Settlement time of the state this push produces. */
+  readonly asOf: number;
   readonly removes: readonly CloudRef[];
   readonly adds: readonly CloudRow[];
 }
@@ -34,6 +36,8 @@ export interface CloudSetting { readonly document: string; readonly data: unknow
 export interface CloudLedger {
   push(request: PushRequest): Promise<PushResult>;
   changes(from: number, to?: number | null): Promise<CloudChanges>;
+  /** Newest revision <= max whose state was settled no later than `time`, or 0. */
+  revisionBefore(time: number, max: number): Promise<number>;
   saveSetting(document: string, data: unknown, updatedAt: number, deviceId: string): Promise<CloudSetting>;
   settings(): Promise<readonly CloudSetting[]>;
   deleteCloudData(): Promise<void>;
@@ -85,7 +89,7 @@ export function createSupabaseLedger(config: CloudConfig, accessToken: () => Pro
     async push(input) {
       const result = record(await rpc('ona_push_ledger', {
         p_push_id: input.pushId, p_expected_revision: input.expectedRevision, p_device_id: input.deviceId, p_kind: input.kind,
-        p_schema_version: input.schemaVersion, p_removes: input.removes, p_adds: input.adds,
+        p_schema_version: input.schemaVersion, p_as_of: input.asOf, p_removes: input.removes, p_adds: input.adds,
       }));
       if (result.status !== 'applied' && result.status !== 'duplicate' && result.status !== 'conflict') throw new CloudError('server', 'Unexpected push status');
       return { status: result.status, revision: revision(result.revision) };
@@ -97,6 +101,9 @@ export function createSupabaseLedger(config: CloudConfig, accessToken: () => Pro
         schemaVersion: result.schemaVersion === null ? null : revision(result.schemaVersion),
         adds: list<CloudRow>(result.adds), removes: list<CloudRef>(result.removes),
       };
+    },
+    async revisionBefore(time, max) {
+      return revision(await rpc('ona_ledger_revision_before', { p_time: time, p_max: max }));
     },
     async saveSetting(document, data, updatedAt, deviceId) {
       const result = record(await rpc('ona_save_setting', { p_document: document, p_data: data, p_updated_at: updatedAt, p_device_id: deviceId }));

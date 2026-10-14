@@ -91,7 +91,7 @@ test('Real device ledgers travel through Postgres JSONB and replace another devi
   const b = await device(t);
   await b.sync.bindAccount(USERS.a);
   const cloud = await s.changes('a', 0);
-  assert.equal(cloud.schemaVersion, 11);
+  assert.equal(cloud.schemaVersion, 12);
   // JSONB reorders object keys; canonical hashing is key-order independent.
   const rows = fromCloud(cloud.adds);
   assert.deepEqual(rowSet(rows), rowSet(exported.rows));

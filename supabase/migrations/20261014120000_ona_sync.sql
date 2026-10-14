@@ -23,6 +23,8 @@ create table public.ona_ledger_revisions (
   base_revision bigint not null check (base_revision = revision - 1),
   row_adds integer not null check (row_adds >= 0),
   row_removes integer not null check (row_removes >= 0),
+  -- Settlement time (ledger checkpoint asOf, Unix ms) of the state this revision produced.
+  as_of bigint not null check (as_of >= 0),
   created_at timestamptz not null default now(),
   primary key (user_id, revision),
   unique (user_id, push_id)
@@ -82,7 +84,7 @@ create policy ona_settings_own on public.ona_settings for select to authenticate
 -- A retried push_id returns its original revision, so a lost response never applies twice.
 create function public.ona_push_ledger(
   p_push_id uuid, p_expected_revision bigint, p_device_id text, p_kind text,
-  p_schema_version integer, p_removes jsonb, p_adds jsonb
+  p_schema_version integer, p_as_of bigint, p_removes jsonb, p_adds jsonb
 ) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -96,6 +98,7 @@ begin
   if uid is null then raise exception 'Sign in to sync' using errcode = '28000'; end if;
   if p_push_id is null or p_expected_revision is null or p_expected_revision < 0 or p_kind not in ('upload', 'merge')
     or p_schema_version is null or p_schema_version < 1 or p_device_id is null or p_device_id !~ '^[0-9a-f]{32}$'
+    or p_as_of is null or p_as_of < 0
     or jsonb_typeof(p_removes) is distinct from 'array' or jsonb_typeof(p_adds) is distinct from 'array' then
     raise exception 'Invalid sync push' using errcode = '22023';
   end if;
@@ -126,8 +129,8 @@ begin
       values (uid, item ->> 'table', item ->> 'key', item ->> 'hash', item -> 'row', next_revision);
   end loop;
 
-  insert into public.ona_ledger_revisions (user_id, revision, push_id, device_id, kind, base_revision, row_adds, row_removes)
-    values (uid, next_revision, p_push_id, p_device_id, p_kind, head, jsonb_array_length(p_adds), jsonb_array_length(p_removes));
+  insert into public.ona_ledger_revisions (user_id, revision, push_id, device_id, kind, base_revision, row_adds, row_removes, as_of)
+    values (uid, next_revision, p_push_id, p_device_id, p_kind, head, jsonb_array_length(p_adds), jsonb_array_length(p_removes), p_as_of);
   update public.ona_ledger_heads set revision = next_revision, schema_version = greatest(schema_version, p_schema_version),
     updated_at = now() where user_id = uid;
   return jsonb_build_object('status', 'applied', 'revision', next_revision);
@@ -165,6 +168,14 @@ begin
 end;
 $$;
 
+-- Newest revision <= p_max whose state was settled no later than p_time (0 if none):
+-- a base onto which practices from p_time onwards can be replayed in order.
+create function public.ona_ledger_revision_before(p_time bigint, p_max bigint) returns bigint
+language sql stable security invoker set search_path = '' as $$
+  select coalesce(max(r.revision), 0) from public.ona_ledger_revisions r
+  where r.user_id = (select auth.uid()) and r.revision <= p_max and r.as_of <= p_time;
+$$;
+
 -- Newest edit wins (ties broken by device ID). Returns the stored winner.
 create function public.ona_save_setting(p_document text, p_data jsonb, p_updated_at bigint, p_device_id text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
@@ -197,11 +208,13 @@ begin
 end;
 $$;
 
-revoke all on function public.ona_push_ledger(uuid, bigint, text, text, integer, jsonb, jsonb) from public, anon;
+revoke all on function public.ona_push_ledger(uuid, bigint, text, text, integer, bigint, jsonb, jsonb) from public, anon;
+revoke all on function public.ona_ledger_revision_before(bigint, bigint) from public, anon;
 revoke all on function public.ona_ledger_changes(bigint, bigint) from public, anon;
 revoke all on function public.ona_save_setting(text, jsonb, bigint, text) from public, anon;
 revoke all on function public.ona_delete_my_cloud_data() from public, anon;
-grant execute on function public.ona_push_ledger(uuid, bigint, text, text, integer, jsonb, jsonb) to authenticated;
+grant execute on function public.ona_push_ledger(uuid, bigint, text, text, integer, bigint, jsonb, jsonb) to authenticated;
+grant execute on function public.ona_ledger_revision_before(bigint, bigint) to authenticated;
 grant execute on function public.ona_ledger_changes(bigint, bigint) to authenticated;
 grant execute on function public.ona_save_setting(text, jsonb, bigint, text) to authenticated;
 grant execute on function public.ona_delete_my_cloud_data() to authenticated;

@@ -44,7 +44,7 @@ test('Real V9 history migrates transactionally to V10, preserving exact V4 award
   assert.equal(state.consistencyActivations[0].awardCount, 7);
   assert.deepEqual(awards(conn), receipts);
   assert.equal(state.lifetimeXpCenti, previous.lifetimeXpCenti);
-  assert.equal(conn.raw.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 11);
+  assert.equal(conn.raw.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 12);
   assert.equal(conn.raw.prepare('SELECT COUNT(*) n FROM schema_migrations WHERE version=10').get().n, 1);
   const stored = anchorRows(conn); await store.close();
   conn = connection(file); store = await release(conn, context(12));
