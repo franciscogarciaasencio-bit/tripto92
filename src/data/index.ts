@@ -1,4 +1,4 @@
-export { initializeDatabase } from './database/database';
+export { deleteLedgerFile, initializeDatabase } from './database/database';
 export { databaseNameFor, GUEST_DATABASE } from './namespace';
 export type { SyncState } from './repositories/sync-repository';
 export { PersistenceError } from './database/errors';

@@ -13,6 +13,8 @@ export interface CloudRow { readonly table: string; readonly key: string; readon
 export interface CloudRef { readonly table: string; readonly key: string }
 export interface PushRequest {
   readonly pushId: string;
+  /** Cloud ledger the expected revision belongs to (null only when expecting revision 0). */
+  readonly expectedLedger: string | null;
   readonly expectedRevision: number;
   readonly deviceId: string;
   readonly kind: 'upload' | 'merge';
@@ -22,10 +24,11 @@ export interface PushRequest {
   readonly removes: readonly CloudRef[];
   readonly adds: readonly CloudRow[];
 }
-export interface PushResult { readonly status: 'applied' | 'duplicate' | 'conflict'; readonly revision: number }
+export interface PushResult { readonly status: 'applied' | 'duplicate' | 'conflict' | 'replaced'; readonly revision: number; readonly ledgerId: string | null }
 export interface CloudChanges {
   readonly revision: number;
   readonly head: number;
+  readonly ledgerId: string | null;
   readonly schemaVersion: number | null;
   readonly adds: readonly CloudRow[];
   readonly removes: readonly CloudRef[];
@@ -80,6 +83,11 @@ export function createSupabaseLedger(config: CloudConfig, accessToken: () => Pro
     if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new CloudError('server', 'Unexpected server revision');
     return value;
   };
+  const ledgerId = (value: unknown) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string' || !/^[0-9a-f-]{36}$/.test(value)) throw new CloudError('server', 'Unexpected cloud ledger identity');
+    return value;
+  };
   const list = <T>(value: unknown) => {
     if (!Array.isArray(value)) throw new CloudError('server', 'Unexpected server response');
     return value as T[];
@@ -88,16 +96,18 @@ export function createSupabaseLedger(config: CloudConfig, accessToken: () => Pro
   return {
     async push(input) {
       const result = record(await rpc('ona_push_ledger', {
-        p_push_id: input.pushId, p_expected_revision: input.expectedRevision, p_device_id: input.deviceId, p_kind: input.kind,
+        p_push_id: input.pushId, p_expected_ledger: input.expectedLedger, p_expected_revision: input.expectedRevision, p_device_id: input.deviceId, p_kind: input.kind,
         p_schema_version: input.schemaVersion, p_as_of: input.asOf, p_removes: input.removes, p_adds: input.adds,
       }));
-      if (result.status !== 'applied' && result.status !== 'duplicate' && result.status !== 'conflict') throw new CloudError('server', 'Unexpected push status');
-      return { status: result.status, revision: revision(result.revision) };
+      if (result.status !== 'applied' && result.status !== 'duplicate' && result.status !== 'conflict' && result.status !== 'replaced') {
+        throw new CloudError('server', 'Unexpected push status');
+      }
+      return { status: result.status, revision: revision(result.revision), ledgerId: ledgerId(result.ledgerId) };
     },
     async changes(from, to = null) {
       const result = record(await rpc('ona_ledger_changes', { p_from: from, p_to: to }));
       return {
-        revision: revision(result.revision), head: revision(result.head),
+        revision: revision(result.revision), head: revision(result.head), ledgerId: ledgerId(result.ledgerId),
         schemaVersion: result.schemaVersion === null ? null : revision(result.schemaVersion),
         adds: list<CloudRow>(result.adds), removes: list<CloudRef>(result.removes),
       };

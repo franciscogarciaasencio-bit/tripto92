@@ -1,4 +1,4 @@
-import { openDatabaseAsync } from 'expo-sqlite';
+import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { createProgressionState } from '../../domain/progression';
 import type { CalendarContext, ProgressionRules } from '../../domain/progression';
 import { decodeContext } from './decoders';
@@ -22,4 +22,10 @@ export async function initializeDatabase(asOf: CalendarContext, options: Databas
     all: (sql, parameters = []) => database.getAllAsync<unknown>(sql, [...parameters]),
     close: () => database.closeAsync(),
   }, context, supportedRules, options.activateRulesVersion ?? 'progression_v5');
+}
+
+/** Permanently delete a closed ledger file (an account's copy on this phone). Never the guest file. */
+export async function deleteLedgerFile(databaseName: string): Promise<void> {
+  if (databaseName === 'meditation.db') throw new Error('The guest practice file is never deleted this way');
+  await deleteDatabaseAsync(databaseName);
 }

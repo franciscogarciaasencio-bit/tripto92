@@ -164,6 +164,19 @@ export function decodeSnapshot(value: unknown): LedgerSnapshot {
   return { format: LEDGER_FORMAT, schemaVersion, rows };
 }
 
+/** Empty every ledger table (caller's transaction), restoring all deletion guards afterwards. */
+export async function clearLedgerTables(sql: SqlConnection) {
+  await suspendDeleteGuards(sql);
+  // Rule snapshots are global and survive resets, but a replaced ledger brings its own exact sequence.
+  requireData((await sql.all("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = 'progression_rules_immutable_delete'")).length === 1,
+    'Rules deletion guard is missing');
+  await sql.exec('DROP TRIGGER progression_rules_immutable_delete');
+  for (const spec of [...LEDGER_TABLES].reverse()) await sql.run(`DELETE FROM ${spec.name}`);
+  await restoreDeleteGuards(sql);
+  await sql.exec(`CREATE TRIGGER progression_rules_immutable_delete BEFORE DELETE ON progression_rules
+    BEGIN SELECT RAISE(ABORT, 'Historical records are immutable'); END;`);
+}
+
 /**
  * Replace this device's ledger with `rows` inside the caller's BEGIN IMMEDIATE, then run the
  * same validation as startup. Any inconsistency throws and the caller's transaction rolls back.
@@ -182,12 +195,7 @@ export async function replaceLedger(sql: SqlConnection, registry: RulesRegistry,
     seen.add(refId(decoded));
     byTable.set(decoded.table, [...(byTable.get(decoded.table) ?? []), decoded]);
   }
-  await suspendDeleteGuards(sql);
-  // Rule snapshots are global and survive resets, but a replaced ledger brings its own exact sequence.
-  requireData((await sql.all("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = 'progression_rules_immutable_delete'")).length === 1,
-    'Rules deletion guard is missing');
-  await sql.exec('DROP TRIGGER progression_rules_immutable_delete');
-  for (const spec of [...LEDGER_TABLES].reverse()) await sql.run(`DELETE FROM ${spec.name}`);
+  await clearLedgerTables(sql);
   for (const spec of LEDGER_TABLES) {
     const names = await columns(sql, spec.name);
     const ordered = [...(byTable.get(spec.name) ?? [])];
@@ -205,9 +213,6 @@ export async function replaceLedger(sql: SqlConnection, registry: RulesRegistry,
       closed_progression_centi = ?, closed_journey_json = ? WHERE id = ?`,
     [row.closed_checkpoint_json!, row.closed_progression_centi!, row.closed_journey_json!, row.id!]);
   }
-  await restoreDeleteGuards(sql);
-  await sql.exec(`CREATE TRIGGER progression_rules_immutable_delete BEFORE DELETE ON progression_rules
-    BEGIN SELECT RAISE(ABORT, 'Historical records are immutable'); END;`);
   await sql.run(`UPDATE practice_completions SET acknowledged_at = MAX(?, (SELECT s.ended_at FROM meditation_sessions s
     WHERE s.id = practice_completions.session_id))`, [at]);
   // Startup validation: generations/integrity/activations, permanent journey, habit balance, receipts.

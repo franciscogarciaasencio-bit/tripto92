@@ -248,6 +248,12 @@ export const MIGRATIONS: readonly Migration[] = [
     ALTER TABLE sync_document_clocks ADD COLUMN synced_at INTEGER
       CHECK(synced_at IS NULL OR (typeof(synced_at) = 'integer' AND synced_at >= 0));
   ` },
+  { version: 13, name: 'sync_cloud_ledger_identity', sql: `
+    -- Which cloud ledger the synced revision belongs to; a deleted and re-created cloud copy
+    -- reuses revision numbers under a new identity, which this file must never write to.
+    ALTER TABLE sync_state ADD COLUMN cloud_ledger_id TEXT
+      CHECK(cloud_ledger_id IS NULL OR length(cloud_ledger_id) = 36);
+  ` },
 ];
 
 /** Caller owns the transaction: schema, migration markers and first checkpoint commit together. */

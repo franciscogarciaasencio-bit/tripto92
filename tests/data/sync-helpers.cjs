@@ -15,7 +15,7 @@ function pgliteCloud(s, user) {
     faults,
     async push(request) {
       guard('push');
-      const result = await s.push(user, { pushId: request.pushId, expected: request.expectedRevision, device: request.deviceId,
+      const result = await s.pushRaw(user, { pushId: request.pushId, expected: request.expectedRevision, ledger: request.expectedLedger, device: request.deviceId,
         kind: request.kind, schema: request.schemaVersion, asOf: request.asOf, removes: request.removes, adds: request.adds });
       if (faults.loseNextPushResponse) { faults.loseNextPushResponse = false; throw new CloudError('offline', 'Response lost'); }
       return result;
@@ -33,6 +33,17 @@ function pgliteCloud(s, user) {
     },
     async deleteCloudData() { guard('delete'); await s.call(user, 'ona_delete_my_cloud_data', {}); },
   };
+  // Mirror the HTTP client: database exceptions arrive as classified CloudErrors.
+  for (const name of ['push', 'changes', 'revisionBefore', 'saveSetting', 'settings', 'deleteCloudData']) {
+    const call = cloud[name];
+    cloud[name] = async (...args) => {
+      try { return await call(...args); }
+      catch (error) {
+        if (error instanceof CloudError) throw error;
+        throw new CloudError(/Sign in to sync/.test(error.message) ? 'signed_out' : 'rejected', error.message, 400);
+      }
+    };
+  }
   return cloud;
 }
 
@@ -58,7 +69,6 @@ async function phone(t, s, user = 'a', start = context(1)) {
         sync: store.sync, cloud, now: () => clock, uuid: randomUUID,
         calendar: () => ({ timestamp: clock, localDate: new Date(clock).toISOString().slice(0, 10), timeZone: 'UTC' }),
         busy: async () => (await store.timer.load()) !== null || (await store.meditations.getPendingCompletion()) !== null,
-        merge: async () => { throw new Error('merge not expected in this test'); },
         ...overrides,
       };
     },

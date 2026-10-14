@@ -9,6 +9,9 @@
 
 create table public.ona_ledger_heads (
   user_id uuid primary key references auth.users(id) on delete cascade,
+  -- Identity of this cloud ledger. Deleting the cloud copy removes the head, so a later upload
+  -- starts a new ledger with a new identity and phones synced to the old one cannot write to it.
+  ledger_id uuid not null default gen_random_uuid(),
   revision bigint not null default 0 check (revision >= 0),
   schema_version integer not null check (schema_version > 0),
   updated_at timestamptz not null default now()
@@ -83,13 +86,14 @@ create policy ona_settings_own on public.ona_settings for select to authenticate
 -- Atomic compare-and-swap push. Returns {status: applied|duplicate|conflict, revision}.
 -- A retried push_id returns its original revision, so a lost response never applies twice.
 create function public.ona_push_ledger(
-  p_push_id uuid, p_expected_revision bigint, p_device_id text, p_kind text,
+  p_push_id uuid, p_expected_ledger uuid, p_expected_revision bigint, p_device_id text, p_kind text,
   p_schema_version integer, p_as_of bigint, p_removes jsonb, p_adds jsonb
 ) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   uid uuid := auth.uid();
   head bigint;
+  ledger uuid;
   existing bigint;
   next_revision bigint;
   item jsonb;
@@ -98,7 +102,7 @@ begin
   if uid is null then raise exception 'Sign in to sync' using errcode = '28000'; end if;
   if p_push_id is null or p_expected_revision is null or p_expected_revision < 0 or p_kind not in ('upload', 'merge')
     or p_schema_version is null or p_schema_version < 1 or p_device_id is null or p_device_id !~ '^[0-9a-f]{32}$'
-    or p_as_of is null or p_as_of < 0
+    or p_as_of is null or p_as_of < 0 or (p_expected_revision > 0 and p_expected_ledger is null)
     or jsonb_typeof(p_removes) is distinct from 'array' or jsonb_typeof(p_adds) is distinct from 'array' then
     raise exception 'Invalid sync push' using errcode = '22023';
   end if;
@@ -109,10 +113,13 @@ begin
   insert into public.ona_ledger_heads (user_id, revision, schema_version) values (uid, 0, p_schema_version)
     on conflict (user_id) do nothing;
   -- Serialize this user's pushes, then answer retries of an already applied push.
-  select h.revision into head from public.ona_ledger_heads h where h.user_id = uid for update;
+  select h.revision, h.ledger_id into head, ledger from public.ona_ledger_heads h where h.user_id = uid for update;
   select r.revision into existing from public.ona_ledger_revisions r where r.user_id = uid and r.push_id = p_push_id;
-  if found then return jsonb_build_object('status', 'duplicate', 'revision', existing); end if;
-  if head <> p_expected_revision then return jsonb_build_object('status', 'conflict', 'revision', head); end if;
+  if found then return jsonb_build_object('status', 'duplicate', 'revision', existing, 'ledgerId', ledger); end if;
+  if p_expected_revision > 0 and p_expected_ledger is distinct from ledger then
+    return jsonb_build_object('status', 'replaced', 'revision', head, 'ledgerId', ledger);
+  end if;
+  if head <> p_expected_revision then return jsonb_build_object('status', 'conflict', 'revision', head, 'ledgerId', ledger); end if;
 
   next_revision := head + 1;
   for item in select value from jsonb_array_elements(p_removes) loop
@@ -133,7 +140,7 @@ begin
     values (uid, next_revision, p_push_id, p_device_id, p_kind, head, jsonb_array_length(p_adds), jsonb_array_length(p_removes), p_as_of);
   update public.ona_ledger_heads set revision = next_revision, schema_version = greatest(schema_version, p_schema_version),
     updated_at = now() where user_id = uid;
-  return jsonb_build_object('status', 'applied', 'revision', next_revision);
+  return jsonb_build_object('status', 'applied', 'revision', next_revision, 'ledgerId', ledger);
 end;
 $$;
 
@@ -145,11 +152,12 @@ declare
   uid uuid := auth.uid();
   head bigint;
   schema integer;
+  ledger uuid;
   target bigint;
 begin
   if uid is null then raise exception 'Sign in to sync' using errcode = '28000'; end if;
-  select h.revision, h.schema_version into head, schema from public.ona_ledger_heads h where h.user_id = uid;
-  if not found then head := 0; schema := null; end if;
+  select h.revision, h.schema_version, h.ledger_id into head, schema, ledger from public.ona_ledger_heads h where h.user_id = uid;
+  if not found then head := 0; schema := null; ledger := null; end if;
   target := coalesce(p_to, head);
   if p_from is null or p_from < 0 or p_from > target or target > head then
     raise exception 'Invalid sync revision range' using errcode = '22023';
@@ -157,6 +165,7 @@ begin
   return jsonb_build_object(
     'revision', target,
     'head', head,
+    'ledgerId', ledger,
     'schemaVersion', schema,
     'adds', coalesce((select jsonb_agg(jsonb_build_object('table', r.table_name, 'key', r.row_key, 'hash', r.row_hash, 'row', r.row_data)
         order by r.table_name, r.row_key)
@@ -208,12 +217,12 @@ begin
 end;
 $$;
 
-revoke all on function public.ona_push_ledger(uuid, bigint, text, text, integer, bigint, jsonb, jsonb) from public, anon;
+revoke all on function public.ona_push_ledger(uuid, uuid, bigint, text, text, integer, bigint, jsonb, jsonb) from public, anon;
 revoke all on function public.ona_ledger_revision_before(bigint, bigint) from public, anon;
 revoke all on function public.ona_ledger_changes(bigint, bigint) from public, anon;
 revoke all on function public.ona_save_setting(text, jsonb, bigint, text) from public, anon;
 revoke all on function public.ona_delete_my_cloud_data() from public, anon;
-grant execute on function public.ona_push_ledger(uuid, bigint, text, text, integer, bigint, jsonb, jsonb) to authenticated;
+grant execute on function public.ona_push_ledger(uuid, uuid, bigint, text, text, integer, bigint, jsonb, jsonb) to authenticated;
 grant execute on function public.ona_ledger_revision_before(bigint, bigint) to authenticated;
 grant execute on function public.ona_ledger_changes(bigint, bigint) to authenticated;
 grant execute on function public.ona_save_setting(text, jsonb, bigint, text) to authenticated;

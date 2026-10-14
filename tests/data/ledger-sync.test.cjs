@@ -38,7 +38,7 @@ test('Migration 11 gives every ledger file its own device identity and an unboun
   const first = await a.store.sync.loadState(), second = await b.store.sync.loadState();
   assert.match(first.deviceId, /^[0-9a-f]{32}$/);
   assert.notEqual(first.deviceId, second.deviceId);
-  assert.deepEqual({ ...first, deviceId: null }, { deviceId: null, accountId: null, syncedRevision: 0, inflight: null, lastSyncedAt: null });
+  assert.deepEqual({ ...first, deviceId: null }, { deviceId: null, accountId: null, syncedRevision: 0, cloudLedgerId: null, inflight: null, lastSyncedAt: null });
   assert.deepEqual(a.store.initialSync, first);
 });
 
@@ -51,7 +51,7 @@ test('A released V10 file upgrades through the sync migrations without touching 
   conn = connection(file); conn.raw.exec(DROP_SYNC_MIGRATION); await conn.close();
   conn = connection(file); store = await release(conn, context(1, 12));
   t.after(() => store.close());
-  assert.equal(conn.raw.prepare('SELECT MAX(version) v FROM schema_migrations').get().v, 12);
+  assert.equal(conn.raw.prepare('SELECT MAX(version) v FROM schema_migrations').get().v, 13);
   const after = await store.meditations.loadProgressionState();
   assert.deepEqual(after.sessions, before.sessions); assert.deepEqual(after.awards, before.awards);
   assert.equal(after.lifetimeXpCenti, before.lifetimeXpCenti);
@@ -80,7 +80,7 @@ test('Export is deterministic, omits device acknowledgement and round-trips into
 
   const target = await open(t, connection(), context(1));
   await target.store.sync.bindAccount('user-a');
-  await target.store.sync.applyRemote(wire.rows, 7, at(9));
+  await target.store.sync.applyRemote(wire.rows, 7, null, at(9));
   assert.deepEqual(rowSet(await target.store.sync.exportLedger()), rowSet(exported));
   assert.deepEqual(await target.store.meditations.loadProgressionState(), await source.store.meditations.loadProgressionState());
   assert.deepEqual(await target.store.meditations.getMeditationHistory(), await source.store.meditations.getMeditationHistory());
@@ -105,7 +105,7 @@ test('Imported practice keeps working: the next local practice earns on the rest
   const rows = (await source.store.sync.exportLedger()).rows;
   const target = await open(t);
   await target.store.sync.bindAccount('user-a');
-  await target.store.sync.applyRemote(rows, 1, at(7));
+  await target.store.sync.applyRemote(rows, 1, null, at(7));
   const next = session({ day: 7, hour: 9 });
   const a = await source.store.meditations.completePractice(next, next.endedAt);
   const b = await target.store.meditations.completePractice(next, next.endedAt);
@@ -127,7 +127,7 @@ for (const [name, change] of [
   await practice(target.store, session({ day: 1, hour: 6 }));
   await target.store.sync.bindAccount('user-a');
   const before = await target.store.sync.exportLedger();
-  await assert.rejects(target.store.sync.applyRemote(decoded, 3, at(5)), (error) => error.code === 'INVALID_DATA' || error.code === 'MISSING_CHECKPOINT');
+  await assert.rejects(target.store.sync.applyRemote(decoded, 3, null, at(5)), (error) => error.code === 'INVALID_DATA' || error.code === 'MISSING_CHECKPOINT');
   assert.deepEqual(rowSet(await target.store.sync.exportLedger()), rowSet(before));
   assert.equal((await target.store.sync.loadState()).syncedRevision, 0);
   assert.throws(() => target.conn.raw.exec('DELETE FROM progression_awards'), /immutable/);
@@ -148,14 +148,14 @@ test('Import refuses an account-less file, a running practice and an unacknowled
   const source = await history(t, 2);
   const rows = (await source.store.sync.exportLedger()).rows;
   const target = await open(t);
-  await assert.rejects(target.store.sync.applyRemote(rows, 1, at(4)), /Cannot apply/);
+  await assert.rejects(target.store.sync.applyRemote(rows, 1, null, at(4)), /Cannot apply/);
   await target.store.sync.bindAccount('user-a');
   await target.store.timer.save(startOpenEndedTimer('running-1', at(3, 9), 'UTC'));
-  await assert.rejects(target.store.sync.applyRemote(rows, 1, at(4)), /current practice/);
+  await assert.rejects(target.store.sync.applyRemote(rows, 1, null, at(4)), /current practice/);
   await target.store.timer.discard('running-1');
   const s = session({ day: 3, hour: 10 });
   await target.store.meditations.completePractice(s, s.endedAt);
-  await assert.rejects(target.store.sync.applyRemote(rows, 1, at(4)), /saved practice/);
+  await assert.rejects(target.store.sync.applyRemote(rows, 1, null, at(4)), /saved practice/);
 });
 
 test('Local changes are a diff against the last synced manifest; applying it to the base reproduces the device', async (t) => {
@@ -163,7 +163,7 @@ test('Local changes are a diff against the last synced manifest; applying it to 
   const base = (await source.store.sync.exportLedger()).rows;
   const device = await open(t);
   await device.store.sync.bindAccount('user-a');
-  await device.store.sync.applyRemote(base, 4, at(5));
+  await device.store.sync.applyRemote(base, 4, null, at(5));
   await practice(device.store, session({ day: 5, hour: 9 }));
   const { diff, snapshot, significant } = await device.store.sync.localChanges();
   assert.equal(significant, true);
@@ -182,7 +182,7 @@ test('A durable in-flight push survives restart; acknowledgement adopts its targ
   await store.sync.bindAccount('user-a');
   await practice(store, session({ day: 1 }));
   const { diff, asOf } = await store.sync.localChanges();
-  const push = { pushId: 'push-1', expectedRevision: 0, kind: 'upload', diff, asOf };
+  const push = { pushId: 'push-1', expectedLedger: null, expectedRevision: 0, kind: 'upload', diff, asOf };
   await assert.rejects(store.sync.beginPush({ ...push, expectedRevision: 3 }), /synced revision/);
   await store.sync.beginPush(push);
   await assert.rejects(store.sync.beginPush({ ...push, pushId: 'push-2' }), /still pending/);
@@ -192,16 +192,16 @@ test('A durable in-flight push survives restart; acknowledgement adopts its targ
   const restored = (await store.sync.loadState()).inflight;
   assert.equal(restored.pushId, 'push-1');
   assert.deepEqual(rowSet({ rows: restored.diff.adds }), rowSet({ rows: diff.adds }));
-  await assert.rejects(store.sync.completePush('push-x', 1, at(1, 13)), /Unknown/);
-  await assert.rejects(store.sync.completePush('push-1', 2, at(1, 13)), /skips a revision/);
-  await store.sync.completePush('push-1', 1, at(1, 13));
+  await assert.rejects(store.sync.completePush('push-x', 1, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', at(1, 13)), /Unknown/);
+  await assert.rejects(store.sync.completePush('push-1', 2, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', at(1, 13)), /skips a revision/);
+  await store.sync.completePush('push-1', 1, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', at(1, 13));
   const state = await store.sync.loadState();
   assert.equal(state.syncedRevision, 1); assert.equal(state.inflight, null); assert.equal(state.lastSyncedAt, at(1, 13));
   // Reopening later re-settled continuation only; the acknowledged push covered all history.
   const after = await store.sync.localChanges();
   assert.equal(after.significant, false);
   assert.ok(after.diff.adds.every((row) => ledger.CONTINUATION_TABLES.includes(row.table)));
-  await assert.rejects(store.sync.completePush('push-1', 1, at(1, 14)), /Unknown/);
+  await assert.rejects(store.sync.completePush('push-1', 1, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', at(1, 14)), /Unknown/);
 });
 
 test('An abandoned (conflicting) push leaves the manifest and revision untouched', async (t) => {
@@ -209,7 +209,7 @@ test('An abandoned (conflicting) push leaves the manifest and revision untouched
   await store.sync.bindAccount('user-a');
   await practice(store, session({ day: 1 }));
   const { diff, snapshot, asOf } = await store.sync.localChanges();
-  await store.sync.beginPush({ pushId: 'p', expectedRevision: 0, kind: 'upload', diff, asOf });
+  await store.sync.beginPush({ pushId: 'p', expectedLedger: null, expectedRevision: 0, kind: 'upload', diff, asOf });
   await store.sync.abandonPush('p');
   const state = await store.sync.loadState();
   assert.equal(state.inflight, null); assert.equal(state.syncedRevision, 0);
@@ -223,7 +223,7 @@ test('Reset removes all synced practice as row removals, including set-aside pra
   const rows = (await source.store.sync.exportLedger()).rows;
   const setAside = ledger.ledgerRow('sync_set_aside_sessions', { session_id: 'other', session_json: JSON.stringify(session({ day: 2, hour: 8 })),
     created_at: at(2, 9), set_aside_at: at(4), reason: 'overlap' });
-  await device.store.sync.applyRemote([...rows, setAside], 2, at(6));
+  await device.store.sync.applyRemote([...rows, setAside], 2, null, at(6));
   assert.throws(() => device.conn.raw.exec('DELETE FROM sync_set_aside_sessions'), /immutable/);
   await device.store.meditations.resetAllPracticeData(context(7));
   const { diff } = await device.store.sync.localChanges();

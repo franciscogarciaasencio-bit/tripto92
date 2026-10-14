@@ -43,11 +43,19 @@ async function supabase(t) {
     const sql = `select public.${fn}(${names.map((name, i) => `${name} => $${i + 1}`).join(', ')}) as result`;
     return (await as(user, sql, names.map((name) => args[name])))[0]?.result;
   };
-  const push = (user, { pushId, expected, removes = [], adds = [], kind = 'upload', device = 'a'.repeat(32), schema = 12, asOf = 0 }) =>
-    call(user, 'ona_push_ledger', { p_push_id: pushId, p_expected_revision: expected, p_device_id: device, p_kind: kind,
+  const ledgers = new Map();
+  const pushRaw = async (user, { pushId, expected, ledger, removes = [], adds = [], kind = 'upload', device = 'a'.repeat(32), schema = 13, asOf = 0 }) => {
+    // Tests that do not name a ledger push onto the user's current one.
+    const expectedLedger = ledger !== undefined ? ledger : expected > 0 ? ledgers.get(user) ?? (await changes(user, 0)).ledgerId : null;
+    const result = await call(user, 'ona_push_ledger', { p_push_id: pushId, p_expected_ledger: expectedLedger, p_expected_revision: expected, p_device_id: device, p_kind: kind,
       p_schema_version: schema, p_as_of: asOf, p_removes: JSON.stringify(removes), p_adds: JSON.stringify(adds) });
+    if (result?.ledgerId) ledgers.set(user, result.ledgerId);
+    return result;
+  };
+  /** Status and revision only; pushRaw also returns the ledger identity. */
+  const push = async (user, request) => { const { status, revision } = await pushRaw(user, request); return { status, revision }; };
   const changes = (user, from, to = null) => call(user, 'ona_ledger_changes', { p_from: from, p_to: to });
-  return { db, as, call, push, changes, USERS };
+  return { db, as, call, push, pushRaw, changes, USERS };
 }
 
 module.exports = { supabase, USERS };

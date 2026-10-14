@@ -1,8 +1,10 @@
 import type { SqlConnection, Transactions } from '../database/connection';
 import type { RulesRegistry } from '../database/decoders';
+import { applyMerge } from '../database/ledger-merge';
+import type { CalendarContext } from '../../domain/progression';
 import { applyLedgerDiff, diffLedger, exportLedger, isSignificant, recordsPractice, ledgerRow, ledgerTable, manifestOf, replaceLedger,
   type LedgerDiff, type LedgerRef, type LedgerRow, type LedgerSnapshot } from '../database/ledger';
-import { array, integer, json, object, requireData, text, timestamp } from '../database/validation';
+import { array, canonical, integer, json, object, requireData, text, timestamp } from '../database/validation';
 import { decodePreferences } from '../preferences';
 import { decodeAudioPreferences } from '../audio-preferences';
 import { loadPreferences, loadAudioPreferences } from './settings-repository';
@@ -15,6 +17,8 @@ export type PushKind = 'upload' | 'merge';
 /** One durable push awaiting the server's answer; resent unchanged after a crash or lost response. */
 export interface InflightPush {
   readonly pushId: string;
+  /** Cloud ledger identity the expected revision belongs to; null only for the first upload. */
+  readonly expectedLedger: string | null;
   readonly expectedRevision: number;
   readonly kind: PushKind;
   readonly diff: LedgerDiff;
@@ -25,6 +29,7 @@ export interface SyncState {
   readonly deviceId: string;
   readonly accountId: string | null;
   readonly syncedRevision: number;
+  readonly cloudLedgerId: string | null;
   readonly inflight: InflightPush | null;
   readonly lastSyncedAt: number | null;
 }
@@ -41,11 +46,17 @@ function decodeInflight(value: unknown): InflightPush {
   const diff = object(source.diff);
   return {
     pushId: text(source.pushId), expectedRevision: integer(source.expectedRevision), kind, asOf: timestamp(source.asOf),
+    expectedLedger: source.expectedLedger === null ? null : ledgerIdentity(source.expectedLedger),
     diff: {
       removes: array(diff.removes, decodeRef),
       adds: array(diff.adds, (entry) => { const row = object(entry); return ledgerRow(row.table, row.row); }),
     },
   };
+}
+function ledgerIdentity(value: unknown): string {
+  const id = text(value);
+  requireData(/^[0-9a-f-]{36}$/.test(id), 'Invalid cloud ledger identity');
+  return id;
 }
 const syncDocument = (value: unknown): SyncDocument => {
   requireData((SYNC_DOCUMENTS as readonly unknown[]).includes(value), 'Unknown synced document');
@@ -60,6 +71,7 @@ export async function loadSyncState(sql: SqlConnection): Promise<SyncState> {
     deviceId: text(row.device_id),
     accountId: row.account_id === null ? null : text(row.account_id),
     syncedRevision: integer(row.synced_revision),
+    cloudLedgerId: row.cloud_ledger_id === null ? null : ledgerIdentity(row.cloud_ledger_id),
     inflight: row.inflight_json === null ? null : decodeInflight(json(row.inflight_json)),
     lastSyncedAt: row.last_synced_at === null ? null : timestamp(row.last_synced_at),
   };
@@ -175,21 +187,25 @@ export function createSyncRepository(database: Transactions, registry: RulesRegi
         const state = await loadSyncState(sql);
         requireData(state.accountId !== null, 'Sign in before syncing');
         requireData(state.inflight === null || state.inflight.pushId === decoded.pushId, 'Another sync push is still pending');
-        requireData(decoded.expectedRevision === state.syncedRevision, 'A push must start from the synced revision');
+        requireData(decoded.expectedRevision === state.syncedRevision && decoded.expectedLedger === state.cloudLedgerId,
+          'A push must start from the synced revision');
         await sql.run('UPDATE sync_state SET inflight_json = ? WHERE id = 1', [JSON.stringify(decoded)]);
       });
     },
 
     /** The server applied (or had already applied) this push as `revision`: base := base + diff. */
-    async completePush(pushId: string, revision: number, at: number) {
+    async completePush(pushId: string, revision: number, ledgerId: string, at: number) {
       await database.transaction(async (sql) => {
         const state = await loadSyncState(sql);
         requireData(state.inflight?.pushId === pushId, 'Unknown sync push acknowledgement');
         requireData(integer(revision, 1) === state.inflight.expectedRevision + 1, 'Sync acknowledgement skips a revision');
+        const ledger = ledgerIdentity(ledgerId);
+        requireData(state.inflight.expectedLedger === null || state.inflight.expectedLedger === ledger, 'Sync acknowledgement is for another cloud ledger');
         const base = await loadBase(sql);
         requireData(base, 'Synced base is unavailable');
         await writeBase(sql, applyLedgerDiff(base, state.inflight.diff));
-        await sql.run('UPDATE sync_state SET synced_revision = ?, inflight_json = NULL, last_synced_at = ? WHERE id = 1', [revision, timestamp(at)]);
+        await sql.run('UPDATE sync_state SET synced_revision = ?, cloud_ledger_id = ?, inflight_json = NULL, last_synced_at = ? WHERE id = 1',
+          [revision, ledger, timestamp(at)]);
       });
     },
 
@@ -203,14 +219,64 @@ export function createSyncRepository(database: Transactions, registry: RulesRegi
     },
 
     /** Replace this device's ledger with the validated cloud state at `revision`, which becomes the base. */
-    async applyRemote(rows: readonly LedgerRow[], revision: number, at: number) {
+    async applyRemote(rows: readonly LedgerRow[], revision: number, ledgerId: string | null, at: number) {
       return database.transaction(async (sql) => {
         const state = await loadSyncState(sql);
         requireData(state.accountId !== null && state.inflight === null, 'Cannot apply cloud practice now');
         const progression = await replaceLedger(sql, registry, rows, at);
         // Validation may settle projections (e.g. habit decay); the base records the cloud rows themselves.
         await writeBase(sql, rows);
-        await sql.run('UPDATE sync_state SET synced_revision = ?, last_synced_at = ? WHERE id = 1', [integer(revision), timestamp(at)]);
+        await sql.run('UPDATE sync_state SET synced_revision = ?, cloud_ledger_id = ?, last_synced_at = ? WHERE id = 1',
+          [integer(revision), ledgerId === null ? null : ledgerIdentity(ledgerId), timestamp(at)]);
+        return progression;
+      });
+    },
+
+    /**
+     * The cloud copy this file synced with was deleted or replaced. Forget it so this phone's
+     * practice is saved again as a new upload (or combined with what the account now holds).
+     */
+    async forgetCloud() {
+      await database.transaction(async (sql) => {
+        requireData((await loadSyncState(sql)).accountId !== null, 'Sign in before syncing');
+        await sql.run('DELETE FROM sync_manifest');
+        await sql.run('UPDATE sync_document_clocks SET synced_at = NULL');
+        await sql.run('UPDATE sync_state SET synced_revision = 0, cloud_ledger_id = NULL, inflight_json = NULL WHERE id = 1');
+      });
+    },
+
+    /**
+     * First sign-in on a phone with existing practice: copy that practice (validated) into this
+     * account file while it still records none. The next sync saves it to the account.
+     */
+    async adoptLocalCopy(rows: readonly LedgerRow[], at: number) {
+      return database.transaction(async (sql) => {
+        const state = await loadSyncState(sql);
+        requireData(state.accountId !== null && state.inflight === null, 'Sign in before saving practice to the account');
+        requireData(!recordsPractice((await exportLedger(sql)).rows), 'This account already has practice on this phone');
+        return replaceLedger(sql, registry, rows, at);
+      });
+    },
+
+    /**
+     * Combine this phone's practice with the cloud state `head` (revision `revision`) in one
+     * transaction, as planned from `localRows`. If this phone saved anything since planning,
+     * nothing changes and the caller plans again. Afterwards `head` is the synced base, and the
+     * difference (the merged result) is pushed by the next sync step.
+     */
+    async mergeRemote(input: { readonly start: readonly LedgerRow[] | null; readonly head: readonly LedgerRow[]; readonly revision: number;
+      readonly ledgerId: string | null; readonly localRows: readonly LedgerRow[]; readonly earliest: CalendarContext;
+      readonly reset: CalendarContext | null; readonly now: CalendarContext }) {
+      return database.transaction(async (sql) => {
+        const state = await loadSyncState(sql);
+        requireData(state.accountId !== null && state.inflight === null, 'Cannot combine practice now');
+        const current = await exportLedger(sql);
+        if (canonical([...manifestOf(current.rows)].sort()) !== canonical([...manifestOf(input.localRows)].sort())) return false;
+        const progression = await applyMerge(sql, registry, { start: input.start, earliest: input.earliest, head: input.head,
+          local: current.rows, reset: input.reset, now: input.now });
+        await writeBase(sql, input.head);
+        await sql.run('UPDATE sync_state SET synced_revision = ?, cloud_ledger_id = ?, last_synced_at = ? WHERE id = 1',
+          [integer(input.revision), input.ledgerId === null ? null : ledgerIdentity(input.ledgerId), timestamp(input.now.timestamp)]);
         return progression;
       });
     },

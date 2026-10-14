@@ -105,19 +105,19 @@ const config = { url: 'https://abc.supabase.co', publishableKey: 'sb_publishable
 
 test('Supabase RPC client sends authenticated, parameterized calls and validates responses', async () => {
   const { fetch, calls } = fakeFetch([
-    { status: 200, body: { status: 'applied', revision: 3 } },
+    { status: 200, body: { status: 'applied', revision: 3, ledgerId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
     { status: 200, body: { revision: 3, head: 3, schemaVersion: 11, adds: [], removes: [] } },
     { status: 200, body: { document: 'audio_preferences', data: { a: 1 }, updatedAt: 9, deviceId: 'd' } },
     { status: 200, body: [{ document: 'audio_preferences', document_data: { a: 1 }, updated_at: 9, device_id: 'd' }] },
     { status: 204, body: '' },
   ]);
   const client = createSupabaseLedger(config, async () => 'token-1', fetch);
-  assert.deepEqual(await client.push({ pushId: 'p', expectedRevision: 2, deviceId: 'd', kind: 'upload', schemaVersion: 12, asOf: 5, removes: [], adds: [] }),
-    { status: 'applied', revision: 3 });
+  assert.deepEqual(await client.push({ pushId: 'p', expectedLedger: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', expectedRevision: 2, deviceId: 'd', kind: 'upload', schemaVersion: 13, asOf: 5, removes: [], adds: [] }),
+    { status: 'applied', revision: 3, ledgerId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
   assert.equal(calls[0].url, 'https://abc.supabase.co/rest/v1/rpc/ona_push_ledger');
   assert.equal(calls[0].init.headers.Authorization, 'Bearer token-1');
   assert.equal(calls[0].init.headers.apikey, 'sb_publishable_k');
-  assert.deepEqual(calls[0].body, { p_push_id: 'p', p_expected_revision: 2, p_device_id: 'd', p_kind: 'upload', p_schema_version: 12, p_as_of: 5, p_removes: [], p_adds: [] });
+  assert.deepEqual(calls[0].body, { p_push_id: 'p', p_expected_ledger: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', p_expected_revision: 2, p_device_id: 'd', p_kind: 'upload', p_schema_version: 13, p_as_of: 5, p_removes: [], p_adds: [] });
   assert.equal((await client.changes(0)).head, 3);
   assert.deepEqual(calls[1].body, { p_from: 0, p_to: null });
   assert.equal((await client.saveSetting('audio_preferences', { a: 1 }, 9, 'd')).updatedAt, 9);

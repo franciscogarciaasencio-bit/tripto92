@@ -3,11 +3,11 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState } from 'react-native';
 
 import { cloudAuth, cloudLedger, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
-import { databaseNameFor, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
+import { databaseNameFor, deleteLedgerFile, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
 import { watchTimerDeadline } from './practice-lifecycle';
-import { syncLedger, type MergeRemote } from './sync-engine';
+import { syncLedger } from './sync-engine';
 import { failurePhase, type SyncStatus } from './sync-status';
 
 const SYNC_INTERVAL = 15 * 60_000;
@@ -62,7 +62,16 @@ function useApplication() {
   // Optional account sync. Never blocks meditation: it runs beside the operation lock, every local
   // step is one atomic transaction, and imports refuse while a practice is open.
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ phase: 'idle', lastSyncedAt: null });
+  // This phone's guest practice, captured at sign-in, offered (never forced) to an empty account.
+  const [guestCopy, setGuestCopy] = useState<{ readonly rows: Awaited<ReturnType<MeditationStore['sync']['exportLedger']>>['rows']; readonly practices: number } | null>(null);
   const syncRunning = useRef(false);
+  const refreshFromStore = useCallback(async (database: MeditationStore) => {
+    const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
+    setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
+    setCompletedPractices(await database.meditations.getCompletedPracticeCount());
+    setHasHistory((await database.meditations.getMeditationHistory({ limit: 1 })).length > 0);
+    setPracticeRevision((revision) => revision + 1);
+  }, []);
   const syncAgain = useRef(false);
   const runSync = useCallback(async () => {
     const database = store.current;
@@ -73,20 +82,13 @@ function useApplication() {
     try {
       do {
         syncAgain.current = false;
-        const merge: MergeRemote = async () => { throw new Error('Combining practice from two phones is not available yet'); };
         const result = await syncLedger({
-          sync: database.sync, cloud: cloudLedger, now: Date.now, uuid: randomUUID, calendar: currentContext, merge,
+          sync: database.sync, cloud: cloudLedger, now: Date.now, uuid: randomUUID, calendar: currentContext,
           busy: async () => timer.current !== null || (await database.meditations.getPendingCompletion()) !== null,
         });
         if (store.current !== database) return; // The account changed meanwhile; its own sync will run.
         if (result.status === 'synced') {
-          if (result.action === 'pulled' || result.action === 'merged') {
-            const progress = await database.meditations.getCurrentPracticeProgress(currentContext());
-            setSnapshot(progress.snapshot); setJourney(progress.journey); setHabit(progress.habit);
-            setCompletedPractices(await database.meditations.getCompletedPracticeCount());
-            setHasHistory((await database.meditations.getMeditationHistory({ limit: 1 })).length > 0);
-            setPracticeRevision((revision) => revision + 1);
-          }
+          if (result.action === 'pulled' || result.action === 'merged') await refreshFromStore(database);
           if (result.documents.includes('meditation_preferences')) setPreferences(await database.settings.loadPreferences());
           if (result.documents.includes('audio_preferences')) setAudioPreferences(await database.settings.loadAudioPreferences());
           if (result.documents.includes('application_preferences')) setExplanationDismissed(await database.application.isExplanationDismissed());
@@ -98,7 +100,7 @@ function useApplication() {
     } catch (failure) {
       if (store.current === database) setSyncStatus((status) => ({ ...status, phase: failurePhase(failure) }));
     } finally { syncRunning.current = false; }
-  }, []);
+  }, [refreshFromStore]);
 
   useEffect(() => {
     if (!cloudAuth) return;
@@ -279,6 +281,35 @@ function useApplication() {
     } finally { locked.current = false; setBusy(false); }
   }, [completion]);
 
+  const removeAccount = useCallback(async (deleteCloud: boolean) => {
+    const current = accountRef.current;
+    if (!cloudAuth || !current || locked.current || timer.current || completion) return false;
+    locked.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      if (deleteCloud) {
+        if (!cloudLedger) throw new Error('Cloud is not configured');
+        await cloudLedger.deleteCloudData();
+      }
+      const database = store.current;
+      store.current = null;
+      if (database) await database.close();
+      await deleteLedgerFile(databaseNameFor(current.id));
+      await saveActiveAccount(null);
+      await cloudAuth.signOut();
+      setGuestCopy(null);
+      setSwitching(true);
+      setAccount(null);
+      return true;
+    } catch (failure) {
+      setError(String(failure));
+      // Reopen whichever ledger is still on disk so the app keeps working.
+      if (!store.current) { setSwitching(true); setAttempt((value) => value + 1); }
+      return false;
+    } finally { locked.current = false; setBusy(false); }
+  }, [completion]);
+
   return {
     ready, busy: busy || switching, error, draft, snapshot,
     cloudAvailable: cloudAuth !== null,
@@ -292,6 +323,8 @@ function useApplication() {
       try {
         const result = await cloudAuth.signInWithGoogle();
         if (result.status !== 'signed_in') return false;
+        const guest = !accountRef.current && store.current && hasHistory ? (await store.current.sync.exportLedger()).rows : null;
+        setGuestCopy(guest ? { rows: guest, practices: completedPractices } : null);
         await switchAccount(result.account);
         return true;
       } catch (failure) { setError(String(failure)); return false; }
@@ -303,9 +336,33 @@ function useApplication() {
       try {
         await switchAccount(null);
         await cloudAuth.signOut();
+        setGuestCopy(null);
         return true;
       } catch (failure) { setError(String(failure)); return false; }
-    }, journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
+    },
+    /** Practices on this phone that could be copied into the (still empty) account, if offered. */
+    guestCopyOffer: guestCopy && account && !hasHistory && syncStatus.phase === 'synced' ? guestCopy.practices : null,
+    async saveGuestPractice() {
+      const copy = guestCopy;
+      if (!copy) return false;
+      const done = await operation(async (database) => {
+        await database.sync.adoptLocalCopy(copy.rows, Date.now());
+        await refreshFromStore(database);
+      });
+      if (done) { setGuestCopy(null); void runSync(); }
+      return done;
+    },
+    declineGuestPractice: () => setGuestCopy(null),
+    /** After the cloud copy was deleted elsewhere: save this phone's practice to the account again. */
+    async savePracticeAgain() {
+      const done = await operation(async (database) => { await database.sync.forgetCloud(); });
+      if (done) void runSync();
+      return done;
+    },
+    /** Remove this account's practice from this phone (the cloud copy is untouched) and sign out. */
+    removeAccountFromPhone: () => removeAccount(false),
+    /** Permanently delete this account's practice from the cloud and this phone, then sign out. */
+    deleteAccountData: () => removeAccount(true), journey, habit, explanationDismissed, preferences, audioPreferences, completion, hasHistory, completedPractices, practiceRevision,
     async saveAudioPreferences(next: AudioPreferences) {
       const saved = await operation(async (database) => { await database.settings.saveAudioPreferences(next); setAudioPreferences(next); });
       if (saved) void runSync();

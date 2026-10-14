@@ -150,3 +150,45 @@ test('A file without stored base content downloads the synced revision once and 
   assert.notEqual(a.conn.raw.prepare('SELECT COUNT(*) n FROM sync_manifest WHERE row_json IS NULL').get().n, undefined);
   assert.equal(a.conn.raw.prepare('SELECT COUNT(*) n FROM sync_manifest WHERE row_json IS NULL').get().n, 0);
 });
+
+test('A deleted cloud copy is never resurrected by an old phone; the phone can save its practice again on request', async (t) => {
+  const s = await supabase(t);
+  const a = await phone(t, s), b = await phone(t, s);
+  await a.practice(session({ id: 'a1', day: 1 })); await a.sync();
+  await a.practice(session({ id: 'a2', day: 2 })); await a.sync();
+  b.setTime(at(2, 12)); await b.sync();
+  await s.call('a', 'ona_delete_my_cloud_data', {});
+  await a.practice(session({ id: 'a3', day: 3 }));
+  await assert.rejects(a.sync(), (error) => error instanceof engine.SyncCloudReplaced);
+  assert.equal((await s.changes('a', 0)).head, 0, 'nothing was re-uploaded');
+  // Another phone starts a new cloud ledger that reaches the same revision numbers.
+  await b.store.sync.forgetCloud();
+  await b.practice(session({ id: 'b3', day: 3, hour: 14 }));
+  assert.equal((await b.sync()).action, 'pushed');
+  await b.practice(session({ id: 'b4', day: 4 })); await b.sync();
+  assert.equal((await s.changes('a', 0)).head, 2);
+  await assert.rejects(a.sync(), (error) => error instanceof engine.SyncCloudReplaced, 'same revision number, different ledger');
+  // On request, A combines its practice with what the account now holds.
+  await a.store.sync.forgetCloud();
+  a.setTime(at(4, 12));
+  assert.equal((await a.sync()).action, 'merged');
+  const ids = async (device) => (await device.store.meditations.getMeditationHistory({ limit: 100 })).map((entry) => entry.session.id).sort();
+  b.setTime(at(4, 12)); await b.sync();
+  assert.deepEqual(await ids(a), ['a1', 'a2', 'a3', 'b3', 'b4']);
+  assert.deepEqual(await ids(b), await ids(a));
+});
+
+test('First sign-in can copy this phone’s practice into an empty account file, never over existing practice', async (t) => {
+  const s = await supabase(t);
+  const a = await phone(t, s);
+  const guest = await phone(t, s, 'b');
+  await guest.practice(session({ id: 'g1', day: 1 }));
+  await guest.practice(session({ id: 'g2', day: 2 }));
+  const rows = (await guest.store.sync.exportLedger()).rows;
+  a.setTime(at(3));
+  await a.store.sync.adoptLocalCopy(rows, at(3));
+  assert.equal((await a.sync()).action, 'pushed');
+  assert.deepEqual((await a.store.meditations.getMeditationHistory()).map((entry) => entry.session.id).sort(), ['g1', 'g2']);
+  assert.equal(await a.store.meditations.getPendingCompletion(), null);
+  await assert.rejects(a.store.sync.adoptLocalCopy(rows, at(3)), /already has practice/);
+});

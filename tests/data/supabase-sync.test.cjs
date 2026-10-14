@@ -91,11 +91,11 @@ test('Real device ledgers travel through Postgres JSONB and replace another devi
   const b = await device(t);
   await b.sync.bindAccount(USERS.a);
   const cloud = await s.changes('a', 0);
-  assert.equal(cloud.schemaVersion, 12);
+  assert.equal(cloud.schemaVersion, 13);
   // JSONB reorders object keys; canonical hashing is key-order independent.
   const rows = fromCloud(cloud.adds);
   assert.deepEqual(rowSet(rows), rowSet(exported.rows));
-  await b.sync.applyRemote(rows, cloud.revision, at(6));
+  await b.sync.applyRemote(rows, cloud.revision, cloud.ledgerId, at(6));
   assert.deepEqual(rowSet((await b.sync.exportLedger()).rows), rowSet(exported.rows));
   assert.deepEqual(await b.meditations.loadProgressionState(), await a.meditations.loadProgressionState());
 });
@@ -146,4 +146,22 @@ test('Settings: newest edit wins on the server; ties resolve deterministically b
   assert.deepEqual((await save(20, 'tie-higher', 'b'.repeat(32))).data, { value: 'tie-higher' });
   assert.deepEqual((await save(20, 'tie-lower', '0'.repeat(32))).data, { value: 'tie-higher' });
   await assert.rejects(s.call('a', 'ona_save_setting', { p_document: 'sync_state', p_data: '{}', p_updated_at: 1, p_device_id: 'a'.repeat(32) }), /check constraint/);
+});
+
+test('A deleted and re-created cloud ledger gets a new identity; pushes for the old one are refused', async (t) => {
+  const s = await supabase(t);
+  const first = await s.pushRaw('a', { pushId: randomUUID(), expected: 0, adds: [row('x')] });
+  assert.match(first.ledgerId, /^[0-9a-f-]{36}$/);
+  assert.equal((await s.changes('a', 0)).ledgerId, first.ledgerId);
+  await s.pushRaw('a', { pushId: randomUUID(), expected: 1, ledger: first.ledgerId, adds: [row('y')] });
+  await s.call('a', 'ona_delete_my_cloud_data', {});
+  assert.deepEqual(await s.changes('a', 0), { revision: 0, head: 0, ledgerId: null, schemaVersion: null, adds: [], removes: [] });
+  const fresh = await s.pushRaw('a', { pushId: randomUUID(), expected: 0, adds: [row('z')] });
+  await s.pushRaw('a', { pushId: randomUUID(), expected: 1, ledger: fresh.ledgerId, adds: [row('w')] });
+  assert.notEqual(fresh.ledgerId, first.ledgerId);
+  // An old phone still at revision 2 of the deleted ledger: same number, different ledger.
+  const stale = await s.pushRaw('a', { pushId: randomUUID(), expected: 2, ledger: first.ledgerId, adds: [row('old')] });
+  assert.deepEqual({ status: stale.status, revision: stale.revision }, { status: 'replaced', revision: 2 });
+  assert.deepEqual((await s.changes('a', 0)).adds.map((r) => r.key).sort(), ['["w"]', '["z"]']);
+  await assert.rejects(s.pushRaw('a', { pushId: randomUUID(), expected: 2, ledger: null }), /Invalid sync push/);
 });

@@ -1,6 +1,6 @@
 import type { CloudErrorKind } from '../cloud/ledger-client';
 
-export type SyncPhase = 'idle' | 'syncing' | 'synced' | 'offline' | 'signed_out' | 'upgrade' | 'error';
+export type SyncPhase = 'idle' | 'syncing' | 'synced' | 'offline' | 'signed_out' | 'upgrade' | 'replaced' | 'error';
 export interface SyncStatus {
   readonly phase: SyncPhase;
   readonly lastSyncedAt: number | null;
@@ -10,6 +10,7 @@ export interface SyncStatus {
 export function failurePhase(error: unknown): SyncPhase {
   if (error && typeof error === 'object') {
     if ((error as { name?: unknown }).name === 'SyncUpgradeRequired') return 'upgrade';
+    if ((error as { name?: unknown }).name === 'SyncCloudReplaced') return 'replaced';
     const kind = (error as { kind?: CloudErrorKind }).kind;
     if (kind === 'offline' || kind === 'server') return 'offline';
     if (kind === 'signed_out') return 'signed_out';
@@ -35,6 +36,7 @@ export function describeSync(status: SyncStatus, now: number): string {
     case 'offline': return saved ? `${saved} Offline right now; it will continue when connected.` : 'Offline right now. Your practice is safe on this phone and will be saved when connected.';
     case 'signed_out': return 'Sign in again to keep saving to your account. Your practice is safe on this phone.';
     case 'upgrade': return 'Update Ona to keep saving to this account. Your practice is safe on this phone.';
+    case 'replaced': return 'The practice saved in this account was deleted from another device. This phone’s practice is safe here.';
     case 'error': return saved ? `${saved} The last attempt did not finish; it will try again.` : 'Not saved to your account yet; it will try again.';
     default: return saved ?? 'Your practice will be saved to your account.';
   }
