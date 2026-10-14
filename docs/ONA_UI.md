@@ -29,11 +29,13 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | --- | --- |
 | / | Home: sun/halo Meditate action, wave, current level/Ripples, Consistency bar |
 | /forest | Highest-achievement forest; native left swipe from Home, right swipe/back to Home |
-| /session | Open-ended active timer, pause/resume/finish/discard, sound controls |
+| /prepare | Before a practice: optional intention, sound, open-ended (default) or fixed length; Begin |
+| /session | Active timer (counts up when open, down when fixed), pause/resume/finish/discard, sound controls |
 | /completion | Saved duration, earned Ripples, staged reward progress, Continue |
 | /practice | Journey calendar with saved dates/detail and level overview |
 | /info | Guide: Why Ona? and How to Meditate |
-| /preferences | Settings, sounds and confirmed Reset All Practice Data |
+| /preferences | Settings, sounds, Account entry (when configured) and confirmed Reset All Practice Data |
+| /account | Optional Google account: sign in/out, sync status, guest copy, remove/delete |
 | /history | Paginated saved meditation history |
 | /practice-detail?id=… | Read-only saved duration, pauses, historical local time and Ripples |
 | /credits | About Ona / sound provenance |
@@ -41,8 +43,13 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | /introduction | Manually opened four-chapter coastal introduction |
 
 Home/Journey/Guide/Settings form the quiet bottom navigation; route filenames above
-are historical URLs, not unused legacy screens. Main flow: Home → Session → Completion →
-Home. Meditate begins immediately; no obsolete duration-setup screen is needed.
+are historical URLs, not unused legacy screens. Main flow: Home → Prepare → Session →
+Completion → Home. Meditate opens /prepare (owner decision, 2026-10-14), which remembers
+the last intention, sound and length, so a returning person only taps Begin. Choices use the
+same underlined radio pattern as the interval picker; open-ended stays the recommended
+default. An intention replaces the session's quiet line ("Just be here") with a short phrase
+(ui/intentions.ts); it is not stored in history. A fixed length counts down and ends with the
+End bell; finishing earlier still completes the practice.
 The secondary sprout control on Home opens the same Forest route without a gesture.
 forest-pages.tsx composes the same Home/Forest surfaces as active and incoming pages.
 forest-swipe.tsx tracks horizontal drags on the UI thread, then settles or cancels with

@@ -1,5 +1,5 @@
 import { Asset } from 'expo-asset';
-import { ambienceAsset, bellAsset, intervalAsset } from './assets';
+import { ambienceAsset, bellAsset, endingTimelineAsset, intervalAsset } from './assets';
 import type { ClipPlayer, SessionAudioBackend } from './session-controller';
 
 function create(source: number, loop = false): ClipPlayer {
@@ -34,5 +34,5 @@ function create(source: number, loop = false): ClipPlayer {
 }
 export const sessionAudioBackend: SessionAudioBackend = {
   clip(sound,loop) { return create(sound === 'start' || sound === 'end' || sound === 'interval' ? bellAsset(sound) : ambienceAsset(sound),loop); },
-  timeline: seconds => create(intervalAsset(seconds)), feedback: () => {},
+  timeline: seconds => create(intervalAsset(seconds)), ending: () => create(endingTimelineAsset()), feedback: () => {},
 };

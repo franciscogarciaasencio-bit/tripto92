@@ -1,0 +1,14 @@
+{
+  "collection": "ona_acoustic_bells_v2",
+  "leadSeconds": 3600,
+  "tailSeconds": 29.915333333333333,
+  "sourceSha256": "f02c4a7a391e20698b1122d31d9d68a5a2a88796ae46f22df09a6a6f9424b6bc",
+  "sha256": "94f5b3dd5986b85e9ee1c7be7334a9634a1be436d0bae6837d5161189a043e9b",
+  "bytes": 861455,
+  "decoded": {
+    "correlationWithEndMaster": 0.9999406604222971,
+    "samplePeak": 0.16051596403121948,
+    "initialSilencePeak": 0.0,
+    "beforeBellPeak": 0.0
+  }
+}

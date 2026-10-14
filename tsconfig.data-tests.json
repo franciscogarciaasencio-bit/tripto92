@@ -24,7 +24,8 @@
     "src/cloud/auth-callback.ts",
     "src/cloud/ledger-client.ts",
     "src/application/sync-engine.ts",
-    "src/application/sync-status.ts"
+    "src/application/sync-status.ts",
+    "src/ui/intentions.ts"
   ],
   "exclude": [
     "src/data/index.ts",

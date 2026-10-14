@@ -4,7 +4,7 @@ import { audioBackend } from '@/audio/backend';
 import { createAudioController, type AudioController, type SoundNotice } from '@/audio/controller';
 import { audioIntent } from '@/audio/policy';
 import { useForeground } from '@/ui/use-foreground';
-import { useOna } from './ona-provider';
+import { useOna, type PracticeSetup } from './ona-provider';
 import { sessionAudioBackend } from '@/audio/session-backend';
 import { createSessionSoundController, type PreviewSound } from '@/audio/session-controller';
 
@@ -62,14 +62,14 @@ function useAudioService() {
     previewVolume: (volume: number) => sessionSounds.current?.previewVolume(volume),
     stopPreview,
     retry: () => { controller.current?.retry(); sessionSounds.current?.retry(); },
-    async begin() {
+    async begin(setup?: PracticeSetup) {
       if (beginning.current || app.busy) return false;
       beginning.current = true;
       setStarting(true);
       // Start the Home fade at the tap, independently of SQLite transaction latency.
       controller.current?.setIntent({ kind: 'silent', immediate: false });
       try {
-        const saved = await app.begin();
+        const saved = await app.begin(setup);
         if (saved && app.audioPreferences) sessionSounds.current?.begin(app.audioPreferences);
         return saved;
       } finally { beginning.current = false; setStarting(false); }

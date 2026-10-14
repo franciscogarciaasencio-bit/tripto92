@@ -27,3 +27,5 @@ export const intervalAsset = (seconds: 300 | 600 | 900): number => ({
   600: require('../../assets/audio/bells-v2/interval-10m.m4a'),
   900: require('../../assets/audio/bells-v2/interval-15m.m4a'),
 })[seconds];
+/** Silence, then the End bell after exactly one hour (scripts/build-ending-timeline.py). */
+export const endingTimelineAsset = (): number => require('../../assets/audio/bells-v2/ending-timeline.m4a');

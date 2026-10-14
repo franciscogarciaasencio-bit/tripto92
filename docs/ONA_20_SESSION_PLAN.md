@@ -737,3 +737,32 @@ Ona. Redirect URLs contain `exp://**` and `meditationapp://auth-callback`. Next 
 Supabase Auth logs, and the development-only return address now shown on the Account screen.
 Owner chose to continue the program and fix this together later.
 
+### Pre-meditation screen — Complete (2026-10-14), inserted before Sessions 19–20 by the owner
+
+Home's Meditate opens /prepare ("Your practice"): an optional intention (None, Calm, Focus, Rest,
+Gratitude, Kindness), the meditation sound (all six ambiences) and Length: Open (recommended
+default) or 5/10/15/20/30/45/60 minutes, as even underlined radio grids, with a one-line summary
+above Begin. Choices are remembered in the meditation preferences document (new optional fields
+`durationMode`, `intention`; older documents decode as open/none, so no migration; synced with the
+account like other preferences); the sound choice updates audio preferences.
+
+Timer domain: new `fixed` mode (`startFixedTimer`), which ends by itself exactly at its active
+target (deadline watcher and unattended recovery already target-generic) and where finishing earlier
+is `completed`, so a person's shortened practice still qualifies. Legacy `timed` cursors keep
+`ended_early`. Earning rules untouched. Session screen counts down for a fixed length and shows the
+intention's quiet line ("Settle into calm") instead of "Just be here".
+
+Audio: a native ending timeline (one hour of silence + the exact End master, 0.86 MB, built and
+verified by scripts/build-ending-timeline.py, correlation 0.99994) is aligned to active time so the
+End bell rings at the target even on a locked phone; never a second End bell when it already rang;
+early finish uses the ordinary End clip; none when the ending bell is off/muted.
+
+Verification: **955 tests** (515 domain + 440 data): four fixed-timer domain tests (deadline,
+early-finish qualification, pauses, validation/legacy) and nine fixed-practice tests (timeline
+alignment, pause/resume re-alignment, single bell at target including the locked-phone case,
+early finish, bell off, background ownership in Silence, asset hash/size/limits, preference decoding
+and persistence, intention copy). Real web flow screenshots at 390×844 and 320×568: Home → Prepare →
+choose Calm/Rain/10 → Begin → Session showing 09:57 counting down with "Settle into calm"; no page
+errors. TypeScript, lint and all-platform exports pass. Not verified: locked-screen bell on a physical
+phone (owner check), listening balance of a coincident interval + End bell.
+

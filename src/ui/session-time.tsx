@@ -23,11 +23,14 @@ export const SessionTime = memo(function SessionTime({ draft, scale, active }: {
   }, [draft, active, foreground, hidden]);
   const elapsed = draft.phase === 'running' ? Math.max(seconds, activeElapsedSeconds(draft, draft.changedAt))
     : activeElapsedSeconds(draft, draft.changedAt);
-  return <QuietPressable accessibilityRole="button" accessibilityLabel={hidden ? 'Show elapsed meditation time' : 'Hide elapsed meditation time'}
-    accessibilityValue={{ text: hidden ? 'Time hidden' : formatTime(elapsed) + ' active meditation time' }}
+  // A chosen length counts down; open-ended practice counts up.
+  const shown = draft.targetSeconds === null ? elapsed : Math.max(0, draft.targetSeconds - elapsed);
+  const what = draft.targetSeconds === null ? 'elapsed' : 'remaining';
+  return <QuietPressable accessibilityRole="button" accessibilityLabel={hidden ? `Show ${what} meditation time` : `Hide ${what} meditation time`}
+    accessibilityValue={{ text: hidden ? 'Time hidden' : `${formatTime(shown)} ${draft.targetSeconds === null ? 'active meditation time' : 'remaining'}` }}
     accessibilityHint="Meditation continues while the time is hidden" onPress={() => setHidden(value => !value)}
     style={{ alignItems: 'center', minHeight: 90 * scale, justifyContent: 'center', minWidth: 184 }}>
     <Text style={{ fontFamily: hidden ? 'ManropeRegular' : coastalSerif, fontVariant: ['tabular-nums'], fontSize: (hidden ? 16 : 64) * scale,
-      lineHeight: 82 * scale, color: coastalInk }}>{hidden ? 'Show time' : formatTime(elapsed).padStart(5, '0')}</Text>
+      lineHeight: 82 * scale, color: coastalInk }}>{hidden ? 'Show time' : formatTime(shown).padStart(5, '0')}</Text>
   </QuietPressable>;
 });

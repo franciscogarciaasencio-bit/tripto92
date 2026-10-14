@@ -90,7 +90,8 @@ for (const table of ['meditation_sessions', 'progression_awards', 'progression_r
 
 test('Preferences persist full typed values across a file close/reopen', async (t) => {
   const filename = disk(t);
-  const custom = { defaultDurationSeconds: 1800, ambientSoundId: 'rain', gongIntervalSeconds: 300, ambienceVolume: 0.25, gongVolume: 0.75 };
+  const custom = { defaultDurationSeconds: 1800, ambientSoundId: 'rain', gongIntervalSeconds: 300, ambienceVolume: 0.25, gongVolume: 0.75,
+    durationMode: 'fixed', intention: 'focus' };
   let store = await openStore(connection(filename), context(1));
   await store.settings.savePreferences(custom);
   await store.close();

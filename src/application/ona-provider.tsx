@@ -4,13 +4,16 @@ import { AppState } from 'react-native';
 
 import { cloudAuth, cloudLedger, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
 import { databaseNameFor, deleteLedgerFile, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
-import { finishTimer, pauseTimer, practiceContext, resumeTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
+import { finishTimer, pauseTimer, practiceContext, resumeTimer, startFixedTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
 import { watchTimerDeadline } from './practice-lifecycle';
 import { syncLedger } from './sync-engine';
 import { failurePhase, type SyncStatus } from './sync-status';
 
 const SYNC_INTERVAL = 15 * 60_000;
+
+/** How a practice begins: open-ended (the default) or a chosen duration in seconds. */
+export type PracticeSetup = { readonly mode: 'open' } | { readonly mode: 'fixed'; readonly seconds: number };
 
 export function currentContext() {
   return practiceContext(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -376,12 +379,13 @@ function useApplication() {
       return saved;
     },
     retryInitialization: () => { setReady(false); setError(null); setAttempt((value) => value + 1); },
-    async begin() {
+    async begin(setup: PracticeSetup = { mode: 'open' }) {
       return operation(async (database) => {
         if (timer.current) throw new Error('A meditation is already in progress');
         if (await database.meditations.getPendingCompletion()) throw new Error('Return Home from your saved summary before starting another practice');
         const context = currentContext();
-        const next = startOpenEndedTimer(randomUUID(), context.timestamp, context.timeZone);
+        const next = setup.mode === 'fixed' ? startFixedTimer(randomUUID(), setup.seconds, context.timestamp, context.timeZone)
+          : startOpenEndedTimer(randomUUID(), context.timestamp, context.timeZone);
         await database.timer.save(next);
         setCompletion(null);
         acceptDraft(next);

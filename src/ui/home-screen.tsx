@@ -54,8 +54,8 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
           <HomeIcon name="sprout" size={20 * scale} color="#8D897A" />
         </QuietPressable>
       </View>
-      <QuietPressable accessibilityRole="button" accessibilityLabel={audio.starting ? 'Beginning meditation' : 'Meditate'} accessibilityState={{ disabled: app.busy || audio.starting }}
-        disabled={app.busy || audio.starting} disabledOpacity={.62} onPress={() => { void audio.begin(); }}
+      <QuietPressable accessibilityRole="button" accessibilityLabel={audio.starting ? 'Beginning meditation' : 'Meditate'} accessibilityHint="Choose an intention, sound and length, then begin" accessibilityState={{ disabled: app.busy || audio.starting }}
+        disabled={app.busy || audio.starting} disabledOpacity={.62} onPress={() => router.push('/prepare')}
         style={{ position: 'absolute', left: sunLeft, top: sunTop, width: sunDiameter, height: sunDiameter, borderRadius: sunDiameter / 2, alignItems: 'center' }}>
         <View style={{ position: 'absolute', top: labelTop - sunTop, alignItems: 'center' }}>
         <Text style={{ fontFamily: 'ManropeRegular', color: '#676B62', fontSize: 13 * scale, lineHeight: 20 * scale, letterSpacing: 5.7 * scale, marginLeft: 5.7 * scale }}>

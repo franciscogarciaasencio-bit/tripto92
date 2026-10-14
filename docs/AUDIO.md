@@ -104,3 +104,19 @@ Native background mode and interruption behavior depend on OS/device policy.
 
 SDK 57 references: [Audio](https://docs.expo.dev/versions/v57.0.0/sdk/audio/),
 [Haptics](https://docs.expo.dev/versions/v57.0.0/sdk/haptics/).
+
+## Ending timeline for fixed-length practice (2026-10-14)
+
+`assets/audio/bells-v2/ending-timeline.m4a` is one hour of digital silence followed by the exact
+End master (scripts/build-ending-timeline.py; report and hashes in ending-timeline.json;
+0.86 MB). For a fixed practice, the session controller seeks it so the bell lands when active
+time reaches the target, pauses it with the practice and re-aligns on resume, exactly like the
+interval timelines. Native playback therefore rings the End bell on a locked phone while
+JavaScript sleeps. When the practice finishes at its target after the timeline played, no
+second End clip is created; the timeline rings out and is released after the bell's tail.
+Finishing early releases it and plays the ordinary End clip. With the ending bell off or muted
+no timeline exists. In Silence without intervals it holds Android's media service. Offered
+lengths are at most 60 minutes, within the timeline. A coincident interval bell at the target
+may sound together with the End bell (accepted, documented). Physical locked-screen listening
+remains a device check.
+

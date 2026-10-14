@@ -14,6 +14,8 @@ export interface ClipPlayer {
 export interface SessionAudioBackend {
   clip(sound: PreviewSound, loop: boolean): ClipPlayer;
   timeline(seconds: 300 | 600 | 900): ClipPlayer;
+  /** One hour of silence, then the End bell: rings at a fixed practice's end while JavaScript sleeps. */
+  ending(): ClipPlayer;
   feedback(): void;
 }
 export interface SessionSoundInput {
@@ -21,6 +23,7 @@ export interface SessionSoundInput {
   completionId: string | null; preferences: AudioPreferences | null;
 }
 export const INTERVAL_TIMELINE_SECONDS = 21_600;
+export const ENDING_LEAD_SECONDS = 3_600;
 export function activeAudioSeconds(draft: TimerDraft, now: number): number {
   return (draft.activeMilliseconds + (draft.phase === 'running' ? Math.max(0, now-draft.changedAt) : 0))/1000;
 }
@@ -35,6 +38,22 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
   let removeTimelineListener: (() => void) | null = null, removeClipListener: (() => void) | null = null;
   let cancelPreview: (() => void) | null = null, cancelFade: (() => void) | null = null, cancelLoad: (() => void) | null = null;
   const ended = new Set<string>();
+  // Fixed-length practice: the native ending timeline sounds the End bell at the target.
+  let ending: ClipPlayer | null = null, endingKey: string | null = null, endingRunning = false, endingRevision = 0;
+  let endingSeeks = Promise.resolve(), removeEndingListener: (() => void) | null = null, cancelRingOut: (() => void) | null = null;
+  let ringingOut = false;
+  const endingPlayed = new Set<string>();
+  function releaseEnding() {
+    // A timeline stopped before its bell (pause preference, interruption) no longer counts as rung.
+    if (endingKey !== null && !ringingOut) endingPlayed.delete(endingKey);
+    ++endingRevision; endingRunning = false; endingKey = null; ringingOut = false; endingSeeks = Promise.resolve();
+    cancelRingOut?.(); cancelRingOut = null;
+    try { removeEndingListener?.(); } catch { /* A released media service can lose its listener. */ } removeEndingListener = null;
+    const old = ending; ending = null;
+    try { old?.background(false); } catch { /* The media service may already be gone. */ }
+    try { old?.pause(); } catch { /* Optional sound cannot block practice. */ }
+    try { old?.remove(); } catch { /* The OS may already have released the player. */ }
+  }
   function releaseClip() {
     ++clipRevision; cancelPreview?.(); cancelFade?.(); cancelLoad?.(); cancelPreview = cancelFade = cancelLoad = null;
     try { removeClipListener?.(); } catch { /* A released media service can lose its listener. */ } removeClipListener = null;
@@ -128,6 +147,46 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
       }
     } catch { blocked = true; releaseTimeline(); notify('unavailable'); }
   }
+  function syncEnding() {
+    if (ringingOut) return; // The End bell is sounding from the timeline; let its tail finish.
+    const prefs = input?.preferences, draft = input?.draft;
+    if (!input?.ready || !prefs || !draft || draft.phase === 'finished' || draft.mode !== 'fixed' || draft.targetSeconds === null ||
+      draft.targetSeconds > ENDING_LEAD_SECONDS || !prefs.closingBellEnabled || prefs.bellVolume === 0 || blocked) { releaseEnding(); return; }
+    const key = draft.id, running = draft.phase === 'running';
+    const position = ENDING_LEAD_SECONDS - (draft.targetSeconds - activeAudioSeconds(draft, input.now));
+    try {
+      if (endingKey !== key) {
+        releaseEnding(); ending = backend.ending(); endingKey = key;
+        const owned = ending, id = draft.id;
+        removeEndingListener = owned.subscribe(status => {
+          if (owned !== ending) return;
+          if (status.playing && endingRunning) endingPlayed.add(id);
+          if (status.error) { blocked = true; releaseEnding(); notify('unavailable'); }
+        });
+      }
+      const owned = ending!;
+      owned.volume = prefs.bellVolume*MASTER_PLAYBACK_GAIN;
+      // With no ambience or interval track, this timeline keeps Android's media service alive.
+      owned.background(running && !prefs.intervalSeconds && (prefs.sessionSound === 'silence' || prefs.sessionVolume === 0));
+      if (!running) { ++endingRevision; endingRunning = false; owned.pause(); return; }
+      // Past the bell's tail (completion not yet processed): never restart the timeline.
+      if (position >= ENDING_LEAD_SECONDS + BELL_DURATION_MS.end / 1000) return;
+      if (!endingRunning || input.foreground && Math.abs(owned.currentTime-position)>1.5) {
+        endingRunning = true;
+        const token = ++endingRevision;
+        endingSeeks = endingSeeks.then(async () => {
+          if (disposed || ending !== owned || token !== endingRevision || !endingRunning) return;
+          await owned.seek(Math.max(0, position));
+          if (!disposed && ending === owned && token === endingRevision && endingRunning) return owned.play();
+        }).catch(() => { if (token === endingRevision) { blocked = true; releaseEnding(); notify('unavailable'); } });
+      }
+    } catch { blocked = true; releaseEnding(); notify('unavailable'); }
+  }
+  /** Whether a finished fixed practice already received its End bell from the native timeline. */
+  function rangFromTimeline(draft: TimerDraft) {
+    return draft.mode === 'fixed' && draft.targetSeconds !== null && draft.activeMilliseconds === draft.targetSeconds * 1000 &&
+      endingPlayed.has(draft.id);
+  }
   return {
     update(next: SessionSoundInput) {
       if (disposed) return;
@@ -140,7 +199,17 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
         if (old.phase === 'paused' && phase === 'running') feedback(prefs);
         if (!ended.has(old.id) && (phase === 'finished' || next.completionId === old.id)) {
           ended.add(old.id); releaseTimeline(); releaseClip(); feedback(prefs);
-          if (prefs.closingBellEnabled) playClip('end',prefs.bellVolume*MASTER_PLAYBACK_GAIN,false);
+          const finished = next.draft?.id === old.id && next.draft.phase === 'finished' ? next.draft : null;
+          if (finished && rangFromTimeline(finished) && ending && endingKey === old.id) {
+            // Already ringing (or rung) at the target: never a second End bell; release after its tail.
+            ringingOut = true; const owned = ending;
+            cancelRingOut = clock.schedule(() => { if (ending === owned) releaseEnding(); }, BELL_DURATION_MS.end + BELL_RELEASE_MARGIN_MS);
+          } else if (finished && rangFromTimeline(finished)) {
+            releaseEnding();
+          } else {
+            releaseEnding();
+            if (prefs.closingBellEnabled) playClip('end',prefs.bellVolume*MASTER_PLAYBACK_GAIN,false);
+          }
         } else if (phase === null && next.completionId !== old.id) releaseClip();
       }
       // Live changes mute an already sounding bell without changing ambience.
@@ -149,6 +218,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
         else try { clip.volume = prefs.bellVolume*MASTER_PLAYBACK_GAIN; } catch { releaseClip(); notify('unavailable'); }
       }
       syncTimeline();
+      syncEnding();
     },
     begin(prefs: AudioPreferences) { blocked = false; notify(null); releaseClip(); feedback(prefs); if (prefs.openingBellEnabled) playClip('start',prefs.bellVolume*MASTER_PLAYBACK_GAIN,false); },
     preview(sound: PreviewSound, volume: number) {
@@ -161,8 +231,8 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
     stopPreview() {
       if (clip && preview !== null) fade(clip, 0, 180, releaseClip);
     },
-    interrupt() { blocked = true; releaseTimeline(); releaseClip(); },
-    retry() { blocked = false; notify(null); syncTimeline(); },
-    dispose() { disposed = true; releaseTimeline(); releaseClip(); },
+    interrupt() { blocked = true; releaseTimeline(); releaseEnding(); releaseClip(); },
+    retry() { blocked = false; notify(null); syncTimeline(); syncEnding(); },
+    dispose() { disposed = true; releaseTimeline(); releaseEnding(); releaseClip(); },
   };
 }

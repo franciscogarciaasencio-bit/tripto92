@@ -21,6 +21,10 @@ contexts. Import the public API from src/domain/progression/index.ts.
 
 ### Sessions and earnings
 
+Timer modes (meditation/timer.ts): open-ended (Finish completes), fixed (a chosen length that
+ends by itself; finishing earlier is still `completed`) and legacy timed cursors (finishing
+before the target was `ended_early`). Only the timer differs; earning rules are unchanged.
+
 Completed practice with **180 active seconds** qualifies for Consistency and qualifying
 dates. Pauses never count. Positive shorter completions remain valid history and earn
 modest Ripples, but never reset inactivity or combine to bypass qualification.

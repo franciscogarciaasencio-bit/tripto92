@@ -11,6 +11,7 @@ import { SessionSound } from '@/ui/session-sound';
 import { Action, Notice, Screen, Type } from '@/ui/primitives';
 import { SessionTime } from '@/ui/session-time';
 import { QuietPressable } from '@/ui/quiet-pressable';
+import { sessionLine } from '@/ui/intentions';
 
 export default function Session() {
   const app = useOna(), audio = useOnaAudio();
@@ -59,7 +60,7 @@ export default function Session() {
           <SessionTime draft={draft} scale={scale} active={focused} />
           <View style={{ width: 5 * scale, height: 5 * scale, borderRadius: 5, backgroundColor: '#BDAE94', marginTop: 5 * scale }} />
           <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, letterSpacing: 2 * scale, lineHeight: 20 * scale,
-            color: coastalQuiet, marginTop: 10 * scale }}>{paused ? 'Take your time' : 'Just be here'}</Text>
+            color: coastalQuiet, marginTop: 10 * scale }}>{sessionLine(app.preferences?.intention ?? null, paused)}</Text>
         </>}
       </View>
       <View style={{ position: 'absolute', bottom: controlsBottom, left: 24 * scale, right: 24 * scale, alignItems: 'center', gap: 4 }}>

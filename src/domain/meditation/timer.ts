@@ -7,7 +7,12 @@ export interface TimerDraft {
   readonly startedAt: number;
   /** Start zone while pending; observed completion zone when finished. Unattended recovery keeps the captured start zone. */
   readonly timeZone: string;
-  readonly mode: 'timed' | 'open_ended';
+  /**
+   * open_ended: no target; Finish completes. fixed: a chosen duration that ends by itself, and
+   * finishing earlier is still the person's completed practice. timed: legacy cursors from
+   * earlier releases, where finishing before the target was recorded as ended_early.
+   */
+  readonly mode: 'timed' | 'open_ended' | 'fixed';
   readonly targetSeconds: number | null;
   readonly phase: 'running' | 'paused' | 'finished';
   readonly changedAt: number;
@@ -30,7 +35,7 @@ export function validateTimer(draft: TimerDraft): void {
   for (const value of [draft.startedAt, draft.changedAt, draft.activeMilliseconds, draft.pausedMilliseconds]) {
     if (!Number.isSafeInteger(value) || value < 0) throw new RangeError('Invalid timer timestamp or duration');
   }
-  if (!['timed', 'open_ended'].includes(draft.mode)) throw new RangeError('Invalid timer mode');
+  if (!['timed', 'open_ended', 'fixed'].includes(draft.mode)) throw new RangeError('Invalid timer mode');
   if (draft.mode === 'open_ended' ? draft.targetSeconds !== null :
       (draft.targetSeconds === null || !Number.isSafeInteger(draft.targetSeconds) || draft.targetSeconds < 1 || draft.targetSeconds > 10_800)) {
     throw new RangeError('Timer duration must be 1–180 minutes');
@@ -40,7 +45,7 @@ export function validateTimer(draft: TimerDraft): void {
       (draft.targetSeconds !== null && draft.activeMilliseconds > draft.targetSeconds * 1000)) throw new RangeError('Inconsistent timer cursor');
   if (draft.phase === 'finished') {
     if (!['completed', 'ended_early'].includes(draft.completionStatus ?? '')) throw new RangeError('Missing completion status');
-    if (draft.mode === 'open_ended' ? draft.completionStatus !== 'completed' :
+    if (draft.mode !== 'timed' ? draft.completionStatus !== 'completed' :
         ((draft.completionStatus === 'completed') !== (draft.activeMilliseconds === (draft.targetSeconds ?? 0) * 1000))) {
       throw new RangeError('Completion status does not match timer activity');
     }
@@ -52,6 +57,14 @@ export function validateTimer(draft: TimerDraft): void {
 
 export function startTimer(id: string, targetSeconds: number, timestamp: number, timeZone: string): TimerDraft {
   const draft: TimerDraft = { id, mode: 'timed', targetSeconds, startedAt: timestamp, timeZone, changedAt: timestamp,
+    activeMilliseconds: 0, pausedMilliseconds: 0, phase: 'running', completionStatus: null };
+  validateTimer(draft);
+  return draft;
+}
+
+/** A chosen duration (1–180 minutes) that finishes by itself; finishing earlier also completes it. */
+export function startFixedTimer(id: string, targetSeconds: number, timestamp: number, timeZone: string): TimerDraft {
+  const draft: TimerDraft = { id, mode: 'fixed', targetSeconds, startedAt: timestamp, timeZone, changedAt: timestamp,
     activeMilliseconds: 0, pausedMilliseconds: 0, phase: 'running', completionStatus: null };
   validateTimer(draft);
   return draft;
@@ -99,7 +112,7 @@ export function finishTimer(draft: TimerDraft, now: number, completionTimeZone =
   if (settled.phase === 'finished') return settled;
   const delta = elapsed(settled, now);
   practiceContext(now, completionTimeZone);
-  return { ...settled, timeZone: completionTimeZone, phase: 'finished', completionStatus: settled.mode === 'open_ended' ? 'completed' : 'ended_early', changedAt: now,
+  return { ...settled, timeZone: completionTimeZone, phase: 'finished', completionStatus: settled.mode === 'timed' ? 'ended_early' : 'completed', changedAt: now,
     activeMilliseconds: settled.activeMilliseconds + (settled.phase === 'running' ? delta : 0),
     pausedMilliseconds: settled.pausedMilliseconds + (settled.phase === 'paused' ? delta : 0) };
 }
