@@ -8,8 +8,11 @@ not skill, scientific benefits or achievements requiring a different earning sys
 `../categories.json` is the editable source: stable ID, current display name, short
 theme and geometry. `src/ui/category-presentation.ts` resolves these names by stable
 ID; stored domain category definitions and historical achievements remain unchanged.
-Level 0 retains Monkey Mind with its separate starting symbol (`preludePaths`);
-numbered Levels 1–5 are Early Steps. Category 20 includes Level 100, Habit Established.
+Monkey Mind is Level 0 and Levels 1–5 and uses one symbol (`preludePaths` = `paths`).
+Entries marked `"sealed": true` are surprise stages: their name, theme and geometry live encoded in
+`../categories-sealed.json` and are revealed in the app when reached. They are never exported as SVG
+files here. Edit them only with `node scripts/sealed-categories.cjs` (unseal → edit → seal); it
+prints counts only. Do not print or describe their contents. Category 20 includes Level 100.
 
 Run `node assets/ona/categories/export.cjs` after editing paths or captions. It exports
 the SVGs and the generated local `src/ui/category-artwork.json` runtime mirror. This

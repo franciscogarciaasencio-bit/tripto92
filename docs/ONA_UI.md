@@ -189,11 +189,16 @@ its first day and extends to its last day like one brush stroke; the chosen day'
 into place when they change; pebbles and capsules fill in sequence. Reduced Motion, or a preference
 not yet known at cold start, draws everything finished immediately.
 
-Levels: a single vertical thread through 25 category stops (icon in a ring, serif name, theme,
-status), each with five stepping stones: filled = achieved, ringed with a halo = current, open =
-ahead; Level 100 is a larger stone. Tapping a stone shows its level name, state and requirements
-from the domain table (Ripples, plus practice days/year where the table requires them). Categories
-ahead are softened but always inspectable. Implemented in level-path.tsx.
+Levels (owner direction 2026-10-15): Journey shows only the current level (icon in a ring, level,
+stage name, theme, step of five), progress to the next level, and a "Toward Level 100" section that
+explains the purpose: Level 100 completes the habit-building journey. Future stages are never
+listed. Stages 2–20 (Levels 6–100) are sealed surprises: the completion screen veils the level row
+as "A new stage" while the level animation runs, then reveals the stage's symbol (scale/fade, 900 ms)
+and name (500 ms later) once, the first time that stage is reached (stage-reveal.tsx).
+
+Consistency bar (owner direction 2026-10-15): one rounded bar (ink on a darker sand track) with five
+small segments beneath it, one per milestone; a segment fills, with a tiny swell, as the bar passes
+its milestone. Same component on Home, completion and the introduction.
 
 ## Timer/data boundary and accessibility
 

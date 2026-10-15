@@ -13,6 +13,7 @@ import { QuietPressable } from './quiet-pressable';
 import { UI_MOTION } from './motion';
 import { ConsistencyBar } from './consistency-bar';
 import { getLevelCategoryPresentation } from './category-presentation';
+import { reachesNewStage, StageReveal, stageOf } from './stage-reveal';
 
 export function CompletionContent({ completion, journey, snapshot, scale, busy, error, onContinue, active }: {
   completion: PracticeCompletion; journey: LifetimeJourney; snapshot: ProgressSnapshot; scale: number;
@@ -39,6 +40,9 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
   // Whole-number allocation keeps the displayed sum truthful; receipts retain exact centi-Ripples.
   const displayedBonus = Math.round(total / 100) - Math.round(base / 100);
   const beforeLevel = receipt?.baseProgress.beforeLevel, afterLevel = receipt?.bonusProgress.afterLevel;
+  // A stage never reached before is revealed only after the level animation has settled.
+  const newStage = reachesNewStage(beforeLevel, afterLevel, receipt?.beforeCheckpoint.highestLevel ?? 0);
+  const veiled = newStage && motion.stage !== 'done' && stageOf(displayLevel.number) > stageOf(beforeLevel ?? 0);
   const panel = { backgroundColor: 'rgba(228,210,182,0.22)', borderRadius: 17 * scale };
   const earningsText = { fontFamily: coastalSerif, fontSize: 31 * scale, lineHeight: 42 * scale, color: coastalInk };
   const explanation = receipt?.explanation === 'short' ? 'Consistency grows with practices of at least 3 minutes.'
@@ -74,7 +78,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <Animated.View style={motion.levelContainerStyle}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 }}>
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>
-          <Text style={{ color: coastalInk }}>{`Level ${displayLevel.number}`}</Text>{` · ${getLevelCategoryPresentation(displayLevel).name}`}
+          <Text style={{ color: coastalInk }}>{`Level ${displayLevel.number}`}</Text>{veiled ? ' · A new stage' : ` · ${getLevelCategoryPresentation(displayLevel).name}`}
         </Text>
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>{next ? `Toward Level ${next.number}` : 'Journey complete'}</Text>
       </View>
@@ -90,6 +94,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <Text style={{ fontFamily: 'ManropeRegular', fontSize: 10 * scale, lineHeight: 16 * scale, color: coastalQuiet, marginTop: 3 * scale }}>
         {beforeLevel !== undefined && afterLevel !== undefined && afterLevel > beforeLevel ? `Level ${beforeLevel} → Level ${afterLevel}` : 'One return at a time.'}
       </Text>
+      {newStage && motion.stage === 'done' && afterLevel !== undefined && <StageReveal level={levels[afterLevel - 1]!} scale={scale} />}
     </View>
     <View style={[panel, { padding: 14 * scale, marginTop: 12 * scale }]}>
       <Animated.View pointerEvents="none" style={[motion.consistencyGlow, { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 17 * scale }]} />

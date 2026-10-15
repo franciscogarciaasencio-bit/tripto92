@@ -15,6 +15,6 @@ export function LevelProgress({ journey, compact = false }: { journey: LifetimeJ
     <Type role="secondary">Current journey</Type>
     <Type role={compact ? 'secondary' : 'label'}>{getJourneyPresentationLabel(journey.level)}</Type>
     <Bar fraction={journey.fraction} label="Current journey progress to next level" />
-    <Type role="secondary">{journey.next ? `Toward Level ${journey.next.number}${compact ? '' : ' · Keep returning to your practice.'}` : 'Level 125 · Steady Presence. Your practice continues.'}</Type>
+    <Type role="secondary">{journey.next ? `Toward Level ${journey.next.number}${compact ? '' : ' · Keep returning to your practice.'}` : 'Level 125 reached. Your practice continues.'}</Type>
   </View>;
 }

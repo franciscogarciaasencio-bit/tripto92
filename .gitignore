@@ -47,3 +47,6 @@ example
 credentials.json
 *.keystore
 __pycache__/
+
+# Unsealed journey stages (never commit; see scripts/sealed-categories.cjs)
+/.sealed/

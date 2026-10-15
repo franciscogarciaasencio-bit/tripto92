@@ -31,6 +31,10 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   development build when native configuration changes; Expo Go cannot apply plugins.
 - Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
   the approved application ID and signing key; never commit credentials or APK artifacts.
+- Sealed journey stages: names, themes and icons of sealed categories (assets/ona/categories-sealed.json)
+  are a surprise for the owner, revealed in the app when reached. Never print, decode, describe or
+  list them in chat, commits, docs or test output. Edit only via scripts/sealed-categories.cjs
+  (unseal → .sealed/, gitignored → seal); it reports counts only. Never export them as SVG files.
 - Claude handoff: docs/CLAUDE_HANDOFF.md contains external setup/chat decisions. The 20-session
   program and the pre-meditation screen are complete; open items and the acceptance matrix are
   in the plan's Resume here and Session 20. No new APK unless the owner asks.

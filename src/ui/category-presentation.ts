@@ -1,8 +1,9 @@
 import type { JourneyCategory, JourneyLevel } from '../domain/progression';
-import artwork from './category-artwork.json';
+import visibleArtwork from './category-artwork.json';
+import sealedArtwork from './category-sealed.json';
 
 /** Presentation can evolve without renaming historical category or achievement IDs. */
-export const CATEGORY_PRESENTATION_VERSION = 'ona_category_presentation_v2';
+export const CATEGORY_PRESENTATION_VERSION = 'ona_category_presentation_v3';
 export const CATEGORY_ICON_STYLE = Object.freeze({ viewBox: '0 0 24 24', strokeWidth: 1.35 });
 
 export interface CategoryPresentation {
@@ -12,6 +13,23 @@ export interface CategoryPresentation {
   readonly name: string;
   readonly theme: string;
 }
+
+interface ArtworkEntry { readonly id: string; readonly name: string; readonly theme: string; readonly paths: readonly string[];
+  readonly preludePaths?: readonly string[] }
+
+/**
+ * Sealed stages are discovered by reaching them, so their text and geometry are stored encoded
+ * (base64 ASCII JSON; see scripts/sealed-categories.cjs). Sealed, not secret: never print them.
+ */
+const decodeBase64 = (globalThis as unknown as { atob(data: string): string }).atob;
+function unseal(id: string): ArtworkEntry {
+  const entry = sealedArtwork.find((candidate) => candidate.id === id);
+  if (!entry) throw new Error('Missing sealed journey stage');
+  const value = JSON.parse(decodeBase64(entry.data)) as { name: string; theme: string; paths: string[] };
+  return { id, name: value.name, theme: value.theme, paths: value.paths };
+}
+const artwork: readonly ArtworkEntry[] = (visibleArtwork as readonly (Partial<ArtworkEntry> & { id: string; sealed?: boolean })[])
+  .map((entry) => entry.sealed ? unseal(entry.id) : entry as ArtworkEntry);
 
 const presentations = new Map<string, CategoryPresentation>();
 const paths = new Map<string, readonly string[]>();

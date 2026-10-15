@@ -13,24 +13,28 @@ test('Current category names resolve old records by immutable ID without rewriti
     assert.equal(current, presentation.getCategoryPresentation(category.id));
     assert.equal(current.id, category.id);
     assert.equal(current.iconId, category.id);
-    assert.equal(current.version, 'ona_category_presentation_v2');
+    assert.equal(current.version, 'ona_category_presentation_v3');
+    assert.ok(current.name.length >= 3 && current.theme.length > 10);
     assert.ok(Object.isFrozen(current));
     assert.ok(Object.isFrozen(presentation.getCategoryIconPaths(category)));
   }
   assert.equal(JSON.stringify(api.JOURNEY_CATEGORIES), original);
   assert.equal(api.JOURNEY_CATEGORIES[2].name, 'Awakening Attention');
-  assert.equal(presentation.getCategoryPresentation('awakening_attention').name, 'Quiet Spark');
+  // Sealed stages present their own (undiscovered) names, never the domain's historical ones.
+  assert.notEqual(presentation.getCategoryPresentation('awakening_attention').name, '');
 });
 
 test('Starting and habit-building milestone presentation is correct across retained level versions', () => {
   assert.equal(presentation.getJourneyPresentationLabel(api.JOURNEY_PRELUDE), 'Level 0 · Monkey Mind');
-  assert.equal(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[0]), 'Level 1 · Early Steps · 1 of 5');
+  // Monkey Mind is both the starting point and Levels 1–5.
+  for (let level = 0; level < 5; level++) assert.match(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[level]), new RegExp(`^Level ${level + 1} · Monkey Mind · ${level + 1} of 5$`));
   assert.equal(presentation.getLevelCategoryPresentation(api.JOURNEY_PRELUDE).name, 'Monkey Mind');
-  assert.equal(presentation.getCategoryPresentation(api.JOURNEY_PRELUDE.category).name, 'Early Steps');
-  assert.notEqual(presentation.getCategoryIconPaths('monkey_mind', 0), presentation.getCategoryIconPaths('monkey_mind', 1));
+  assert.equal(presentation.getCategoryPresentation(api.JOURNEY_PRELUDE.category).name, 'Monkey Mind');
+  assert.deepEqual(presentation.getCategoryIconPaths('monkey_mind', 0), presentation.getCategoryIconPaths('monkey_mind', 1));
   for (const levels of [api.LEGACY_JOURNEY_LEVELS, api.JOURNEY_LEVELS, api.HABIT_LEVELS]) {
-    assert.equal(presentation.getJourneyPresentationLabel(levels[99]), 'Level 100 · Habit Established · 5 of 5');
-    assert.match(presentation.getJourneyPresentationLabel(levels[124]), /^Level 125 · Steady Presence/);
+    const habit = presentation.getCategoryPresentation('habit_established').name;
+    assert.equal(presentation.getJourneyPresentationLabel(levels[99]), `Level 100 · ${habit} · 5 of 5`);
+    assert.match(presentation.getJourneyPresentationLabel(levels[124]), /^Level 125 · .+ · 5 of 5$/);
   }
 });
 

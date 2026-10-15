@@ -10,6 +10,8 @@ function escape(value) {
 }
 for (const icon of icons) {
   if (!/^[a-z_]+$/.test(icon.id)) throw new Error('Unexpected category ID');
+  // Sealed stages are revealed only in the app; never export them as viewable files.
+  if (icon.sealed) continue;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><title>${escape(icon.name)}</title><desc>${escape(icon.theme)}</desc>${icon.paths.map((geometry) => `<path d="${escape(geometry)}"/>`).join('')}</svg>\n`;
   writeFileSync(path.join(categoryDirectory, `${icon.id}.svg`), svg);
   if (icon.preludePaths) {

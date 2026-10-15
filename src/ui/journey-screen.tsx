@@ -1,79 +1,80 @@
-import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useOna } from '@/application/ona-provider';
-import { JOURNEY_LEVELS, HABIT_LEVELS } from '@/domain/progression';
 import { CategoryIcon } from './category-icon';
 import { HomeNavigation } from './home-navigation';
 import { LevelProgress } from './level-progress';
 import { formatRipples } from './format-ripples';
-import { Action, Screen, Type, serifFont as serif } from './primitives';
-import { LevelPath } from './level-path';
+import { Action, colors, Screen, Type, serifFont as serif } from './primitives';
 import { HowItWorks } from './progress-explanation';
-import { useReducedMotion } from './reduced-motion';
 import { QuietPressable } from './quiet-pressable';
 import { getLevelCategoryPresentation } from './category-presentation';
 
 const HABIT_MILESTONE_LEVEL = 100;
 
-/** A read-only presentation of the released journey; all requirements come from the domain. */
+/**
+ * Only the level you are on. Levels ahead stay undiscovered until you reach them; this screen
+ * explains what the journey is for instead of listing what comes next.
+ */
 export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }) {
   const { journey, habit } = useOna();
-  const list = useRef<ScrollView>(null);
-  const positioned = useRef(false);
-  const offsets = useRef<Record<string, number>>({});
-  const reduced = useReducedMotion();
-  const [listHeight, setListHeight] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
-  useEffect(() => {
-    if (!journey || positioned.current || !listHeight || !contentHeight) return;
-    const offset = offsets.current[journey.level.number === 0 ? 'prelude' : journey.level.category.id];
-    if (offset === undefined) return;
-    list.current?.scrollTo({ y: Math.max(0, offset - 12), animated: !reduced });
-    positioned.current = true;
-  }, [journey, reduced, listHeight, contentHeight]);
   if (!journey) return <Screen />;
   const highest = habit?.highestLevel ?? journey.level.number;
+  const level = journey.level.number;
+  const presentation = getLevelCategoryPresentation(journey.level);
+  const towardHabit = Math.min(1, highest / HABIT_MILESTONE_LEVEL);
+  const complete = highest >= HABIT_MILESTONE_LEVEL;
   return <View style={{ flex: 1 }}><Screen scroll={false} style={{ paddingBottom: 0 }}>
-    <View style={journeyStyles.header}>
+    <View style={styles.header}>
       <Type role="title">Journey</Type>
-      <QuietPressable accessibilityRole="button" accessibilityLabel="Return to practice calendar" onPress={onShowCalendar}
-        style={journeyStyles.headerAction}>
+      <QuietPressable accessibilityRole="button" accessibilityLabel="Return to practice calendar" onPress={onShowCalendar} style={styles.headerAction}>
         <Type role="secondary">Calendar</Type>
       </QuietPressable>
     </View>
-    <View style={journeyStyles.current}>
-      <CategoryIcon category={journey.level.category} level={journey.level.number} size={30} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Type role="heading" style={journeyStyles.display}>{`Level ${journey.level.number}`}</Type>
-        <Type role="secondary">{journey.level.number === 0 ? `${getLevelCategoryPresentation(journey.level).name} · Starting point`
-          : `${getLevelCategoryPresentation(journey.level).name} · ${journey.level.categoryStep} of 5`}</Type>
+    <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ paddingBottom: 32 }}>
+      <View accessible accessibilityLabel={`Level ${level}, ${presentation.name}${level === 0 ? ', starting point' : `, ${journey.level.categoryStep} of 5`}. ${presentation.theme}`}
+        style={styles.current}>
+        <View style={styles.iconWell}><CategoryIcon category={journey.level.category} level={level} size={40} /></View>
+        <Type role="secondary" style={styles.kicker}>{level === 0 ? 'Starting point' : `Level ${level}`}</Type>
+        <Type role="heading" style={styles.name}>{presentation.name}</Type>
+        <Type role="secondary" style={{ textAlign: 'center' }}>{presentation.theme}</Type>
+        {level > 0 && <Type role="secondary" style={styles.step}>{`${journey.level.categoryStep} of 5`}</Type>}
       </View>
-      <QuietPressable accessibilityRole="button" accessibilityLabel="Go to journey overview" onPress={() => list.current?.scrollTo({ y: 0, animated: !reduced })}
-        style={journeyStyles.headerAction}>
-        <Type role="secondary">Overview</Type>
-      </QuietPressable>
-    </View>
-    <ScrollView ref={list} style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ paddingBottom: 32 }}
-      onLayout={(event) => setListHeight(event.nativeEvent.layout.height)} onContentSizeChange={(_, height) => setContentHeight(height)}>
-      <View style={journeyStyles.overview}>
+      <View style={styles.section}>
         <LevelProgress journey={journey} />
-        <Type role="secondary">{`${formatRipples(journey.metrics.lifetimeXpCenti)} Ripples`}</Type>
-        <Type role="secondary">{`Highest level ${highest}. Your current level follows your rhythm of practice. Half your highest level remains protected.`}</Type>
-        {highest >= HABIT_MILESTONE_LEVEL && <Type>You’ve completed Ona’s habit-building journey. Keep practising to strengthen the habit you’ve built.</Type>}
+        <Type role="secondary">{`${formatRipples(journey.metrics.lifetimeXpCenti)} Ripples · Highest level ${highest}`}</Type>
+        <Type role="secondary">Your current level follows your rhythm of practice. Half your highest level always remains protected.</Type>
+      </View>
+      <View style={styles.section}>
+        <Type role="heading" style={styles.sectionTitle}>{complete ? 'Your habit is built' : 'Toward Level 100'}</Type>
+        <View accessible accessibilityRole="progressbar" accessibilityLabel="Habit-building journey"
+          accessibilityValue={{ min: 0, max: 100, now: Math.min(100, highest) }} style={styles.track}>
+          <View style={[styles.trackFill, { width: `${towardHabit * 100}%` }]} />
+        </View>
+        <Type role="secondary">{complete ? 'Level 100 reached. Ona’s habit-building journey is complete.' : `Level ${highest} of 100`}</Type>
+        <Type>Ona exists for one purpose: to help meditation become a lasting part of your life.</Type>
+        <Type>Level 100 marks the end of the habit-building journey. Reaching it takes many months of returning to your practice. By then, meditation is a habit you have built yourself.</Type>
+        <Type role="secondary">Levels beyond 100 help you strengthen and sustain the habit. Each new stage is revealed only when you reach it.</Type>
+        <Type role="secondary">These milestones mark your returning. They do not measure meditation ability.</Type>
+      </View>
+      <View style={[styles.section, { gap: 8 }]}>
         <HowItWorks />
         <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
       </View>
-      <LevelPath levels={habit ? HABIT_LEVELS : JOURNEY_LEVELS} current={journey.level.number} highest={highest}
-        onCategoryLayout={(id, y) => { offsets.current[id] = y; }} />
     </ScrollView>
   </Screen><HomeNavigation active="journey" /></View>;
 }
 
-const journeyStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, gap: 12 },
   headerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  current: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 20 },
-  display: { fontFamily: serif, fontSize: 27, lineHeight: 34, letterSpacing: 0 },
-  overview: { gap: 18, paddingTop: 4, paddingBottom: 20 },
+  current: { alignItems: 'center', gap: 6, paddingTop: 28, paddingBottom: 32 },
+  iconWell: { width: 84, height: 84, borderRadius: 42, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  kicker: { fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' },
+  name: { fontFamily: serif, fontSize: 32, lineHeight: 40, letterSpacing: 0, textAlign: 'center' },
+  step: { fontSize: 12, marginTop: 4 },
+  section: { gap: 14, paddingVertical: 24, borderTopWidth: 1, borderColor: colors.line },
+  sectionTitle: { fontFamily: serif, fontSize: 24, lineHeight: 30, letterSpacing: 0 },
+  track: { height: 2, backgroundColor: colors.line, marginTop: 4 },
+  trackFill: { height: 2, backgroundColor: colors.ink },
 });
