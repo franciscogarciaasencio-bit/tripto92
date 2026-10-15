@@ -4,7 +4,7 @@ const { assert, data } = require('./helpers.cjs');
 const cloud = (file) => require(path.join(process.env.DATA_BUILD_DIR, '..', 'cloud', file));
 const { parseCloudConfig } = cloud('config.js');
 const { createChunkedSecureStorage } = cloud('secure-storage.js');
-const { parseAuthCallback } = cloud('auth-callback.js');
+const { parseAuthCallback, createAuthCallbackHandler } = cloud('auth-callback.js');
 const { createSupabaseLedger, CloudError } = cloud('ledger-client.js');
 const { databaseNameFor, GUEST_DATABASE } = data('namespace.js');
 
@@ -78,6 +78,115 @@ test('OAuth callbacks accept only a PKCE code or a readable error', () => {
   assert.deepEqual(parseAuthCallback('meditationapp://auth-callback#access_token=t&refresh_token=r'), { kind: 'none' });
   assert.deepEqual(parseAuthCallback('meditationapp://auth-callback'), { kind: 'none' });
   assert.equal(parseAuthCallback('meditationapp://auth-callback?code=%E0%A4%A').kind, 'error');
+});
+
+test('A returned PKCE code is exchanged once across callback remounts, with its original flow ID', async () => {
+  const calls = [];
+  const handle = createAuthCallbackHandler(async (code, flowId) => {
+    calls.push({ code, flowId });
+    return { id: 'account', email: 'test@example.com' };
+  });
+  const url = 'http://localhost:8081/auth-callback?code=one-use%2Bcode';
+  const first = handle(url, 'flow-1');
+  assert.equal(handle(url, 'flow-1'), first);
+  assert.deepEqual(await first, { id: 'account', email: 'test@example.com' });
+  assert.equal(await handle(url, 'flow-1'), await first);
+  assert.deepEqual(calls, [{ code: 'one-use+code', flowId: 'flow-1' }]);
+  await handle('meditationapp://auth-callback?code=next', 'flow-2');
+  assert.equal(calls.length, 2);
+});
+
+test('Callback errors, malformed responses and implicit tokens never reach code exchange', async () => {
+  let exchanges = 0;
+  const handle = createAuthCallbackHandler(async () => { exchanges++; });
+  await assert.rejects(handle('http://localhost:8081/auth-callback?error=access_denied&error_description=User+cancelled'), /User cancelled/);
+  await assert.rejects(handle('exp://test.exp.direct/--/auth-callback?code=%E0%A4%A'), /could not be read/);
+  assert.equal(await handle('meditationapp://auth-callback#access_token=ignored'), null);
+  assert.equal(exchanges, 0);
+  const failure = createAuthCallbackHandler(async () => { exchanges++; throw new Error('PKCE verifier missing'); });
+  const url = 'http://localhost:8081/auth-callback?code=invalid';
+  await assert.rejects(failure(url), /PKCE verifier missing/);
+  await assert.rejects(failure(url), /PKCE verifier missing/);
+  assert.equal(exchanges, 1, 'failed one-use codes are not silently exchanged again');
+});
+
+// Run the actual platform modules in a browser-shaped scope; native Expo is never loaded in Node.
+function webModule(file, window, dependencies = {}) {
+  const { readFileSync } = require('node:fs');
+  const { runInNewContext } = require('node:vm');
+  const ts = require('typescript');
+  const filename = path.join(__dirname, '../../src/cloud', file);
+  const source = ts.transpileModule(readFileSync(filename, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const exports = {};
+  runInNewContext(source, { exports, window, require: (name) => {
+    if (!(name in dependencies)) throw new Error(`Unexpected platform import: ${name}`);
+    return dependencies[name];
+  } }, { filename });
+  return exports;
+}
+
+test('Web auth storage persists across reloads and removes sessions without importing native SecureStore', async () => {
+  const values = new Map();
+  const localStorage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
+  const first = webModule('auth-storage.web.ts', { localStorage }).authStorage;
+  assert.equal(await first.getItem('ona-auth'), null);
+  await first.setItem('ona-auth', 'test-session');
+  const reloaded = webModule('auth-storage.web.ts', { localStorage }).authStorage;
+  assert.equal(await reloaded.getItem('ona-auth'), 'test-session');
+  await reloaded.removeItem('ona-auth');
+  assert.equal(await first.getItem('ona-auth'), null);
+  assert.equal(await webModule('auth-storage.web.ts', undefined).authStorage.getItem('ona-auth'), null);
+});
+
+test('Web OAuth uses the same tab, preserves the flow across reload and rejects unsolicited callbacks', async () => {
+  const values = new Map();
+  const assigned = [];
+  const window = {
+    sessionStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+    location: { pathname: '/account', assign: (url) => assigned.push(url) },
+  };
+  const first = webModule('auth-browser.web.ts', window);
+  assert.equal(first.pendingWebCallback(), null);
+  assert.equal((await first.openSignIn('https://example.supabase.co/auth/v1/authorize', 'http://localhost:8081/auth-callback', 'flow-1')).status, 'redirecting');
+  assert.deepEqual(assigned, ['https://example.supabase.co/auth/v1/authorize']);
+  window.location.pathname = '/auth-callback';
+  window.location.href = 'http://localhost:8081/auth-callback?code=test-code';
+  const reloaded = webModule('auth-browser.web.ts', window);
+  assert.equal(reloaded.pendingWebCallback().flowId, 'flow-1');
+  assert.equal(reloaded.pendingWebCallback().url, window.location.href);
+  reloaded.clearWebCallback();
+  assert.throws(() => reloaded.pendingWebCallback(), /expired/);
+});
+
+test('Every cloud request refuses a session changed to another account in a second browser tab', async () => {
+  let session = { user: { id: 'account-a' }, access_token: 'test-a' };
+  const { createCloudAuth } = webModule('auth.ts', undefined, {
+    '@supabase/auth-js': { AuthClient: class { async getSession() { return { data: { session }, error: null }; } } },
+    'expo-auth-session': { makeRedirectUri: () => 'http://localhost:8081/auth-callback' },
+    'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
+    './auth-browser': {}, './auth-storage': { authStorage: {} },
+    './auth-callback': { createAuthCallbackHandler },
+  });
+  const auth = createCloudAuth(config);
+  const { fetch, calls } = fakeFetch([{ status: 200, body: [] }]);
+  const ledger = createSupabaseLedger(config, () => auth.accessToken('account-a'), fetch);
+  await ledger.settings();
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer test-a');
+  session = { user: { id: 'account-b' }, access_token: 'test-b' };
+  await assert.rejects(ledger.settings(), (error) => error.kind === 'signed_out');
+  assert.equal(calls.length, 1, 'no request can send another account token');
+  session = null;
+  assert.equal(await auth.accessToken('account-a'), null);
 });
 
 test('Each account has its own opaque ledger file; guest keeps the original file', () => {

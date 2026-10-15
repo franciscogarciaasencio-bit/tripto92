@@ -172,7 +172,12 @@ Guest data is never deleted or merged automatically. Signing out returns to it.
 
 - No secrets in the app: only the Supabase URL and publishable (anon) key, which are
   public by design. Google OAuth client secret lives only in Supabase.
-- Tokens stored with expo-secure-store. Sign-out clears them.
+- Native tokens stored with expo-secure-store. Web uses a separate localStorage
+  adapter; sign-out clears the session. Web OAuth returns in the same tab to keep
+  SQLite's COOP isolation. Its per-tab flow marker must exist before callback exchange.
+- Every cloud request requires a session matching the account of the local ledger.
+  If another browser tab changes the shared session, sync stops as signed out rather
+  than sending one account's practice to another account.
 - RLS on every table; writes only through `security definer` functions that check
   `auth.uid()`, validate table names, key/row sizes and payload limits.
 - A person can delete all of their cloud data from the Account screen.

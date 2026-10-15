@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { cloudAuth, cloudLedger, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
+import { cloudAuth, cloudLedgerFor, loadActiveAccount, saveActiveAccount, type CloudAccount } from '@/cloud';
 import { databaseNameFor, deleteLedgerFile, initializeDatabase, type MeditationStore, type MeditationPreferences, type PracticeCompletion, type AudioPreferences } from '@/data';
 import { finishTimer, pauseTimer, practiceContext, resumeTimer, startFixedTimer, startOpenEndedTimer, timerSession, type TimerDraft } from '@/domain/meditation/timer';
 import type { ProgressSnapshot, LifetimeJourney, HabitCheckpoint } from '@/domain/progression';
@@ -42,6 +42,9 @@ function useApplication() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const signingIn = useRef(false);
+  const [authPending, setAuthPending] = useState(false);
+  const webSignIn = useRef<Promise<boolean> | null>(null);
   const [draft, setDraft] = useState<TimerDraft | null>(null);
   const [snapshot, setSnapshot] = useState<ProgressSnapshot | null>(null);
   const [journey, setJourney] = useState<LifetimeJourney | null>(null);
@@ -78,7 +81,10 @@ function useApplication() {
   const syncAgain = useRef(false);
   const runSync = useCallback(async () => {
     const database = store.current;
-    if (!cloudLedger || !accountRef.current || !database) return;
+    const current = accountRef.current;
+    if (!current || !database) return;
+    const cloudLedger = cloudLedgerFor(current.id);
+    if (!cloudLedger) return;
     // Never touch state (or re-render the session screen) while a practice is running or paused.
     if (timer.current !== null) return;
     if (syncRunning.current) { syncAgain.current = true; return; }
@@ -238,7 +244,7 @@ function useApplication() {
 
   // Sync when a signed-in ledger opens, on return to the app, and quietly every 15 minutes.
   useEffect(() => {
-    if (!ready || switching || !account || !cloudLedger) return;
+    if (!ready || switching || !account || !cloudAuth) return;
     void runSync();
   }, [ready, switching, account, runSync]);
   useEffect(() => {
@@ -246,7 +252,7 @@ function useApplication() {
     void runSync();
   }, [ready, account, foreground, activation, runSync]);
   useEffect(() => {
-    if (!ready || !account || !foreground || !cloudLedger) return;
+    if (!ready || !account || !foreground || !cloudAuth) return;
     const interval = setInterval(() => { void runSync(); }, SYNC_INTERVAL);
     return () => clearInterval(interval);
   }, [ready, account, foreground, runSync]);
@@ -286,6 +292,28 @@ function useApplication() {
     } finally { locked.current = false; setBusy(false); }
   }, [completion]);
 
+  const acceptSignIn = useCallback(async (next: CloudAccount) => {
+    const guest = !accountRef.current && store.current && hasHistory ? (await store.current.sync.exportLedger()).rows : null;
+    setGuestCopy(guest ? { rows: guest, practices: completedPractices } : null);
+    await switchAccount(next);
+  }, [hasHistory, completedPractices, switchAccount]);
+
+  const completeWebSignIn = useCallback(() => {
+    webSignIn.current ??= (async () => {
+      if (!cloudAuth) return false;
+      setError(null);
+      setAuthPending(true);
+      try {
+        const result = await cloudAuth.completeWebSignIn();
+        if (result.status !== 'signed_in') return false;
+        await acceptSignIn(result.account);
+        return true;
+      } catch (failure) { setError(String(failure)); return false; }
+      finally { setAuthPending(false); }
+    })();
+    return webSignIn.current;
+  }, [acceptSignIn]);
+
   const removeAccount = useCallback(async (deleteCloud: boolean) => {
     const current = accountRef.current;
     if (!cloudAuth || !current || locked.current || timer.current || completion) return false;
@@ -294,6 +322,7 @@ function useApplication() {
     setError(null);
     try {
       if (deleteCloud) {
+        const cloudLedger = cloudLedgerFor(current.id);
         if (!cloudLedger) throw new Error('Cloud is not configured');
         await cloudLedger.deleteCloudData();
       }
@@ -316,25 +345,28 @@ function useApplication() {
   }, [completion]);
 
   return {
-    ready, busy: busy || switching, error, draft, snapshot,
+    ready, busy: busy || switching || authPending, error, draft, snapshot,
     cloudAvailable: cloudAuth !== null,
     /** Development builds only: the return address sent to Supabase, to compare with its Redirect URLs. */
     signInReturnAddress: __DEV__ && cloudAuth ? cloudAuth.redirectUri() : null,
     account: account ?? null,
     syncStatus,
     syncNow: () => runSync(),
+    completeWebSignIn,
     /** Google sign-in, then open this account's own practice file. Returns false if cancelled. */
     async signIn() {
-      if (!cloudAuth) return false;
+      if (!cloudAuth || signingIn.current || locked.current || timer.current || completion) return false;
+      signingIn.current = true;
       setError(null);
+      setAuthPending(true);
       try {
         const result = await cloudAuth.signInWithGoogle();
+        if (result.status === 'redirecting') return true;
         if (result.status !== 'signed_in') return false;
-        const guest = !accountRef.current && store.current && hasHistory ? (await store.current.sync.exportLedger()).rows : null;
-        setGuestCopy(guest ? { rows: guest, practices: completedPractices } : null);
-        await switchAccount(result.account);
+        await acceptSignIn(result.account);
         return true;
       } catch (failure) { setError(String(failure)); return false; }
+      finally { signingIn.current = false; setAuthPending(false); }
     },
     /** End the session on this device and return to guest practice. Account files stay on the device. */
     async signOut() {

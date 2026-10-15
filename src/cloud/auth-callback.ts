@@ -24,3 +24,18 @@ export function parseAuthCallback(url: string): AuthCallback {
   const code = params.get('code');
   return code ? { kind: 'code', code } : { kind: 'none' };
 }
+
+/** A returned one-use code must be exchanged only once, including React effect remounts. */
+export function createAuthCallbackHandler<T>(exchange: (code: string, flowId?: string) => Promise<T>) {
+  let last: { url: string; result: Promise<T | null> } | undefined;
+  return (url: string, flowId?: string): Promise<T | null> => {
+    if (last?.url === url) return last.result;
+    const result = Promise.resolve().then(() => {
+      const callback = parseAuthCallback(url);
+      if (callback.kind === 'error') throw new Error(callback.message);
+      return callback.kind === 'code' ? exchange(callback.code, flowId) : null;
+    });
+    last = { url, result };
+    return result;
+  };
+}

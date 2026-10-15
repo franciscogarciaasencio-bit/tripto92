@@ -43,14 +43,17 @@ test('Migration 11 gives every ledger file its own device identity and an unboun
 });
 
 test('A released V10 file upgrades through the sync migrations without touching practice', async (t) => {
+  let store;
+  // Node runs after hooks in registration order; Windows needs the file closed before removal.
+  t.after(() => store?.close());
   const file = disk(t);
-  let conn = connection(file), store = await release(conn, context(1));
+  let conn = connection(file);
+  store = await release(conn, context(1));
   await practice(store, session({ day: 1 }));
   const before = await store.meditations.loadProgressionState();
   await store.close();
   conn = connection(file); conn.raw.exec(DROP_SYNC_MIGRATION); await conn.close();
   conn = connection(file); store = await release(conn, context(1, 12));
-  t.after(() => store.close());
   assert.equal(conn.raw.prepare('SELECT MAX(version) v FROM schema_migrations').get().v, 13);
   const after = await store.meditations.loadProgressionState();
   assert.deepEqual(after.sessions, before.sessions); assert.deepEqual(after.awards, before.awards);
@@ -177,8 +180,11 @@ test('Local changes are a diff against the last synced manifest; applying it to 
 });
 
 test('A durable in-flight push survives restart; acknowledgement adopts its target manifest exactly once', async (t) => {
+  let store;
+  t.after(() => store?.close());
   const file = disk(t);
-  let conn = connection(file), store = await release(conn, context(1));
+  let conn = connection(file);
+  store = await release(conn, context(1));
   await store.sync.bindAccount('user-a');
   await practice(store, session({ day: 1 }));
   const { diff, asOf } = await store.sync.localChanges();
@@ -188,7 +194,6 @@ test('A durable in-flight push survives restart; acknowledgement adopts its targ
   await assert.rejects(store.sync.beginPush({ ...push, pushId: 'push-2' }), /still pending/);
   await store.close();
   conn = connection(file); store = await release(conn, context(1, 12));
-  t.after(() => store.close());
   const restored = (await store.sync.loadState()).inflight;
   assert.equal(restored.pushId, 'push-1');
   assert.deepEqual(rowSet({ rows: restored.diff.adds }), rowSet({ rows: diff.adds }));

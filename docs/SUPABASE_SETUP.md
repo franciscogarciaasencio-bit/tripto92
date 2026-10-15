@@ -46,9 +46,28 @@ Supabase **secret** key in the app or in chat. (The app refuses to use a secret 
 
 1. In Supabase: **Authentication → Sign In / Providers → Google** → enable it.
 2. Paste the Client ID and Client secret, then save. The secret stays inside Supabase.
-3. **Authentication → URL Configuration → Redirect URLs** → add both:
+3. **Authentication → URL Configuration → Redirect URLs** → add:
    - `meditationapp://auth-callback` (the installed app)
-   - `exp://**` (only needed for testing in Expo Go)
+   - `exp://**` (development only; Expo Go must use a tunnel hostname)
+   - `http://localhost:8081/auth-callback` (local web testing)
+
+   **Expo Go on a physical phone:** start with `npx expo start --clear --tunnel`,
+   then scan the new QR code. The Account screen's development return address must
+   use a hostname such as `exp://…exp.direct/--/auth-callback`. Supabase Auth rejects
+   non-loopback numeric IP redirects **before** its allow list, so LAN addresses such
+   as `exp://192.168.…:8081/--/auth-callback` fall back to the Site URL even with an
+   exact allow-list entry. Keep `/--/` in Expo Go; do not substitute the installed
+   app's scheme. See [the investigation](AUTH_DEBUG.md).
+
+   Expo may offer to install its official `@expo/ngrok` CLI helper on first tunnel
+   use. On this Windows machine with the bundled Node runtime, if Expo cannot find
+   the installed global helper, run this in PowerShell before the start command:
+   `$env:NODE_PATH = "$env:APPDATA\npm\node_modules"`.
+
+   The Site URL is a fallback, not Google's callback. Ona currently leaves it at
+   `http://localhost:3000`; changing it does not make a rejected LAN redirect valid.
+   Set it to the real HTTPS website before publishing web sign-in. Use exact
+   production callback URLs and remove development entries when no longer needed.
 
 ## 5. Give the app its two public values
 
@@ -70,13 +89,24 @@ Send these two values to Claude (they are safe to share), or add them yourself:
 
 Restart the development server with `npm start -- --clear` after changing `.env`.
 
-## Status for Ona (2026-10-14)
+## Status for Ona (2026-10-15)
 
 Done by the owner: Supabase project `zmebgjgcmptmivwqumxg` (EU), Google OAuth client
 (testing mode, owner as test user), Google provider enabled, redirect URLs, SQL applied.
 The public URL and publishable key are in `.env` (Expo Go / development) and in
 `eas.json` → `build.preview.env` (APK builds). Publishing the Google app for everyone later
 needs a homepage and a privacy policy page.
+
+Debugging confirmed Google itself completed login. The localhost failure was Supabase
+Auth's non-loopback IP restriction, not a wrong client secret. The three redirect entries
+above are configured. Web uses a same-tab PKCE flow at `/auth-callback`, with browser-only
+localStorage for tokens; native still uses the system auth browser and SecureStore.
+Same-tab navigation preserves the COOP/COEP headers required by web SQLite. A popup
+opener is severed by COOP, so adding only `maybeCompleteAuthSession()` is insufficient.
+
+Web Google → Account email → **Save now** has been exercised in the owner's Chrome.
+iPhone Expo Go acceptance is pending the owner's tunnel test; do not treat a web
+export as native verification.
 
 ## Things to know
 

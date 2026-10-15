@@ -11,5 +11,7 @@ export const cloudConfig = parseCloudConfig({
   publishableKey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
 export const cloudAuth = cloudConfig ? createCloudAuth(cloudConfig) : null;
-export const cloudLedger = cloudConfig && cloudAuth ? createSupabaseLedger(cloudConfig, () => cloudAuth.accessToken()) : null;
+/** Bind every RPC to the account whose local ledger is being synced. */
+export const cloudLedgerFor = (accountId: string) => cloudConfig && cloudAuth
+  ? createSupabaseLedger(cloudConfig, () => cloudAuth.accessToken(accountId)) : null;
 export { loadActiveAccount, saveActiveAccount, type CloudAccount } from './auth';

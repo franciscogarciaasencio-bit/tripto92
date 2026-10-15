@@ -46,7 +46,10 @@ test('Reinstall: a new phone restores history, awards, levels, Consistency, fore
 
 test('Process death after a push was recorded but before it was sent: relaunch sends it once', async (t) => {
   const s = await supabase(t);
-  const a = await phone(t, s, 'a', context(1), disk(t));
+  let a;
+  // Close the current (possibly restarted) store before disk(t)'s Windows file cleanup.
+  t.after(() => a?.store.close());
+  a = await phone(t, s, 'a', context(1), disk(t));
   await a.practice(session({ id: 'x', day: 1 }));
   a.cloud.faults.offline = true;
   await assert.rejects(a.sync(), /No connection/);
@@ -138,8 +141,10 @@ test('A year of practice uploads and restores within a practical time and payloa
 
 test('Signing out and back in reopens the same account file from disk and keeps syncing', async (t) => {
   const s = await supabase(t);
+  let a;
+  t.after(() => a?.store.close());
   const file = disk(t);
-  const a = await phone(t, s, 'a', context(1), file);
+  a = await phone(t, s, 'a', context(1), file);
   await a.practice(session({ id: 'one', day: 1 })); await a.sync();
   await a.restart();
   await a.practice(session({ id: 'two', day: 2 }));

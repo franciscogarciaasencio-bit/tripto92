@@ -12,8 +12,9 @@ Only one agent edits at a time: pull before starting, push before handing over.
 acceptance matrix is in the Session 20 log entry: what is done, verified only by the owner,
 unverified on a physical phone, blocked or not done by decision. Open items, in order:
 
-1. Google sign-in returns to Supabase's Site URL (`localhost`) instead of Ona (blocked on the
-   owner's returned URL / Supabase Auth logs; redirect URLs are configured).
+1. Google sign-in diagnosis/fix implemented (2026-10-15): Supabase rejects numeric LAN
+   IP redirects before the allow list; use Expo Go `--tunnel`. Web Google login and
+   Save now verified; awaiting the owner's iPhone tunnel acceptance. See AUTH_DEBUG.md.
 2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
 3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
    raise `android.versionCode` and keeps the approved package and signing key.
@@ -735,11 +736,16 @@ after the owner's interruptions, exit 0). No app source
 changes in this session beyond test helpers and documentation. Real Google sign-in and a hosted
 Supabase project remain owner setup; device sync remains to be exercised with real credentials.
 
-Open item (2026-10-14, owner testing in Expo Go on iPhone): Google sign-in reaches Google, but
-Supabase returns to its Site URL (`localhost`) instead of the app, so the session does not reach
-Ona. Redirect URLs contain `exp://**` and `meditationapp://auth-callback`. Next diagnosis:
-Supabase Auth logs, and the development-only return address now shown on the Account screen.
-Owner chose to continue the program and fix this together later.
+Open item (updated 2026-10-15): localhost diagnosed using Auth logs, live redirect probes
+and Supabase's validator source. Google login succeeds; non-loopback numeric IP callbacks
+are rejected before allow-list matching. Expo Go must use `npx expo start --clear --tunnel`.
+The live `.exp.direct` callback is accepted. Added web-only token persistence and a same-tab
+PKCE callback (native SecureStore/browser unchanged), with every RPC bound to the ledger's
+account to prevent cross-tab account mixing. Web Google → Account email → Save now verified.
+Verification: `npm run check` passed (962 tests, TypeScript and lint); iOS/Android/web exports
+passed. Four existing Windows test cleanup hooks now close stores before deleting files.
+Awaiting the owner's physical iPhone result before closing this item. Full evidence and
+verification status: [AUTH_DEBUG.md](AUTH_DEBUG.md).
 
 ### Pre-meditation screen — Complete (2026-10-14), inserted before Sessions 19–20 by the owner
 
