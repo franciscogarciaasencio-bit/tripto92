@@ -78,7 +78,7 @@ export function PrepareScreen() {
       </Section>
       <Type role="secondary">{minutes === null
         ? 'Open-ended is recommended: stop when you choose. Every practice of three active minutes counts.'
-        : `A bell ends the practice after ${minutes} minutes of meditation. Pauses don’t count, and finishing earlier still counts.`}</Type>
+        : `${sounds.closingBellEnabled ? 'A bell ends' : 'Ona quietly ends'} the practice after ${minutes} minutes of meditation. Pauses don’t count, and finishing earlier still counts.`}</Type>
     </ScrollView>
     <View style={{ alignItems: 'center', gap: 6, paddingTop: 12, paddingBottom: 24, borderTopWidth: 1, borderColor: colors.line }}>
       <Notice>{app.error ? 'Your practice could not begin. Please try again.' : null}</Notice>

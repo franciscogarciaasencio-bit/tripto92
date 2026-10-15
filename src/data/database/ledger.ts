@@ -84,7 +84,27 @@ function keyOf(spec: (typeof LEDGER_TABLES)[number], row: LedgerRecord) {
     return value;
   }));
 }
-export const hashRow = (table: LedgerTable, row: LedgerRecord) => sha256Hex(canonical({ table, row }));
+/**
+ * Hashes of row content computed in this process. Ledger rows are almost all immutable, so each
+ * sync after the first hashes only new or changed rows instead of the whole history (pure-JS
+ * SHA-256 of a year of practice takes about a second on a phone). Filled only by computation,
+ * never from stored values, so a corrupt file cannot poison it. Bounded by clearing.
+ */
+const hashMemo = new Map<string, string>();
+const HASH_MEMO_LIMIT = 40_000;
+export function hashRow(table: LedgerTable, row: LedgerRecord) {
+  const content = canonical({ table, row });
+  const known = hashMemo.get(content);
+  if (known !== undefined) return known;
+  const hash = sha256Hex(content);
+  if (hashMemo.size >= HASH_MEMO_LIMIT) hashMemo.clear();
+  hashMemo.set(content, hash);
+  return hash;
+}
+/** Let touches and frames through during long exports (first sync after launch). */
+const timers = globalThis as unknown as { setTimeout(callback: () => void, milliseconds: number): unknown };
+const yieldToEventLoop = () => new Promise<void>((resolve) => { timers.setTimeout(resolve, 0); });
+const ROWS_PER_SLICE = 200;
 
 function sqlValue(value: unknown, table: string): SqlValue {
   requireData(value === null || typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value)),
@@ -105,6 +125,25 @@ export function ledgerRow(table: unknown, value: unknown): LedgerRow {
   return { table: spec.name, key: keyOf(spec, row), hash: hashRow(spec.name, row), row };
 }
 
+/**
+ * A row this phone stored itself with its hash (sync base). Structure and key are checked; the hash
+ * is not recomputed. A wrong stored hash can only make the next diff resend that row, never hide a change,
+ * because current rows are always hashed from their content.
+ */
+export function storedLedgerRow(table: unknown, value: unknown, key: unknown, hash: unknown): LedgerRow {
+  const spec = tableSpec.get(text(table));
+  requireData(spec, 'Unknown ledger table');
+  const source = object(value);
+  const row: Record<string, SqlValue> = {};
+  for (const [column, entry] of Object.entries(source)) {
+    requireData(/^[a-z_]+$/.test(column) && !omitted(spec).includes(column), `Invalid ${spec.name} column`);
+    row[column] = sqlValue(entry, spec.name);
+  }
+  const stored = text(hash);
+  requireData(/^[0-9a-f]{64}$/.test(stored) && keyOf(spec, row) === text(key), 'Synced base row is corrupt');
+  return { table: spec.name, key: text(key), hash: stored, row };
+}
+
 async function columns(sql: SqlConnection, table: LedgerTable): Promise<readonly string[]> {
   const spec = tableSpec.get(table)!;
   return (await sql.all(`PRAGMA table_info(${table})`)).map((value) => text(object(value).name))
@@ -114,9 +153,14 @@ async function columns(sql: SqlConnection, table: LedgerTable): Promise<readonly
 /** Read-only export of the current ledger, deterministic in table and key order. */
 export async function exportLedger(sql: SqlConnection): Promise<LedgerSnapshot> {
   const rows: LedgerRow[] = [];
+  let decoded = 0;
   for (const spec of LEDGER_TABLES) {
     const names = await columns(sql, spec.name);
-    const tableRows = (await sql.all(`SELECT ${names.join(', ')} FROM ${spec.name}`)).map((value) => ledgerRow(spec.name, value));
+    const tableRows: LedgerRow[] = [];
+    for (const value of await sql.all(`SELECT ${names.join(', ')} FROM ${spec.name}`)) {
+      tableRows.push(ledgerRow(spec.name, value));
+      if (++decoded % ROWS_PER_SLICE === 0) await yieldToEventLoop();
+    }
     tableRows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     rows.push(...tableRows);
   }

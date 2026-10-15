@@ -1,4 +1,5 @@
 const { test } = require('node:test');
+const path = require('node:path');
 const { assert, session, context, at } = require('./helpers.cjs');
 const { supabase } = require('./supabase-helpers.cjs');
 const { phone, engine } = require('./sync-helpers.cjs');
@@ -149,6 +150,37 @@ test('A file without stored base content downloads the synced revision once and 
   assert.equal((await s.changes('a', 0)).head, 2);
   assert.notEqual(a.conn.raw.prepare('SELECT COUNT(*) n FROM sync_manifest WHERE row_json IS NULL').get().n, undefined);
   assert.equal(a.conn.raw.prepare('SELECT COUNT(*) n FROM sync_manifest WHERE row_json IS NULL').get().n, 0);
+});
+
+test('A wrong stored base hash only resends that row; a malformed base row is refused', async (t) => {
+  const s = await supabase(t);
+  const a = await phone(t, s);
+  await a.practice(session({ id: 'h1', day: 1 })); await a.sync();
+  const history = await a.history();
+  a.conn.raw.exec(`UPDATE sync_manifest SET row_hash = '${'0'.repeat(64)}' WHERE table_name = 'meditation_sessions'`);
+  const { diff } = await a.store.sync.localChanges();
+  assert.deepEqual(diff.removes.map((ref) => ref.table), ['meditation_sessions']);
+  assert.deepEqual(diff.adds.map((row) => row.table), ['meditation_sessions']);
+  assert.equal((await a.sync()).action, 'pushed');
+  assert.deepEqual(await a.history(), history);
+  assert.equal((await a.sync()).action, 'none');
+  // A base row whose key no longer matches its content is corruption, never silently used.
+  a.conn.raw.exec(`UPDATE sync_manifest SET row_key = '["other"]' WHERE table_name = 'meditation_sessions'`);
+  await assert.rejects(a.store.sync.localChanges(), /Synced base row is corrupt/);
+});
+
+test('Exporting a long ledger hashes unchanged rows once per run and stays exact', async (t) => {
+  const s = await supabase(t);
+  const a = await phone(t, s);
+  for (let day = 1; day <= 30; day++) await a.practice(session({ id: `l${day}`, day, hour: 7 }));
+  const first = await a.store.sync.exportLedger();
+  const second = await a.store.sync.exportLedger();
+  assert.deepEqual(second.rows.map((row) => row.hash), first.rows.map((row) => row.hash));
+  // Remembered hashes are still content hashes: a changed row gets a new one.
+  const { hashRow } = require(path.join(process.env.DATA_BUILD_DIR, 'database', 'ledger.js'));
+  const row = first.rows.find((entry) => entry.table === 'meditation_sessions');
+  assert.equal(hashRow(row.table, row.row), row.hash);
+  assert.notEqual(hashRow(row.table, { ...row.row, local_date: '1999-01-01' }), row.hash);
 });
 
 test('A deleted cloud copy is never resurrected by an old phone; the phone can save its practice again on request', async (t) => {

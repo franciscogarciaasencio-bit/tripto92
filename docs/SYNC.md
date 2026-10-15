@@ -192,6 +192,16 @@ a small group on Supabase's free 500 MB, but not for many users. **Before wider 
 server-side compaction that keeps old checkpoint versions only for a retention window, and
 teach merges to set aside (rather than reorder) practice older than that window.
 
+### Phone-side cost (Session 19)
+
+Each sync exports the ledger and hashes rows (pure-JS SHA-256). Measured on a year of daily
+practice with Node's JIT disabled (closer to Hermes than a normal Node run): about 0.9 s of
+JavaScript per sync before Session 19, on every sync. Now hashes are remembered for the life of
+the process (filled only by computation, bounded), the stored base reuses the hashes this phone
+saved with it instead of rehashing, and the export yields to the event loop every 200 rows.
+The first sync after launch still does one pass but does not freeze touches; later syncs take
+about 0.05 s. A wrong stored base hash can only make that row be resent, never hide a change.
+
 ## Failure behavior
 
 Offline, server errors or validation failures never block meditation. Sync shows a

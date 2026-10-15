@@ -2,7 +2,7 @@ import type { SqlConnection, Transactions } from '../database/connection';
 import type { RulesRegistry } from '../database/decoders';
 import { applyMerge } from '../database/ledger-merge';
 import type { CalendarContext } from '../../domain/progression';
-import { applyLedgerDiff, diffLedger, exportLedger, isSignificant, recordsPractice, ledgerRow, ledgerTable, manifestOf, replaceLedger,
+import { applyLedgerDiff, diffLedger, exportLedger, isSignificant, recordsPractice, ledgerRow, ledgerTable, manifestOf, replaceLedger, storedLedgerRow,
   type LedgerDiff, type LedgerRef, type LedgerRow, type LedgerSnapshot } from '../database/ledger';
 import { array, canonical, integer, json, object, requireData, text, timestamp } from '../database/validation';
 import { decodePreferences } from '../preferences';
@@ -83,9 +83,7 @@ export async function loadBase(sql: SqlConnection): Promise<LedgerRow[] | null> 
   for (const value of await sql.all('SELECT table_name, row_key, row_hash, row_json FROM sync_manifest')) {
     const entry = object(value);
     if (entry.row_json === null) return null;
-    const row = ledgerRow(entry.table_name, json(entry.row_json));
-    requireData(row.key === text(entry.row_key) && row.hash === text(entry.row_hash), 'Synced base row is corrupt');
-    rows.push(row);
+    rows.push(storedLedgerRow(entry.table_name, json(entry.row_json), entry.row_key, entry.row_hash));
   }
   return rows;
 }
