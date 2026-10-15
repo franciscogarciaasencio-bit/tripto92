@@ -73,7 +73,7 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
         accessibilityValue={{ min: 0, max: 100, now: Math.floor(journey.fraction * 100) }}
         style={styles.hero}>
         <StageMedallion fraction={journey.next ? journey.fraction : 1}>
-          <CategoryIcon category={journey.level.category} level={level} size={58} />
+          <CategoryIcon category={journey.level.category} level={level} size={112} />
         </StageMedallion>
         <Animated.View style={[styles.words, wordsStyle]}>
           <Type role="secondary" style={styles.kicker}>{level === 0 ? 'STARTING POINT' : `LEVEL ${level}`}</Type>

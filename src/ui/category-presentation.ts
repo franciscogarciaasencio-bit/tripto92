@@ -21,7 +21,31 @@ interface ArtworkEntry { readonly id: string; readonly name: string; readonly th
  * Sealed stages are discovered by reaching them, so their text and geometry are stored encoded
  * (base64 ASCII JSON; see scripts/sealed-categories.cjs). Sealed, not secret: never print them.
  */
-const decodeBase64 = (globalThis as unknown as { atob(data: string): string }).atob;
+const codec = globalThis as unknown as { atob(data: string): string; btoa(data: string): string };
+const decodeBase64 = (data: string) => codec.atob(data);
+/** Sealed paintings are stored XOR-veiled so the committed bytes are not a viewable image. */
+export const STAGE_ART_VEIL = 'ona-stage-veil';
+const sealedArt = new Map<string, string>();
+/** Data URI of a sealed stage's painting, or null while that stage still uses its line symbol. */
+export function getSealedStageArt(id: string): string | null {
+  const cached = sealedArt.get(id);
+  if (cached) return cached;
+  const entry = (sealedArtwork as readonly { id: string; art?: string }[]).find((candidate) => candidate.id === id);
+  if (!entry?.art) return null;
+  const uri = unveilArt(entry.art);
+  sealedArt.set(id, uri);
+  return uri;
+}
+/** Veiled base64 → PNG data URI (the inverse of the XOR veil in scripts/sealed-categories.cjs). */
+export function unveilArt(art: string): string {
+  const veiled = codec.atob(art);
+  const bytes: string[] = new Array(veiled.length);
+  for (let index = 0; index < veiled.length; index++) {
+    bytes[index] = String.fromCharCode(veiled.charCodeAt(index) ^ STAGE_ART_VEIL.charCodeAt(index % STAGE_ART_VEIL.length));
+  }
+  return `data:image/png;base64,${codec.btoa(bytes.join(''))}`;
+}
+export const isSealedStage = (id: string) => (sealedArtwork as readonly { id: string }[]).some((entry) => entry.id === id);
 function unseal(id: string): ArtworkEntry {
   const entry = sealedArtwork.find((candidate) => candidate.id === id);
   if (!entry) throw new Error('Missing sealed journey stage');

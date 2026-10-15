@@ -32,9 +32,9 @@ export function StageReveal({ level, scale }: { level: JourneyLevel; scale: numb
   const presentation = getLevelCategoryPresentation(level);
   return <View accessible accessibilityLiveRegion="polite" accessibilityLabel={`A new stage: ${presentation.name}. ${presentation.theme}`}
     style={{ alignItems: 'center', paddingTop: 14 * scale, gap: 4 * scale }}>
-    <Animated.View style={[symbolStyle, { width: 64 * scale, height: 64 * scale, borderRadius: 32 * scale, borderWidth: 1, borderColor: '#D8CEBC',
+    <Animated.View style={[symbolStyle, { width: 104 * scale, height: 104 * scale, borderRadius: 52 * scale, borderWidth: 1, borderColor: '#D8CEBC',
       alignItems: 'center', justifyContent: 'center', marginBottom: 6 * scale }]}>
-      <CategoryIcon category={level.category} level={level.number} size={34 * scale} />
+      <CategoryIcon category={level.category} level={level.number} size={84 * scale} />
     </Animated.View>
     <Animated.View style={[wordsStyle, { alignItems: 'center', gap: 2 * scale }]}>
       <Text style={{ fontFamily: 'ManropeRegular', fontSize: 10 * scale, lineHeight: 16 * scale, letterSpacing: 2 * scale, color: coastalQuiet }}>A NEW STAGE</Text>

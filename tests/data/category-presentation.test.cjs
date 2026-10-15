@@ -45,3 +45,18 @@ test('Unknown category identities fail explicitly instead of rendering an empty 
   assert.equal(presentation.CATEGORY_ICON_STYLE.viewBox, '0 0 24 24');
   assert.ok(Object.isFrozen(presentation.CATEGORY_ICON_STYLE));
 });
+
+test('Sealed paintings unveil to the exact original PNG bytes; committed paintings decode to PNGs', () => {
+  const { readFileSync } = require('node:fs');
+  const original = readFileSync(path.join(__dirname, '../../assets/ona/stages/monkey_mind.png'));
+  const key = Buffer.from(presentation.STAGE_ART_VEIL);
+  const veiled = Buffer.from(original.map((value, index) => value ^ key[index % key.length]));
+  assert.notDeepEqual(veiled.subarray(0, 8), original.subarray(0, 8), 'veiled bytes are not a viewable PNG');
+  const uri = presentation.unveilArt(veiled.toString('base64'));
+  assert.ok(uri.startsWith('data:image/png;base64,'));
+  assert.deepEqual(Buffer.from(uri.slice(22), 'base64'), original);
+  for (const category of api.JOURNEY_CATEGORIES) {
+    const art = presentation.getSealedStageArt(category.id);
+    if (art) assert.deepEqual(Buffer.from(art.slice(22), 'base64').subarray(1, 4), Buffer.from('PNG'), `${category.id} painting decodes`);
+  }
+});

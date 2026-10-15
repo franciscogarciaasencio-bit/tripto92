@@ -70,9 +70,11 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
       {journey && consistency && <View style={{ position: 'absolute', top: progressionTop, left: 34 * scale, right: 29 * scale, flexDirection: 'row', minHeight: 115 * scale }}>
         <QuietPressable accessibilityRole="button" accessibilityLabel={`View Journey. Level ${journey.level.number}, ${categoryName}, ${atPrelude ? 'starting point before your first qualifying practice' : `${journey.level.categoryStep} of 5`}`}
           onPress={() => router.push({ pathname: '/practice', params: { view: 'levels' } })} style={{ width: '49%', paddingRight: 24 * scale }}>
-          <View style={{ height: 24 * scale, alignItems: 'flex-start' }}><CategoryIcon category={journey.level.category} level={journey.level.number} size={22 * scale} /></View>
-          <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>{`Level ${journey.level.number}`}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.caption, { fontSize: 13 * scale, lineHeight: 19 * scale }]}>{categoryName}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 * scale, marginLeft: -6 * scale, marginTop: 2 * scale }}>
+            <CategoryIcon category={journey.level.category} level={journey.level.number} size={46 * scale} />
+            <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>{`Level ${journey.level.number}`}</Text>
+          </View>
+          <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 2 * scale }]}>{categoryName}</Text>
           <View accessibilityRole="progressbar" accessibilityLabel={journey.next ? `Progress toward Level ${journey.next.number}` : 'Journey complete'}
             accessibilityValue={{ min: 0, max: 100, now: Math.floor(journey.fraction * 100) }}
             style={{ height: 6 * scale, width: 114 * scale, maxWidth: '100%', borderRadius: 6, backgroundColor: '#DCD0BC', marginTop: 9 * scale, overflow: 'hidden' }}>
