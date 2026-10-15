@@ -99,4 +99,12 @@ Never record OAuth codes, session tokens or provider secrets here.
   (962 total, no failures).
 - Final iOS, Android and web exports passed with the per-request account guard. No APK
   built. Web reload retained the signed-in identity and synced successfully again.
-- Owner sent the live tunnel QR and exact expected iPhone flow; awaiting response.
+- Physical iPhone Expo Go acceptance **confirmed by the owner on 2026-10-15** after
+  scanning the live tunnel QR and following Google sign-in → Account → Save now:
+  "My email appears and Save now completes." This verifies the native browser return,
+  PKCE exchange, account display and authenticated sync on that phone. Google sign-in
+  is resolved for the tested web and iPhone Expo Go flows; no APK was built or tested.
+- Acceptance follow-up: pulled the owner's later work through `6f62785`, preserved it,
+  and changed only these acceptance documents. `npm run check` passed on that revision:
+  TypeScript, ESLint, 534 domain + 458 data tests (992 total). No new export was needed
+  for this documentation-only closure.

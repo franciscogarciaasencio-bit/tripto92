@@ -12,9 +12,10 @@ Only one agent edits at a time: pull before starting, push before handing over.
 acceptance matrix is in the Session 20 log entry: what is done, verified only by the owner,
 unverified on a physical phone, blocked or not done by decision. Open items, in order:
 
-1. Google sign-in diagnosis/fix implemented (2026-10-15): Supabase rejects numeric LAN
-   IP redirects before the allow list; use Expo Go `--tunnel`. Web Google login and
-   Save now verified; awaiting the owner's iPhone tunnel acceptance. See AUTH_DEBUG.md.
+1. ~~Google sign-in returns to localhost~~ resolved (2026-10-15): web login and Save now
+   verified; owner confirmed email appears and Save now completes on physical iPhone
+   Expo Go through `--tunnel`. Numeric LAN callbacks remain rejected by Supabase.
+   See AUTH_DEBUG.md.
 2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
 3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
    raise `android.versionCode` and keeps the approved package and signing key.
@@ -737,7 +738,7 @@ after the owner's interruptions, exit 0). No app source
 changes in this session beyond test helpers and documentation. Real Google sign-in and a hosted
 Supabase project remain owner setup; device sync remains to be exercised with real credentials.
 
-Open item (updated 2026-10-15): localhost diagnosed using Auth logs, live redirect probes
+Resolved (2026-10-15, owner acceptance confirmed): localhost diagnosed using Auth logs, live redirect probes
 and Supabase's validator source. Google login succeeds; non-loopback numeric IP callbacks
 are rejected before allow-list matching. Expo Go must use `npx expo start --clear --tunnel`.
 The live `.exp.direct` callback is accepted. Added web-only token persistence and a same-tab
@@ -745,7 +746,9 @@ PKCE callback (native SecureStore/browser unchanged), with every RPC bound to th
 account to prevent cross-tab account mixing. Web Google → Account email → Save now verified.
 Verification: `npm run check` passed (962 tests, TypeScript and lint); iOS/Android/web exports
 passed. Four existing Windows test cleanup hooks now close stores before deleting files.
-Awaiting the owner's physical iPhone result before closing this item. Full evidence and
+Owner confirmed the physical iPhone Expo Go tunnel test: "My email appears and Save now
+completes." Native browser return, PKCE exchange and authenticated sync are therefore
+verified on that phone; this Google sign-in item is closed. Full evidence and
 verification status: [AUTH_DEBUG.md](AUTH_DEBUG.md).
 
 ### Pre-meditation screen — Complete (2026-10-14), inserted before Sessions 19–20 by the owner
@@ -847,8 +850,8 @@ Status key: **Done** = implemented and verified here; **Done (owner)** = owner r
 | Accessibility: headers, labels, large text, Reduced Motion | Done / Unverified | TalkBack/VoiceOver and real large-font rendering |
 | Sync engine: outbox, retries, merge, resets, deletion, account isolation | Done | sync data tests against the real Supabase SQL (PGlite) |
 | Supabase project, RLS, functions | Done (owner) | owner ran the SQL; configured project `zmebgjgcmptmivwqumxg` |
-| Google sign-in end to end | **Blocked** | sign-in returns to Supabase Site URL (`localhost`); needs the returned URL / Auth logs from the owner |
-| Real multi-phone sync with real accounts | Unverified | depends on sign-in |
+| Google sign-in end to end | **Done — web + owner iPhone Expo Go** | Web email + Save now verified; owner confirmed the same physical iPhone flow using the Expo tunnel (2026-10-15). See AUTH_DEBUG.md. |
+| Real multi-phone sync with real accounts | Unverified | requires a second physical device and a multi-device sync exercise |
 | Cloud storage growth (~25 MB/person-year) | Partial | fine for owner; compaction needed before wider release (SYNC.md) |
 | Dependency advisories | Partial | build-time only except `decode-uri-component` (low impact, accepted; see Session 19) |
 | Google app publishing (privacy policy, homepage) | Not done | needed only to let other people sign in |

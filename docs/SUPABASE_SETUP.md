@@ -105,8 +105,10 @@ Same-tab navigation preserves the COOP/COEP headers required by web SQLite. A po
 opener is severed by COOP, so adding only `maybeCompleteAuthSession()` is insufficient.
 
 Web Google → Account email → **Save now** has been exercised in the owner's Chrome.
-iPhone Expo Go acceptance is pending the owner's tunnel test; do not treat a web
-export as native verification.
+On 2026-10-15 the owner also confirmed the physical iPhone Expo Go tunnel flow:
+"My email appears and Save now completes." Native acceptance comes from that phone
+test, separately from the successful web exports. Expo Go sign-in must keep using
+`--tunnel`; the default numeric LAN callback remains rejected by Supabase.
 
 ## Things to know
 
