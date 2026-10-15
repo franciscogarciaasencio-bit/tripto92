@@ -1,55 +1,91 @@
-// Painted calendar marks in Ona's watercolour (scripts/watercolor). The closing vignette,
-// assets/ona/calendar/vignette.webp, is the owner's own ink painting (paper matched to #F2E9DA, edges faded).
+// Calendar day marks, painted like ink and wash on paper (scripts/watercolor/paint.cjs renders them).
 //
 //   node scripts/calendar/build-calendar-art.cjs     (writes assets/ona/calendar/*.webp)
 //
-// The calendar uses square cells, so every sprite is cut to whole cells: a run of n counted days is
-// n cells wide and one cell tall; a block of k consecutive active weeks is seven cells wide and k tall.
-// Days in a row are one deep warm grey shape (waisted between days like joined drops); consecutive
-// consistent weeks are one lighter warm grey wash. Cut at 146 px per cell (sharp at 3x on a ~49 pt cell).
+// A single counted day is a round drop of near-black ink; consecutive counted days are one pale warm
+// grey wash whose drops flow into each other through soft necks (a "metaball" made by blurring the
+// drops and sharpening the result's alpha). Sprites are cut to whole columns (146 px per column, sharp at
+// 3x on a ~49 pt column) and one column tall, so the app never stretches them. Owner reference:
+// docs/evidence/calendar-reference.png. The closing vignette (vignette.webp) is the owner's own painting.
 const path = require('node:path');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, rmSync, mkdirSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { execFileSync } = require('node:child_process');
-const { paint, createBrush } = require('../watercolor/paint.cjs');
+const { paint } = require('../watercolor/paint.cjs');
 
+const NECK = Number(process.env.NECK || 18), NECK_RATIO = Number(process.env.RATIO || 0.58);
 const OUT = path.join(__dirname, '../../assets/ona/calendar');
-const C = 1024 / 7;
-let clips = 0;
-/** Like brush.form, for a shape made of several elements (an SVG clipPath cannot hold a <g>). */
-function multiForm(elements, fill, { texture, opacity = 1, shades = [] }) {
-  const id = `cal${++clips}`;
-  const shadeMarkup = shades.map(({ shape, color, opacity: o = 0.7, wide = false }) =>
-    `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx}" ry="${shape.ry ?? shape.rx}" fill="${color}" opacity="${o}" filter="url(#${wide ? 'shadeWide' : 'shade'})"/>`).join('');
-  return `<defs><clipPath id="${id}">${elements}</clipPath></defs>
-    <g filter="url(#${texture})" opacity="${opacity}"><g clip-path="url(#${id})"><rect x="-50" y="-50" width="1124" height="1124" fill="${fill}"/>${shadeMarkup}</g></g>`;
-}
-const DAY = { fill: '#4f4943', light: '#77706a', dark: '#36322e' };
-const WEEK = { fill: '#dcd3c4', light: '#e9e2d6', deep: '#cfc5b4' };
+const C = 1024 / 7, Y = 512, R = C * Number(process.env.INK || 0.37), RUN_R = C * Number(process.env.RUN || 0.39);
 
-function dayRun(brush, n, variant) {
-  const r = C * 0.39, y = 512;
-  const parts = [];
-  for (let i = 0; i < n; i++) parts.push(`<circle cx="${C * (i + 0.5)}" cy="${y}" r="${r}"/>`);
-  // A slightly narrower waist between neighbouring days, so a run reads as joined drops.
-  for (let i = 0; i < n - 1; i++) parts.push(`<ellipse cx="${C * (i + 1)}" cy="${y}" rx="${C * 0.5}" ry="${r * 0.8}"/>`);
-  const width = n * C;
-  return brush.paper(multiForm(parts.join(''), DAY.fill, { texture: `wash${1 + (variant % 8)}`, shades: [
-    { shape: { cx: width * 0.3, cy: y - r * 0.45, rx: Math.max(r, width * 0.3), ry: r * 0.6 }, color: DAY.light, opacity: 0.55 },
-    { shape: { cx: width * 0.72, cy: y + r * 0.55, rx: Math.max(r, width * 0.35), ry: r * 0.6 }, color: DAY.dark, opacity: 0.55 },
-  ] }));
+/** Ink: slightly irregular edge, a little feathering, faint lighter pools and a fine grain. */
+function inkFilter(id, seed) {
+  return `<filter id="${id}" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="${seed}" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="3.2" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+    <feGaussianBlur in="shape" stdDeviation="0.8" result="soft"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.024" numOctaves="3" seed="${seed + 7}" result="pools"/>
+    <feColorMatrix in="pools" type="matrix" values="0 0 0 0 0.62  0 0 0 0 0.61  0 0 0 0 0.58  2.2 0 0 0 -0.95" result="light"/>
+    <feComposite in="light" in2="soft" operator="in" result="lightIn"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="${seed + 3}" result="g"/>
+    <feColorMatrix in="g" type="matrix" values="0 0 0 0 0.9  0 0 0 0 0.9  0 0 0 0 0.88  0.9 0 0 0 -0.42" result="grain"/>
+    <feComposite in="grain" in2="soft" operator="in" result="grainIn"/>
+    <feComponentTransfer in="lightIn" result="lightSoft"><feFuncA type="linear" slope="0.28"/></feComponentTransfer>
+    <feComponentTransfer in="grainIn" result="grainSoft"><feFuncA type="linear" slope="0.05"/></feComponentTransfer>
+    <feMerge><feMergeNode in="soft"/><feMergeNode in="lightSoft"/><feMergeNode in="grainSoft"/></feMerge>
+  </filter>`;
 }
 
-function weekBlock(brush, k) {
-  const top = 512 - (k * C) / 2, inset = C * 0.06, rowHeight = C * 0.92;
-  const parts = [];
-  for (let i = 0; i < k; i++) parts.push(`<rect x="${inset}" y="${top + i * C + (C - rowHeight) / 2}" width="${1024 - 2 * inset}" height="${rowHeight}" rx="${rowHeight / 2}"/>`);
-  // Consecutive consistent weeks join into one wash, a little narrower where two weeks meet.
-  for (let i = 0; i < k - 1; i++) parts.push(`<rect x="${C * 0.16}" y="${top + (i + 1) * C - C * 0.3}" width="${1024 - C * 0.32}" height="${C * 0.6}"/>`);
-  return brush.paper(multiForm(parts.join(''), WEEK.fill, { texture: `still${1 + (k % 3)}`, opacity: 0.8, shades: [
-    { shape: { cx: 300, cy: top + C * 0.3, rx: 360, ry: Math.max(60, k * C * 0.35) }, color: WEEK.light, opacity: 0.6, wide: true },
-    { shape: { cx: 760, cy: top + k * C - C * 0.25, rx: 380, ry: Math.max(50, k * C * 0.3) }, color: WEEK.deep, opacity: 0.35, wide: true },
-  ] }));
+/** Wash: soft edge, mottled pigment (darker blooms), a faintly pooled rim. */
+function washFilter(id, seed) {
+  return `<filter id="${id}" x="-15%" y="-40%" width="130%" height="180%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="${seed}" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="4" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+    <feGaussianBlur in="shape" stdDeviation="0.9" result="soft"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="4" seed="${seed + 5}" result="m"/>
+    <feColorMatrix in="m" type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.52  0 0 0 0 0.47  1.7 0 0 0 -0.78" result="blooms"/>
+    <feComposite in="blooms" in2="soft" operator="in" result="bloomsIn"/>
+    <feComponentTransfer in="bloomsIn" result="bloomsSoft"><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+    <feMorphology in="soft" operator="erode" radius="4" result="inner"/>
+    <feGaussianBlur in="inner" stdDeviation="5" result="innerSoft"/>
+    <feComposite in="soft" in2="innerSoft" operator="out" result="rim"/>
+    <feColorMatrix in="rim" type="matrix" values="0 0 0 0 0.62  0 0 0 0 0.59  0 0 0 0 0.54  0 0 0 0.16 0" result="rimDark"/>
+    <feMerge><feMergeNode in="soft"/><feMergeNode in="bloomsSoft"/><feMergeNode in="rimDark"/></feMerge>
+  </filter>`;
+}
+
+/** Drops at each day centre, melted together into one shape with necks between days. */
+function gooMask(id, n, neck) {
+  const drops = Array.from({ length: n }, (_, i) => `<circle cx="${C * (i + 0.5)}" cy="${Y}" r="${RUN_R}" fill="#fff"/>`).join('')
+    // A bridge between neighbouring drops sets the neck (about 60 % of a drop's height); the blur and
+    // re-sharpened alpha below round its corners into soft concave fillets, like wet paint meeting.
+    + Array.from({ length: n - 1 }, (_, i) => `<rect x="${C * (i + 0.5)}" y="${Y - RUN_R * NECK_RATIO}" width="${C}" height="${2 * RUN_R * NECK_RATIO}" fill="#fff"/>`).join('');
+  return `<filter id="${id}-goo" x="-20%" y="-60%" width="140%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="${neck}" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11"/>
+    </filter>
+    <mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><g filter="url(#${id}-goo)">${drops}</g></mask>`;
+}
+
+function inkDay(variant) {
+  const seed = 11 + variant * 17;
+  const lightAt = [[0.36, 0.34], [0.6, 0.4], [0.45, 0.62]][variant % 3];
+  return `<defs>${inkFilter('ink', seed)}
+      <radialGradient id="depth" cx="${lightAt[0]}" cy="${lightAt[1]}" r="0.75">
+        <stop offset="0" stop-color="#2b2a27"/><stop offset="0.7" stop-color="#1a1917"/><stop offset="1" stop-color="#121210"/></radialGradient></defs>
+    <g filter="url(#ink)"><circle cx="${C / 2}" cy="${Y}" r="${R * (variant === 2 ? 0.99 : 1)}" fill="url(#depth)"/></g>`;
+}
+
+function washRun(n) {
+  const seed = 5 + n * 13, width = n * C;
+  const necks = Array.from({ length: n - 1 }, (_, i) =>
+    `<ellipse cx="${C * (i + 1)}" cy="${Y}" rx="${C * 0.3}" ry="${RUN_R * 0.62}" fill="#b9b1a4" opacity="0.3" filter="url(#neckBlur)"/>`).join('');
+  return `<defs>${washFilter('wash', seed)}${gooMask('run', n, NECK)}
+      <filter id="neckBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+      <linearGradient id="tone" x1="0" y1="0" x2="1" y2="0.35">
+        <stop offset="0" stop-color="#e4ddd0"/><stop offset="0.5" stop-color="#ded7ca"/><stop offset="1" stop-color="#e2dbce"/></linearGradient></defs>
+    <g filter="url(#wash)"><g mask="url(#run)">
+      <rect x="0" y="${Y - C}" width="${width}" height="${2 * C}" fill="url(#tone)"/>${necks}
+    </g></g>`;
 }
 
 async function render(scene, name, crop) {
@@ -59,13 +95,13 @@ async function render(scene, name, crop) {
   execFileSync('python3', ['-c', `
 from PIL import Image
 im = Image.open(${JSON.stringify(png)}).convert('RGBA').crop(tuple(round(v) for v in ${JSON.stringify(crop)}))
-im.save(${JSON.stringify(path.join(OUT, name))}, 'WEBP', quality=90, method=6)`]);
+im.save(${JSON.stringify(path.join(OUT, name))}, 'WEBP', quality=92, method=6)`]);
   rmSync(work, { recursive: true, force: true });
 }
 
 async function main() {
-  require('node:fs').mkdirSync(OUT, { recursive: true });
-  for (let n = 1; n <= 7; n++) await render(dayRun(createBrush(), n, n), `days-${n}.webp`, [0, 512 - C / 2, n * C, 512 + C / 2]);
-  for (let k = 1; k <= 6; k++) await render(weekBlock(createBrush(), k), `weeks-${k}.webp`, [0, 512 - (k * C) / 2, 1024, 512 + (k * C) / 2]);
+  mkdirSync(OUT, { recursive: true });
+  for (let v = 0; v < 3; v++) await render(inkDay(v), `ink-${v + 1}.webp`, [0, Y - C / 2, C, Y + C / 2]);
+  for (let n = 2; n <= 7; n++) await render(washRun(n), `wash-${n}.webp`, [0, Y - C / 2, n * C, Y + C / 2]);
 }
 main().catch((error) => { console.error(error); process.exit(1); });

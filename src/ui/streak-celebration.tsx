@@ -128,7 +128,7 @@ export function StreakCelebration({ moment, sessions, scale, busy, onContinue }:
       </View>
       <View accessible accessibilityLabel={`${practiceDateLabel(moment.date, { month: 'long', day: 'numeric' })} joins your calendar`}>
         <PaintedMonth month={month} streaks={streaks} practiced={practiced} today={moment.date}
-          moment={{ date: moment.date, weekBecameActive: moment.weekBecameActive }} />
+          moment={{ date: moment.date }} />
       </View>
     </View>
 

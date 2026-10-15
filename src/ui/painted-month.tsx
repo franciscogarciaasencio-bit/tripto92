@@ -10,22 +10,26 @@ import { useMotionPreference } from './reduced-motion';
 import { streakRuns } from './streak-geometry';
 
 /**
- * Painted marks (scripts/calendar/build-calendar-art.cjs). Cells are square, so a run of n counted days
- * is the n-cell sprite and k consecutive consistent weeks are the k-row wash, never stretched.
+ * Painted day marks (scripts/calendar/build-calendar-art.cjs; owner reference docs/evidence/
+ * calendar-reference.png): a single counted day is a drop of ink, consecutive counted days one pale
+ * wash with soft necks. Sprites are one column tall and n columns wide, never stretched.
  */
-const DAYS = [null, require('../../assets/ona/calendar/days-1.webp'), require('../../assets/ona/calendar/days-2.webp'),
-  require('../../assets/ona/calendar/days-3.webp'), require('../../assets/ona/calendar/days-4.webp'),
-  require('../../assets/ona/calendar/days-5.webp'), require('../../assets/ona/calendar/days-6.webp'),
-  require('../../assets/ona/calendar/days-7.webp')] as const;
-const WEEKS = [null, require('../../assets/ona/calendar/weeks-1.webp'), require('../../assets/ona/calendar/weeks-2.webp'),
-  require('../../assets/ona/calendar/weeks-3.webp'), require('../../assets/ona/calendar/weeks-4.webp'),
-  require('../../assets/ona/calendar/weeks-5.webp'), require('../../assets/ona/calendar/weeks-6.webp')] as const;
+const INK = [require('../../assets/ona/calendar/ink-1.webp'), require('../../assets/ona/calendar/ink-2.webp'),
+  require('../../assets/ona/calendar/ink-3.webp')] as const;
+const WASH: Record<number, number> = {
+  2: require('../../assets/ona/calendar/wash-2.webp'), 3: require('../../assets/ona/calendar/wash-3.webp'),
+  4: require('../../assets/ona/calendar/wash-4.webp'), 5: require('../../assets/ona/calendar/wash-5.webp'),
+  6: require('../../assets/ona/calendar/wash-6.webp'), 7: require('../../assets/ona/calendar/wash-7.webp'),
+};
 export const CALENDAR_VIGNETTE = require('../../assets/ona/calendar/vignette.webp');
-export const DAY_SWATCH = DAYS[1];
-export const WEEK_WASH = '#DCD3C4';
-const PAINTED_TEXT = '#F7F0E3';
+/** Width / height of vignette.webp. */
+export const VIGNETTE_RATIO = 1024 / 722;
+const ON_INK = '#F6F1E8';
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+/** Rows are a little taller than columns are wide, as in the reference. */
+export const ROW_RATIO = 1.22;
 const settle = Easing.bezier(0.22, 0.61, 0.36, 1);
+const arrive = Easing.out(Easing.back(1.4));
 
 /** 0 → 1 once after `delay`; already 1 when still (Reduced Motion, or the preference not yet known). */
 function useStep(delay: number, duration: number, still: boolean, easing: NonNullable<WithTimingConfig['easing']> = settle) {
@@ -37,6 +41,9 @@ function useStep(delay: number, duration: number, still: boolean, easing: NonNul
   }, [delay, duration, easing, still, value]);
   return value;
 }
+
+/** When a month draws in, each row's marks start left to right, one row after another. */
+const drawDelay = (row: number, column: number) => 80 + row * 70 + column * 30;
 
 function addDays(date: string, days: number) {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
@@ -52,139 +59,166 @@ export function monthRows(month: string) {
   return Array.from({ length: rows }, (_, row) => Array.from({ length: 7 }, (_, column) => addDays(start, row * 7 + column)));
 }
 
-/** Consecutive consistent weeks as [first row, row count]. */
-function weekBlocks(active: readonly boolean[]) {
-  const blocks: [number, number][] = [];
-  active.forEach((on, row) => {
-    if (!on) return;
-    const last = blocks[blocks.length - 1];
-    if (last && last[0] + last[1] === row) last[1]++; else blocks.push([row, 1]);
-  });
-  return blocks;
+/** A stable ink variant per date, so a day keeps its drop. */
+function inkFor(date: string) {
+  let hash = 0;
+  for (const char of date) hash = (hash * 31 + char.charCodeAt(0)) % 997;
+  return INK[hash % INK.length]!;
 }
 
-/** A painted run: drawn in from its left edge like one brush stroke (or from `from` cells when it grows). */
-function Run({ length, column, cell, delay, from, still }: { length: number; column: number; cell: number; delay: number; from: number; still: boolean }) {
-  const reveal = useStep(delay, 260 + length * 70, still);
-  const style = useAnimatedStyle(() => ({ width: cell * (from + (length - from) * reveal.value), opacity: from > 0 ? 1 : Math.min(1, reveal.value * 3) }));
-  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: column * cell, top: 0, height: cell, overflow: 'hidden' }, style]}>
-    <Image source={DAYS[length]} style={{ width: cell * length, height: cell }} />
+type Run = readonly [number, number];
+const sameRun = (a: Run, b: Run) => a[0] === b[0] && a[1] === b[1];
+
+/** One mark: an ink drop for a single day, the n-day wash for a run. */
+function Mark({ run, dates, cell, top }: { run: Run; dates: readonly string[]; cell: number; top: number }) {
+  const length = run[1] - run[0] + 1;
+  return <Image source={length === 1 ? inkFor(dates[run[0]]!) : WASH[length]!}
+    style={{ position: 'absolute', left: run[0] * cell, top, width: length * cell, height: cell }} />;
+}
+
+/** A mark that draws in left to right like one brush stroke (calendar opening, month change). */
+function DrawnMark({ run, dates, cell, top, delay, still }: { run: Run; dates: readonly string[]; cell: number; top: number; delay: number; still: boolean }) {
+  const length = run[1] - run[0] + 1;
+  const reveal = useStep(delay, 240 + length * 80, still);
+  const style = useAnimatedStyle(() => ({ width: cell * length * reveal.value, opacity: Math.min(1, reveal.value * 2.5) }));
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, height: cell, overflow: 'hidden' }, style]}>
+    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} />
   </Animated.View>;
 }
 
-/** A painted wash under consistent weeks; `grows` crossfades from the block without the newest week. */
-function Wash({ rows, cell, width, delay, still, grows }: { rows: number; cell: number; width: number; delay: number; still: boolean; grows: boolean }) {
-  const reveal = useStep(delay, 520, still);
-  const next = useAnimatedStyle(() => ({ opacity: reveal.value }));
-  const before = useAnimatedStyle(() => ({ opacity: 1 - reveal.value }));
-  return <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width, height: rows * cell }}>
-    {grows && rows > 1 && <Animated.View style={[StyleSheet.absoluteFill, before]}>
-      <Image source={WEEKS[rows - 1]} style={{ width, height: (rows - 1) * cell }} /></Animated.View>}
-    <Animated.View style={[StyleSheet.absoluteFill, next]}><Image source={WEEKS[rows]} style={{ width, height: rows * cell }} /></Animated.View>
-  </View>;
+/** Fades out after `delay` (marks this practice replaces). */
+function FadeOut({ delay, duration, still, children }: { delay: number; duration: number; still: boolean; children: React.ReactNode }) {
+  const step = useStep(delay, duration, still);
+  const style = useAnimatedStyle(() => ({ opacity: 1 - step.value }));
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>{children}</Animated.View>;
+}
+
+/** The newest day's mark arriving: an ink drop settles in, or the run grows from the days it joins. */
+function Arriving({ run, from, dates, cell, top, still }: { run: Run; from: number; dates: readonly string[]; cell: number; top: number; still: boolean }) {
+  const length = run[1] - run[0] + 1;
+  const grow = useStep(420, 520, still);
+  const drop = useStep(420, 460, still, arrive);
+  const growStyle = useAnimatedStyle(() => ({ width: cell * (from + (length - from) * grow.value), opacity: from > 0 ? 1 : Math.min(1, grow.value * 2.5) }));
+  const dropStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, drop.value * 2), transform: [{ scale: 0.4 + 0.6 * drop.value }] }));
+  if (length === 1) return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, width: cell, height: cell }, dropStyle]}>
+    <Mark run={[0, 0]} dates={[dates[run[0]]!]} cell={cell} top={0} />
+  </Animated.View>;
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, height: cell, overflow: 'hidden' }, growStyle]}>
+    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} />
+  </Animated.View>;
 }
 
 /** Two soft rings spreading from the newest day, like a drop in still water. */
 function Ripple({ size, delay, still }: { size: number; delay: number; still: boolean }) {
   const progress = useStep(delay, 1500, still, Easing.out(Easing.quad));
-  const style = useAnimatedStyle(() => ({ opacity: still ? 0 : 0.45 * (1 - progress.value) * Math.min(1, progress.value * 6),
+  const style = useAnimatedStyle(() => ({ opacity: still ? 0 : 0.4 * (1 - progress.value) * Math.min(1, progress.value * 6),
     transform: [{ scale: 1 + 2 * progress.value }] }));
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2,
-    borderWidth: 1.2, borderColor: '#4F4943', left: -size / 2, top: -size / 2 }, style]} />;
+    borderWidth: 1.1, borderColor: colors.ink, left: -size / 2, top: -size / 2 }, style]} />;
 }
 
-function DayNumber({ date, painted, inMonth, cell, turnsAt, still }: { date: string; painted: boolean; inMonth: boolean; cell: number; turnsAt: number | null; still: boolean }) {
-  const turn = useStep(turnsAt ?? 0, 220, still || turnsAt === null);
-  const light = useAnimatedStyle(() => ({ opacity: turnsAt === null ? (painted ? 1 : 0) : turn.value }));
-  const dark = useAnimatedStyle(() => ({ opacity: turnsAt === null ? (painted ? 0 : 1) : 1 - turn.value }));
-  const size = Math.min(19, cell * 0.38);
-  const text = { fontFamily: serifFont, fontSize: size, lineHeight: size * 1.25, color: inMonth ? colors.ink : 'rgba(20,20,20,0.3)' };
+/** A day number; light on an ink drop. With `turnsAt`, it changes tone as the newest mark arrives. */
+function DayNumber({ day, inMonth, onInk, wasOnInk, cell, turnsAt, fade = 260, still }: {
+  day: number; inMonth: boolean; onInk: boolean; wasOnInk: boolean; cell: number; turnsAt: number | null; fade?: number; still: boolean;
+}) {
+  const turn = useStep(turnsAt ?? 0, fade, still || turnsAt === null);
+  const start = turnsAt === null ? (onInk ? 1 : 0) : (wasOnInk ? 1 : 0), end = onInk ? 1 : 0;
+  const light = useAnimatedStyle(() => ({ opacity: start + (end - start) * turn.value }));
+  const dark = useAnimatedStyle(() => ({ opacity: 1 - (start + (end - start) * turn.value) }));
+  const size = Math.min(21, cell * 0.36);
+  const text = { fontFamily: serifFont, fontSize: size, lineHeight: size * 1.3, color: inMonth ? colors.ink : 'rgba(20,20,20,0.32)' };
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Animated.View style={[styles.center, dark]}><Text style={text}>{Number(date.slice(8))}</Text></Animated.View>
-    <Animated.View style={[styles.center, light]}><Text style={[text, { color: PAINTED_TEXT }]}>{Number(date.slice(8))}</Text></Animated.View>
+    <Animated.View style={[styles.center, dark]}><Text style={text}>{day}</Text></Animated.View>
+    <Animated.View style={[styles.center, light]}><Text style={[text, { color: ON_INK }]}>{day}</Text></Animated.View>
   </View>;
 }
 
 /**
- * One month, painted in Ona's watercolour: days in a row are one deep warm grey shape, consecutive
- * consistent weeks one lighter warm grey wash, hairlines between weeks, the week in progress outlined.
- * With `moment`, the newest practice day is painted in (its run grows from yesterday, ripples spread,
- * its week's wash arrives when that day made the week count). Without it, the month draws in gently.
+ * One month, painted like ink and wash on paper (owner reference): a single counted day is an ink drop,
+ * consecutive counted days one pale wash; hairlines between weeks; the week in progress outlined; a
+ * chosen day other than today ringed; shorter practices a small dot. With `moment`, the newest practice day is painted
+ * in (its drop settles, or its run grows from the days it joins, and ripples spread). Otherwise the
+ * month draws in gently, row by row.
  */
 export function PaintedMonth({ month, streaks, practiced, today, selected, onSelect, moment, live = true }: {
   month: string; streaks: PracticeStreaks; practiced: ReadonlySet<string>; today: string;
   selected?: string | null; onSelect?: (date: string) => void;
-  moment?: { date: string; weekBecameActive: boolean } | null; live?: boolean;
+  moment?: { date: string } | null; live?: boolean;
 }) {
-  const preference = useMotionPreference();
-  const still = preference !== false;
+  const still = useMotionPreference() !== false;
   const [width, setWidth] = useState(0);
-  const cell = width / 7;
+  const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2, dot = Math.max(4, Math.round(cell * 0.11));
   const rows = monthRows(month);
-  const weeks = rows.map((dates) => streaks.week(dates[0]!));
-  const blocks = weekBlocks(weeks.map((week) => live && week.state === 'active'));
-  const momentRow = moment ? rows.findIndex((dates) => dates.includes(moment.date)) : -1;
-  const momentColumn = momentRow >= 0 ? rows[momentRow]!.indexOf(moment!.date) : -1;
   return <View>
     <View style={styles.weekdays}>
       {WEEKDAYS.map((day) => <Text key={day} style={styles.weekday}>{day}</Text>)}
     </View>
-    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ height: width ? rows.length * cell : 280 }}>
-      {width > 0 && <>
-        {rows.slice(0, -1).map((_, row) => <View key={`line-${row}`} style={[styles.line, { top: (row + 1) * cell }]} />)}
-        {blocks.map(([start, count]) => {
-          const grows = !!moment?.weekBecameActive && momentRow >= start && momentRow < start + count;
-          return <View key={`wash-${start}`} style={{ position: 'absolute', left: 0, top: start * cell }}>
-            <Wash rows={count} cell={cell} width={width} still={still || (!!moment && !grows)} grows={grows && momentRow === start + count - 1}
-              delay={moment ? (grows ? 1000 : 0) : start * 70} />
-          </View>;
-        })}
-        {weeks.map((week, row) => live && week.state === 'open' && rows[row]!.includes(today)
-          ? <View key={`open-${row}`} style={[styles.open, { top: row * cell + cell * 0.06, height: cell * 0.88, borderRadius: cell * 0.44 }]} /> : null)}
-        {rows.map((dates, row) => <View key={dates[0]} style={{ position: 'absolute', left: 0, top: row * cell, width, height: cell }}>
-          {(live ? streakRuns(dates.map((date) => streaks.isActiveDay(date))) : []).map(([start, end]) => {
-            const length = end - start + 1;
-            const holds = row === momentRow && momentColumn >= start && momentColumn <= end;
-            // A run that the newest day extends grows from the cells it already had.
-            const from = holds && moment ? Math.max(0, momentColumn - start) : length;
-            return <Run key={start} length={length} column={start} cell={cell} from={moment ? from : 0} still={still}
-              delay={moment ? (holds ? 420 : 0) : 120 + row * 70 + start * 25} />;
-          })}
+    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ height: width ? rows.length * rowHeight : 300 }}>
+      {width > 0 && rows.map((dates, row) => {
+        const counted = dates.map((date) => live && streaks.isActiveDay(date));
+        const after = streakRuns(counted);
+        const momentColumn = moment ? dates.indexOf(moment.date) : -1;
+        const before = momentColumn >= 0 ? streakRuns(counted.map((on, column) => on && column !== momentColumn)) : after;
+        const arriving = momentColumn >= 0 ? after.find(([start, end]) => momentColumn >= start && momentColumn <= end) ?? null : null;
+        // Marks this practice changes fade out as the new one arrives; all others stay as they were.
+        const replaced = arriving ? before.filter(([start, end]) => end >= arriving[0] && start <= arriving[1]) : [];
+        const unchanged = after.filter((run) => run !== arriving && before.some((old) => sameRun(old, run)));
+        const showsWeek = live && dates.includes(today);
+        return <View key={dates[0]} style={{ position: 'absolute', left: 0, top: row * rowHeight, width, height: rowHeight }}>
+          {row > 0 && !showsWeek && !(live && rows[row - 1]!.includes(today)) && <View style={styles.line} />}
+          {showsWeek && <View style={[styles.week, { top: rowHeight * 0.06, height: rowHeight * 0.88, borderRadius: rowHeight * 0.44 }]} />}
+          {moment
+            ? <>
+              {unchanged.map((run) => <Mark key={`s${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} />)}
+              {replaced.length > 0 && <FadeOut delay={420} duration={520} still={still}>
+                {replaced.map((run) => <Mark key={`b${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} />)}
+              </FadeOut>}
+              {arriving && <Arriving run={arriving} dates={dates} cell={cell} top={markTop} still={still}
+                from={replaced.length ? Math.max(0, momentColumn - arriving[0]) : 0} />}
+            </>
+            : after.map((run) => <DrawnMark key={`${month}${run[0]}`} run={run} dates={dates} cell={cell} top={markTop}
+              delay={drawDelay(row, run[0])} still={still} />)}
           {dates.map((date, column) => {
             const inMonth = date.startsWith(`${month}-`);
-            const counted = live && streaks.isActiveDay(date);
-            const short = live && !counted && practiced.has(date);
-            const chosen = selected === date && inMonth;
-            const isMoment = row === momentRow && column === momentColumn;
+            const isCounted = counted[column]!;
+            const single = after.some(([start, end]) => start === column && end === column);
+            const wasSingle = before.some(([start, end]) => start === column && end === column);
+            const short = live && !isCounted && practiced.has(date);
+            const chosen = !!onSelect && selected === date && inMonth;
+            const isMoment = column === momentColumn;
             const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}`
-              + `${counted ? ', counts toward streaks' : short ? ', a shorter practice' : ''}${date === today ? ', today' : ''}`;
+              + `${isCounted ? ', counts toward streaks' : short ? ', a shorter practice' : ''}${date === today ? ', today' : ''}`;
             const content = <>
-              {isMoment && <View style={{ position: 'absolute', left: cell / 2, top: cell / 2 }}>
-                <Ripple size={cell * 0.78} delay={760} still={still} /><Ripple size={cell * 0.78} delay={1040} still={still} />
+              {isMoment && <View style={{ position: 'absolute', left: cell / 2, top: rowHeight / 2 }}>
+                <Ripple size={cell * 0.74} delay={780} still={still} /><Ripple size={cell * 0.74} delay={1060} still={still} />
               </View>}
-              {(chosen || (date === today && inMonth)) && <View style={[styles.ring, { width: cell * 0.86, height: cell * 0.86,
-                borderRadius: cell * 0.43, left: cell * 0.07, top: cell * 0.07, opacity: chosen ? 0.75 : 0.28 }]} />}
-              <DayNumber date={date} painted={counted} inMonth={inMonth} cell={cell} turnsAt={isMoment ? 640 : null} still={still} />
-              {short && <View style={[styles.dot, { top: cell * 0.76, left: cell / 2 - 2 }]} />}
+              {/* Today is the default choice and needs no ring (the week outline already holds it), as in the reference. */}
+              {chosen && date !== today && <View style={[styles.ring, { width: cell * 0.86, height: cell * 0.86, borderRadius: cell * 0.43,
+                left: cell * 0.07, top: (rowHeight - cell * 0.86) / 2 }]} />}
+              {/* Light numbers wait for their ink: on the newest day as it arrives, elsewhere as the drop's wipe crosses them. */}
+              <DayNumber day={Number(date.slice(8))} inMonth={inMonth} onInk={single} wasOnInk={!!moment && !isMoment && wasSingle} cell={cell} still={still}
+                fade={moment ? 260 : 160}
+                turnsAt={moment ? (isMoment || wasSingle !== single ? 620 : null) : single ? drawDelay(row, column) + 30 : null} />
+              {short && <View style={[styles.dot, { width: dot, height: dot, borderRadius: dot / 2, top: rowHeight * 0.85 - dot / 2, left: (cell - dot) / 2 }]} />}
             </>;
+            const frame = { position: 'absolute' as const, left: column * cell, top: 0, width: cell, height: rowHeight };
             return inMonth && onSelect
               ? <QuietPressable key={date} accessibilityRole="button" accessibilityState={{ selected: chosen }} accessibilityLabel={label}
-                onPress={() => onSelect(date)} style={{ position: 'absolute', left: column * cell, top: 0, width: cell, height: cell }}>{content}</QuietPressable>
-              : <View key={date} accessible={inMonth} accessibilityLabel={inMonth ? label : undefined}
-                style={{ position: 'absolute', left: column * cell, top: 0, width: cell, height: cell }}>{content}</View>;
+                onPress={() => onSelect(date)} style={frame}>{content}</QuietPressable>
+              : <View key={date} accessible={inMonth} accessibilityLabel={inMonth ? label : undefined} style={frame}>{content}</View>;
           })}
-        </View>)}
-      </>}
+        </View>;
+      })}
     </View>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  weekdays: { flexDirection: 'row', paddingBottom: 8 },
-  weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, color: 'rgba(20,20,20,0.55)' },
-  line: { position: 'absolute', left: 4, right: 4, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },
-  open: { position: 'absolute', left: 0, right: 0, borderWidth: 1, borderColor: 'rgba(20,20,20,0.16)' },
-  ring: { position: 'absolute', borderWidth: 1, borderColor: colors.ink },
-  dot: { position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink },
+  weekdays: { flexDirection: 'row', paddingBottom: 6 },
+  weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 12, lineHeight: 16, letterSpacing: 1.1, color: 'rgba(20,20,20,0.5)' },
+  line: { position: 'absolute', top: 0, left: 2, right: 2, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },
+  week: { position: 'absolute', left: -4, right: -4, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.3)' },
+  ring: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(20,20,20,0.55)' },
+  dot: { position: 'absolute', backgroundColor: colors.ink },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
 });

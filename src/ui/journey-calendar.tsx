@@ -7,12 +7,11 @@ import Svg, { Path } from 'react-native-svg';
 import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
-import { MonthSlide, MonthStreakLine, StreakLegend, StreakOverview } from './calendar-streaks';
-import { CALENDAR_VIGNETTE, monthRows, PaintedMonth } from './painted-month';
+import { MonthSlide, StreakOverview } from './calendar-streaks';
+import { CALENDAR_VIGNETTE, PaintedMonth, VIGNETTE_RATIO } from './painted-month';
 import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, Notice, Screen, serifFont, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
-import { PracticeRow } from './practice-row';
 import { UI_MOTION } from './motion';
 import { useReducedMotion } from './reduced-motion';
 import { groupPracticeHistory, monthPracticeSummary, practiceDateLabel, practiceTimeLabel } from './practice-history';
@@ -144,41 +143,37 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         <PaintedMonth month={month} streaks={streaks} practiced={practiceDates} today={today} selected={selected}
           onSelect={setSelected} live={shown} />
       </MonthSlide>
-      {shown && <MonthStreakLine status={streaks.month(month)} />}
-      {shown && <StreakLegend minutes={STREAK_RULES.minimumActiveSeconds / 60} days={STREAK_RULES.activeDaysPerWeek}
-        sharedWeeks={monthRows(month).some((dates) => streaks.week(dates[0]!).month !== month)} />}
+      {/* The chosen day in one quiet line; its practice opens with a tap. */}
+      {shown && <QuietPressable accessibilityRole={selectedRecords.length ? 'button' : 'text'} disabled={!selectedRecords.length}
+        accessibilityHint={selectedRecords.length ? 'Opens this practice' : undefined} onPress={() => {
+          if (openingDetails.current || !selectedRecords.length) return;
+          openingDetails.current = true;
+          if (selectedRecords.length === 1) router.push({ pathname: '/practice-detail', params: { id: selectedRecords[0]!.session.id } });
+          else router.push('/history');
+        }} style={calendarStyles.dayLine}>
+        <Type role="secondary" style={calendarStyles.dayLineText}>
+          {`${practiceDateLabel(selected, { weekday: 'long', month: 'long', day: 'numeric' })} · ${selectedRecords.length
+            ? `${formatDuration(activeSeconds)}${selectedRecords.length > 1 ? ` · ${selectedRecords.length} practices` : ''}  ›` : 'no practice'}`}
+        </Type>
+      </QuietPressable>}
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
         {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
-      </Type> : !error && <View style={calendarStyles.monthSummary}>
-        <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 4 }}>
-          <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
-        </View>
-        <View accessible accessibilityLabel={`${practiceTimeLabel(summary.activeSeconds)} of time for yourself`} style={{ flex: 1, gap: 4 }}>
-          <Type role="heading" accessibilityRole="text">{practiceTimeLabel(summary.activeSeconds)}</Type><Type role="secondary">Time for yourself</Type>
-        </View>
-        <Type role="secondary" style={{ width: '100%', fontSize: 12, marginTop: 8 }}>
-          {`${summary.practices} ${summary.practices === 1 ? 'practice' : 'practices'} this month · Short practices included`}
-        </Type>
-      </View>}
+      </Type> : null}
       <Notice>{error ? 'Your practice could not be loaded. Your saved records are unchanged.' : null}</Notice>
       {error && <Action quiet onPress={() => setAttempt((value) => value + 1)}>Try again</Action>}
-      <View style={calendarStyles.dayDetails}>
-        <Type role="heading">{practiceDateLabel(selected, { month: 'long', day: 'numeric' })}</Type>
-        {!loading && current && !error && (selectedRecords.length ? <Type role="secondary">
-          {`${selectedRecords.length} ${selectedRecords.length === 1 ? 'practice' : 'practices'} · ${formatDuration(activeSeconds)}`}
-        </Type> : <Type role="secondary">No recorded practice on this date.</Type>)}
-        {!loading && current && !error && <View>
-          {selectedRecords.map(({ session }) => <PracticeRow key={session.id} session={session} onPress={() => {
-            if (openingDetails.current) return;
-            openingDetails.current = true;
-            router.push({ pathname: '/practice-detail', params: { id: session.id } });
-          }} />)}
-        </View>}
-      </View>
-      <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
-      {/* The calendar ends quietly: stones in still water, painted like the rest of Ona. */}
-      <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth * 722 / 1024, marginTop: 8,
+      {/* The owner's painting rests under the month: its misty sky reaches up into the calendar. */}
+      <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth / VIGNETTE_RATIO,
+        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.2,
         ...(windowWidth <= 540 ? { marginLeft: windowWidth <= 375 ? -20 : -24 } : { alignSelf: 'center' }) }} />
+      {shown && <View style={calendarStyles.monthSummary}>
+        <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 2 }}>
+          <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
+        </View>
+        <View accessible accessibilityLabel={`${practiceTimeLabel(summary.activeSeconds)} of time for yourself`} style={{ flex: 1, gap: 2 }}>
+          <Type role="heading" accessibilityRole="text">{practiceTimeLabel(summary.activeSeconds)}</Type><Type role="secondary">Time for yourself</Type>
+        </View>
+      </View>}
+      <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
     </ScrollView>
     </Animated.View>
   </Screen><HomeNavigation active="journey" /></View>;
@@ -194,7 +189,8 @@ const calendarStyles = StyleSheet.create({
   monthArrow: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
   todayLine: { height: 30, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 },
   todayAction: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 4 },
-  monthSummary: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderColor: colors.line },
-  dayDetails: { borderTopWidth: 1, borderColor: colors.line, marginTop: 28, paddingTop: 24, gap: 10 },
-  record: { borderBottomWidth: 1, borderColor: colors.line, paddingVertical: 14, gap: 4 },
+  // Above the painting's misty sky, which reaches up under it.
+  dayLine: { minHeight: 44, justifyContent: 'center', alignItems: 'center', marginTop: 4, zIndex: 2 },
+  dayLineText: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  monthSummary: { flexDirection: 'row', columnGap: 20, marginTop: 8, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
 });

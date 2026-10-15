@@ -219,19 +219,26 @@ short practice does not end the time away. The very first practice says "The hab
 
 ### Painted calendar (2026-10-15)
 
-Owner direction (with a reference image): the month is painted, consistent with Ona's watercolour.
-painted-month.tsx draws every month (Journey calendar and the celebration after a practice) on square
-cells: counted days in a row are one deep warm grey watercolour shape (a single day is one drop;
-neighbours join with a soft waist), consecutive consistent weeks are one lighter warm grey wash that
-joins across rows, hairlines separate weeks, the week in progress has a hairline outline, today and the
-chosen day are thin rings, shorter practices a small dot. Sprites are cut to whole cells and never
-stretched (assets/ona/calendar/days-1…7, weeks-1…6, painted by scripts/calendar/build-calendar-art.cjs).
-Header: the month in large serif, "‹ 2026 ›" on the right, Today on a fixed line beneath (no layout shift);
-uppercase serif weekdays, serif dates. The calendar ends with the owner's ink painting of stones in still
-water (vignette.webp: paper matched to #F2E9DA, edges faded, bleeding to the screen edges). Runs draw in
-left to right and washes fade in row by row; in the celebration the new day's run grows from yesterday,
-two ripples spread and the week's wash arrives when that day made the week count. The past-year dot field
-was removed at the owner's request.
+Owner direction, matched to the owner's reference (docs/evidence/calendar-reference.png):
+painted-month.tsx draws every month (Journey calendar and the celebration after a practice). A single
+counted day is a round drop of near-black ink with a light number; consecutive counted days are one pale
+warm-grey wash whose drops flow into each other through soft necks, with dark numbers. Weeks are separated
+by hairlines; the week in progress has a rounded hairline outline; a chosen day other than today a thin ring; a
+shorter practice a small dot. Proportions measured on the reference: drops 0.73 of a column, wash drops
+0.76 with necks 0.48. Columns are square for the marks and rows 1.22 × taller, as in the reference.
+Sprites (assets/ona/calendar/ink-1…3, wash-2…7) are painted by scripts/calendar/build-calendar-art.cjs
+(ink filter with feathered edge and faint lighter pools; wash with mottled blooms and a pooled rim; drops
+plus bridges re-sharpened into rounded necks) and cut to whole columns, never stretched.
+
+Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
+a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
+line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water
+(vignette.webp: paper matched to #F2E9DA, edges faded), whose misty sky reaches up under that line and
+bleeds to the screen edges; then practice days and time for the month, and Meditation history. Removed at
+the owner's request: the past-year dots, the "n of 5 weeks active" line, the legend, the recent-week and
+month trails, and the week washes. Marks draw in left to right row by row, light numbers waiting for their
+ink. In the celebration the newest day's drop settles in (or its run grows from the days it joins while
+the marks it replaces fade), and two ripples spread from it.
 
 ### App size and icon (2026-10-15)
 

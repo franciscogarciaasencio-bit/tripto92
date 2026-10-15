@@ -1025,3 +1025,11 @@ row joined in dark, consecutive consistent weeks joined in a lighter tone), adop
 uppercase weekdays, week hairlines and a closing painting (the owner's own ink painting), and remove the
 past-year dots. painted-month.tsx now draws both the Journey calendar and the celebration. JavaScript and
 assets only: ships in the 1.2.0 APK or as an over-the-air update. Verified on web at 390 and 320 wide.
+
+### Calendar marks matched to the owner's reference — Complete (2026-10-15)
+
+Second pass on the owner's request to make the days look exactly like the reference: single counted days
+are ink drops, consecutive days one pale wash with rounded necks; composed side by side with the reference
+until shapes, sizes and tones matched (necks from bridges plus a re-sharpened blur). The owner's painting
+now sits directly under the month; extra information removed (weeks-active line, legend, trails, week
+washes). Verified on web at 390 and 320 wide, with seeded data in the reference's pattern.
