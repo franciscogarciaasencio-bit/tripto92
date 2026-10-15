@@ -169,14 +169,25 @@ through existing sound controls, with no floating Resume sound/Play sound button
 
 ### Journey calendar and level path (2026-10-15)
 
-Calendar: a streak strip (days in a row, active weeks, full months; "Best" only when higher) above the
-month. Each Monday–Sunday row is a week: an active week rests on a soft solid band, the week in
-progress has a hairline outline. Days with a 3+ minute practice are solid discs, joined to active
-neighbours in the same row; a dot marks a shorter practice. Days from neighbouring months are shown
-faintly so a week's band is explainable. Under the grid: whether the month counts ("All 5 weeks
-active · this month counts", "3 of 5 weeks active so far") and a one-line legend. Tones are solid
-mixes of ink on sand (#E9E0D1 band, #D9D0C1 disc) so overlaps never form darker seams. No flames,
-warnings or "streak lost" language.
+Calendar hierarchy (owner direction: weeks and months lead, days stay quiet): the header shows
+active weeks in a row as the hero serif number, with this week's three pebbles ("2 of 3 days this
+week", "This week counts", or "A fresh week begins Monday") and the last eight weeks as small
+capsules; full months come second with the last six months as small circles; days in a row is a
+single quiet line ("5 days in a row · best 8"). Filled = counted, outlined = in progress, faint = not counted.
+
+Grid: each Monday–Sunday row is a week; an active week rests on a soft solid band, the week in
+progress has a hairline outline. Consecutive counting days in a row are one capsule (no seams);
+a single counting day is a disc; a dot marks a shorter practice. Neighbouring-month days are faint.
+Under the grid, the month's own weeks as capsules plus "All 5 weeks active · this month counts" /
+"3 of 5 weeks active so far", then a one-line legend. Solid tones (#E9E0D1 band, #D9D0C1 capsule).
+No flames, warnings or "streak lost" language.
+
+Streak motion (streak-geometry.ts holds timings; everything on the UI thread, settles in about one
+second, nothing loops): week bands unfold row by row (80 ms stagger); each run appears as a disc on
+its first day and extends to its last day like one brush stroke; the chosen day's ink disc eases in
+(180 ms); a new month slides 22 pt in from the side it was reached from (300 ms); header numbers rise
+into place when they change; pebbles and capsules fill in sequence. Reduced Motion, or a preference
+not yet known at cold start, draws everything finished immediately.
 
 Levels: a single vertical thread through 25 category stops (icon in a ring, serif name, theme,
 status), each with five stepping stones: filled = achieved, ringed with a halo = current, open =

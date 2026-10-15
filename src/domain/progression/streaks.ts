@@ -43,6 +43,10 @@ export interface PracticeStreaks {
   isActiveDay(date: LocalDate): boolean;
   week(date: LocalDate): WeekStatus;
   month(month: string): MonthStatus;
+  /** The last `count` weeks, oldest first, ending with the week containing today. */
+  recentWeeks(count: number): readonly WeekStatus[];
+  /** The last `count` months, oldest first, ending with the month that owns this week. */
+  recentMonths(count: number): readonly MonthStatus[];
 }
 
 export function qualifiesForStreak(session: Pick<MeditationSession, 'status' | 'activeDurationSeconds'>) {
@@ -70,6 +74,11 @@ function addMonths(month: string, offset: number) {
   const [year, value] = month.split('-').map(Number) as [number, number];
   const index = year * 12 + (value - 1) + offset;
   return `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
+}
+
+function boundedCount(value: number) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > 520) throw new RangeError('count must be 1–520');
+  return value;
 }
 
 /** Count back from the current period: open periods are skipped, active ones count, the first missed one stops. */
@@ -152,5 +161,9 @@ export function practiceStreaks(sessions: Iterable<Pick<MeditationSession, 'stat
     isActiveDay: (date: LocalDate) => active.has(dayNumber(date)),
     week: (date: LocalDate) => weekAt(mondayOf(dayNumber(date))),
     month: monthAt,
+    recentWeeks: (size: number) => Object.freeze(Array.from({ length: boundedCount(size) },
+      (_, index) => weekAt(mondayOf(todayNumber) - 7 * (boundedCount(size) - 1 - index)))),
+    recentMonths: (size: number) => Object.freeze(Array.from({ length: boundedCount(size) },
+      (_, index) => monthAt(addMonths(lastMonth, index - (boundedCount(size) - 1))))),
   });
 }

@@ -115,3 +115,16 @@ test('A year of daily practice gives long streaks without error', () => {
   assert.equal(streaks.month('2026-01').state, 'active');
   assert.equal(streaks.months.current, 12);
 });
+
+test('Recent weeks and months end with the current period, oldest first', () => {
+  const sessions = activeWeeks('2026-09-21', '2026-09-28', '2026-10-05');
+  const streaks = practiceStreaks(sessions, '2026-10-14');
+  assert.deepEqual(streaks.recentWeeks(4).map((week) => [week.start, week.state]),
+    [['2026-09-21', 'active'], ['2026-09-28', 'active'], ['2026-10-05', 'active'], ['2026-10-12', 'open']]);
+  assert.deepEqual(streaks.recentMonths(3).map((month) => [month.month, month.state]),
+    [['2026-08', 'missed'], ['2026-09', 'missed'], ['2026-10', 'open']]);
+  // A Monday-to-Wednesday week whose Thursday is in the next month belongs to that month.
+  assert.equal(practiceStreaks([], '2026-12-29').recentMonths(1)[0].month, '2026-12');
+  assert.equal(practiceStreaks([], '2027-03-30').recentMonths(1)[0].month, '2027-04');
+  assert.throws(() => streaks.recentWeeks(0), RangeError);
+});

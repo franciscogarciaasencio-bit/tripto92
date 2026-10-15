@@ -877,3 +877,14 @@ Verification: nine new domain tests (day/week/month states, Thursday ownership i
 in-progress periods, short/early practice, travel dates, a year of practice); TypeScript, lint and
 full test suite. Web build: fourteen real practices driven through the app with a controlled clock,
 then calendar and level-path screenshots at 390×844, no page errors. Not verified on a phone.
+
+### Streak hierarchy and motion — Complete (2026-10-15), requested by the owner
+
+Owner: build smooth animations and a better representation of streaks, and adopt the idea of showing
+week and month numbers more prominently than the day number. Weeks are now the hero (with this
+week's three pebbles and the last eight weeks), months second (last six months), days a quiet line.
+Runs of counting days are single capsules that grow like a brush stroke; week bands unfold; months
+slide in from their direction; the selection eases in. Domain: `recentWeeks`/`recentMonths` on
+practice streaks. Pure geometry/timings in src/ui/streak-geometry.ts (tested: runs, capsule
+geometry, settle ≤ 1.1 s). Verified with web frame captures during the entrance, month slide,
+selection and with Reduced Motion emulated (drawn instantly). Not verified: native frame pacing.

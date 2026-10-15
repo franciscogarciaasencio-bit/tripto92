@@ -25,7 +25,8 @@
     "src/cloud/ledger-client.ts",
     "src/application/sync-engine.ts",
     "src/application/sync-status.ts",
-    "src/ui/intentions.ts"
+    "src/ui/intentions.ts",
+    "src/ui/streak-geometry.ts"
   ],
   "exclude": [
     "src/data/index.ts",

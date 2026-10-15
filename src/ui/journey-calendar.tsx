@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
-import { CalendarStreaks, MonthStreakLine, STREAK_FILL, StreakLegend, WeekRow } from './calendar-streaks';
+import { MonthSlide, MonthStreakLine, SelectionDisc, StreakLegend, StreakOverview, streakRuns, WeekRow } from './calendar-streaks';
 import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, formatTime, Notice, Screen, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
@@ -35,6 +35,8 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const [today, setToday] = useState(() => currentContext().localDate);
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selected, setSelected] = useState(today);
+  const [direction, setDirection] = useState<-1 | 0 | 1>(0);
+  const [gridWidth, setGridWidth] = useState(0);
   const [records, setRecords] = useState<readonly StoredMeditationSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -88,6 +90,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
 
   function changeMonth(offset: number) {
     const destination = monthInstant(month, offset).toISOString().slice(0, 7);
+    setDirection(offset > 0 ? 1 : -1);
     setMonth(destination);
     setSelected(destination === today.slice(0, 7) ? today : calendarDate(destination, 1));
   }
@@ -101,7 +104,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </QuietPressable>
     </View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
-      {shown && <CalendarStreaks streaks={streaks} />}
+      {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
       <View style={calendarStyles.monthHeading}>
         <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
           disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
@@ -118,6 +121,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       <QuietPressable accessibilityRole="button" accessibilityLabel="Return to today in the practice calendar"
         onPress={() => {
           const date = currentContext().localDate;
+          setDirection(date.slice(0, 7) === month ? 0 : date.slice(0, 7) > month ? 1 : -1);
           setToday(date); setMonth(date.slice(0, 7)); setSelected(date);
         }} style={{ minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 8 }}>
         <Type role="secondary">Today</Type>
@@ -125,25 +129,24 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       <View style={calendarStyles.weekdays}>
         {WEEKDAYS.map((day) => <View key={day} style={calendarStyles.weekday}><Type role="secondary" style={{ fontSize: 11 }}>{day}</Type></View>)}
       </View>
+      <View onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
+      <MonthSlide key={month} direction={direction}>
       {Array.from({ length: cellCount / 7 }, (_, row) => {
         const dates = Array.from({ length: 7 }, (_, column) => shiftDate(first, row * 7 + column - dayOffset));
         const week = streaks.week(dates[0]!);
-        return <WeekRow key={dates[0]} state={shown ? week.state : 'future'}>
+        const runs = shown ? streakRuns(dates.map((date) => streaks.isActiveDay(date))) : [];
+        return <WeekRow key={`${month}:${dates[0]}`} row={row} state={shown ? week.state : 'future'} runs={runs} cell={gridWidth / 7}>
           {dates.map((date, column) => {
             const inMonth = date.startsWith(`${month}-`);
             const count = byDate.get(date)?.length ?? 0;
             const counts = shown && streaks.isActiveDay(date);
-            const joinLeft = counts && column > 0 && streaks.isActiveDay(dates[column - 1]!);
-            const joinRight = counts && column < 6 && streaks.isActiveDay(dates[column + 1]!);
-            const chosen = date === selected;
+            const chosen = date === selected && inMonth;
             const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${count} ${count === 1 ? 'practice' : 'practices'}`
               + `${counts ? ', counts toward streaks' : ''}${column === 0 && shown && week.state === 'active' ? ', active week' : ''}${date === today ? ', today' : ''}`;
             const content = <>
               <View style={calendarStyles.dayTrack}>
-                {joinLeft && <View style={[calendarStyles.join, { left: 0, right: '50%' }]} />}
-                {joinRight && <View style={[calendarStyles.join, { left: '50%', right: 0 }]} />}
-                <View style={[calendarStyles.day, counts && calendarStyles.counts, chosen && calendarStyles.selected,
-                  !chosen && date === today && calendarStyles.today]}>
+                {chosen && <SelectionDisc key={selected} />}
+                <View style={[calendarStyles.day, !chosen && date === today && calendarStyles.today]}>
                   <Type style={{ fontSize: 15, color: chosen ? colors.background : inMonth ? colors.ink : 'rgba(20,20,20,0.35)' }}>{Number(date.slice(8))}</Type>
                 </View>
               </View>
@@ -155,6 +158,8 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
           })}
         </WeekRow>;
       })}
+      </MonthSlide>
+      </View>
       {shown && <MonthStreakLine status={streaks.month(month)} />}
       {shown && <StreakLegend minutes={STREAK_RULES.minimumActiveSeconds / 60} days={STREAK_RULES.activeDaysPerWeek}
         sharedWeeks={Array.from({ length: cellCount / 7 }, (_, row) => streaks.week(shiftDate(first, row * 7 - dayOffset)).month).some((owner) => owner !== month)} />}
@@ -203,12 +208,10 @@ const calendarStyles = StyleSheet.create({
   arrow: { fontSize: 32, lineHeight: 40 },
   weekdays: { flexDirection: 'row' },
   weekday: { width: '14.285714%', alignItems: 'center', paddingVertical: 14 },
-  cell: { width: '14.285714%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  // Fixed vertical rhythm: the day track always starts 7 pt down, where streak capsules are drawn.
+  cell: { width: '14.285714%', minHeight: 52, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 7, gap: 5 },
   dayTrack: { alignSelf: 'stretch', height: 34, alignItems: 'center', justifyContent: 'center' },
-  join: { position: 'absolute', top: 0, height: 34, backgroundColor: STREAK_FILL },
   day: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17 },
-  counts: { backgroundColor: STREAK_FILL },
-  selected: { backgroundColor: colors.ink },
   today: { borderWidth: 1, borderColor: colors.line },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink },
   monthSummary: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderColor: colors.line },
