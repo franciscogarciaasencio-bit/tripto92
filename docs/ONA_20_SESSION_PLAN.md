@@ -888,3 +888,23 @@ slide in from their direction; the selection eases in. Domain: `recentWeeks`/`re
 practice streaks. Pure geometry/timings in src/ui/streak-geometry.ts (tested: runs, capsule
 geometry, settle ≤ 1.1 s). Verified with web frame captures during the entrance, month slide,
 selection and with Reduced Motion emulated (drawn instantly). Not verified: native frame pacing.
+
+### Consistency bar, current-level Journey and sealed stages — Complete (2026-10-15), owner request
+
+Owner requests: a consistency bar like a single bar with small dots beneath (reference: a game health
+bar, in Ona colours); Journey shows only the current level, with the button explaining the purpose
+(Level 100 ends habit formation); new names and icons for Levels 6–100, unknown to the owner so they
+are discovered by playing; Monkey Mind for Levels 1–5.
+
+Done: ConsistencyBar is one bar with five milestone segments beneath. Journey shows the current stage
+only plus "Toward Level 100" and the purpose. Stages 2–20 are **sealed**: names, themes and icons live
+base64-encoded (assets/ona/categories-sealed.json + runtime mirror), edited only via
+scripts/sealed-categories.cjs (counts-only output), never exported as SVG, guarded by
+tests/domain/sealed-stages.test.cjs (fails if any sealed text appears in plain files; reports IDs only).
+The completion screen veils a new stage during the level animation and then reveals its symbol and
+name once (stage-reveal.tsx). The content was designed by a helper agent out of the owner's view in
+three rounds (names; icons for stages 2–10; icons 11–20), each rendered and reviewed visually by that
+agent, verified and committed here without the contents ever being printed. Stable category IDs,
+achievements and history are unchanged (presentation v3 only).
+
+Open: Levels 101–125 remain visible (owner was asked whether to seal them too). Not verified on a phone.
