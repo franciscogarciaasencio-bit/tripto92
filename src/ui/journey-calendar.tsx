@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
+import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
+import { CalendarStreaks, MonthStreakLine, STREAK_FILL, StreakLegend, WeekRow } from './calendar-streaks';
 import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, formatTime, Notice, Screen, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
@@ -15,6 +17,11 @@ const HISTORY_PAGE_SIZE = 50;
 /** UTC is only used to lay out Gregorian calendar cells, never to reassign saved practice dates. */
 function calendarDate(month: string, day: number) {
   return `${month}-${String(day).padStart(2, '0')}`;
+}
+
+/** Calendar arithmetic on UTC midnights; only lays out cells. */
+function shiftDate(start: Date, days: number) {
+  return new Date(start.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
 function monthInstant(month: string, offset = 0) {
@@ -67,6 +74,8 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const current = loadedRevision === practiceRevision && loadedCount === completedPractices;
   const byDate = useMemo(() => new Map(groupPracticeHistory(current ? records : []).map(day => [day.key, day.data])), [current, records]);
   const summary = useMemo(() => monthPracticeSummary(current ? records : [], month), [current, records, month]);
+  const streaks = useMemo(() => practiceStreaks((current ? records : []).map(({ session }) => session), today), [current, records, today]);
+  const shown = !loading && current && !error;
 
   const first = monthInstant(month);
   const dayOffset = (first.getUTCDay() + 6) % 7;
@@ -92,6 +101,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </QuietPressable>
     </View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      {shown && <CalendarStreaks streaks={streaks} />}
       <View style={calendarStyles.monthHeading}>
         <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
           disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
@@ -112,24 +122,42 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         }} style={{ minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 8 }}>
         <Type role="secondary">Today</Type>
       </QuietPressable>
-      <View style={calendarStyles.grid}>
+      <View style={calendarStyles.weekdays}>
         {WEEKDAYS.map((day) => <View key={day} style={calendarStyles.weekday}><Type role="secondary" style={{ fontSize: 11 }}>{day}</Type></View>)}
-        {Array.from({ length: cellCount }, (_, index) => {
-          const day = index - dayOffset + 1;
-          if (day < 1 || day > dayCount) return <View key={`empty-${index}`} style={calendarStyles.cell} />;
-          const date = calendarDate(month, day);
-          const count = byDate.get(date)?.length ?? 0;
-          const chosen = date === selected;
-          return <QuietPressable key={date} accessibilityRole="button" accessibilityState={{ selected: chosen }}
-            accessibilityLabel={`${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${count} ${count === 1 ? 'practice' : 'practices'}${date === today ? ', today' : ''}`}
-            onPress={() => setSelected(date)} style={calendarStyles.cell}>
-            <View style={[calendarStyles.day, chosen && calendarStyles.selected, !chosen && date === today && calendarStyles.today]}>
-              <Type style={{ fontSize: 15, color: chosen ? colors.background : colors.ink }}>{day}</Type>
-            </View>
-            <View style={[calendarStyles.dot, { opacity: count ? 1 : 0 }]} />
-          </QuietPressable>;
-        })}
       </View>
+      {Array.from({ length: cellCount / 7 }, (_, row) => {
+        const dates = Array.from({ length: 7 }, (_, column) => shiftDate(first, row * 7 + column - dayOffset));
+        const week = streaks.week(dates[0]!);
+        return <WeekRow key={dates[0]} state={shown ? week.state : 'future'}>
+          {dates.map((date, column) => {
+            const inMonth = date.startsWith(`${month}-`);
+            const count = byDate.get(date)?.length ?? 0;
+            const counts = shown && streaks.isActiveDay(date);
+            const joinLeft = counts && column > 0 && streaks.isActiveDay(dates[column - 1]!);
+            const joinRight = counts && column < 6 && streaks.isActiveDay(dates[column + 1]!);
+            const chosen = date === selected;
+            const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${count} ${count === 1 ? 'practice' : 'practices'}`
+              + `${counts ? ', counts toward streaks' : ''}${column === 0 && shown && week.state === 'active' ? ', active week' : ''}${date === today ? ', today' : ''}`;
+            const content = <>
+              <View style={calendarStyles.dayTrack}>
+                {joinLeft && <View style={[calendarStyles.join, { left: 0, right: '50%' }]} />}
+                {joinRight && <View style={[calendarStyles.join, { left: '50%', right: 0 }]} />}
+                <View style={[calendarStyles.day, counts && calendarStyles.counts, chosen && calendarStyles.selected,
+                  !chosen && date === today && calendarStyles.today]}>
+                  <Type style={{ fontSize: 15, color: chosen ? colors.background : inMonth ? colors.ink : 'rgba(20,20,20,0.35)' }}>{Number(date.slice(8))}</Type>
+                </View>
+              </View>
+              <View style={[calendarStyles.dot, { opacity: count && !counts ? 1 : 0 }]} />
+            </>;
+            return inMonth ? <QuietPressable key={date} accessibilityRole="button" accessibilityState={{ selected: chosen }}
+              accessibilityLabel={label} onPress={() => setSelected(date)} style={calendarStyles.cell}>{content}</QuietPressable>
+              : <View key={date} style={calendarStyles.cell} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{content}</View>;
+          })}
+        </WeekRow>;
+      })}
+      {shown && <MonthStreakLine status={streaks.month(month)} />}
+      {shown && <StreakLegend minutes={STREAK_RULES.minimumActiveSeconds / 60} days={STREAK_RULES.activeDaysPerWeek}
+        sharedWeeks={Array.from({ length: cellCount / 7 }, (_, row) => streaks.week(shiftDate(first, row * 7 - dayOffset)).month).some((owner) => owner !== month)} />}
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
         {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
       </Type> : !error && <View style={calendarStyles.monthSummary}>
@@ -173,10 +201,13 @@ const calendarStyles = StyleSheet.create({
   monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12 },
   monthArrow: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
   arrow: { fontSize: 32, lineHeight: 40 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  weekdays: { flexDirection: 'row' },
   weekday: { width: '14.285714%', alignItems: 'center', paddingVertical: 14 },
   cell: { width: '14.285714%', minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  dayTrack: { alignSelf: 'stretch', height: 34, alignItems: 'center', justifyContent: 'center' },
+  join: { position: 'absolute', top: 0, height: 34, backgroundColor: STREAK_FILL },
   day: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17 },
+  counts: { backgroundColor: STREAK_FILL },
   selected: { backgroundColor: colors.ink },
   today: { borderWidth: 1, borderColor: colors.line },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink },

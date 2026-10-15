@@ -131,6 +131,20 @@ after each complete inactive date, including those protected for level progressi
 - Miss three complete days: level progress is still protected; C declines each day.
   Further complete inactive days gently reduce effective progress toward its floor.
 
+## Calendar streaks: ona_streaks_v1 (presentation only)
+
+`src/domain/progression/streaks.ts`. Streaks never change Ripples, levels, Consistency or credits.
+
+- **Active day**: at least one completed practice of 180+ active seconds (the practice-credit test).
+  Shorter practices stay visible in the calendar (dot) but do not count.
+- **Active week**: Monday–Sunday with at least three active days.
+- **Full month**: every week that belongs to the month is active. A week belongs to the month holding
+  its Thursday (most of its days), so each week belongs to exactly one month (4 or 5 per month).
+- **Current streak**: counted back from today. A day, week or month still in progress never breaks a
+  streak; it breaks only once that period can no longer count (a week is missed as soon as its
+  remaining days cannot reach three). **Best** is the longest run so far.
+- Dates are the saved local dates of practice; nothing is reinterpreted in today's time zone.
+
 ## Precision, history and calendar
 
 Persist/domain XP values are integer centi-Ripples (100 = one Ripple). Round at earning

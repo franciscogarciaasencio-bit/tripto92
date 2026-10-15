@@ -858,3 +858,22 @@ Status key: **Done** = implemented and verified here; **Done (owner)** = owner r
 2. Listen once to Start/End/Interval bells over two ambiences.
 3. Large system text and TalkBack/VoiceOver on Home, Prepare, Session, Journey.
 4. Sign-in retry: report the full `localhost…` address and the grey development line.
+
+## After the program
+
+### Calendar streaks and level path — Complete (2026-10-15), requested by the owner
+
+Owner request: day and week streaks in the calendar (a week is active with at least three active
+days), monthly streaks only when every week of the month was active, visually evident; and a rework
+of the levels section, which "looked too much like a list with numbers".
+
+Decisions taken (owner may revise): an active day uses the existing 3-minute practice test; weeks
+run Monday–Sunday; a week belongs to the month holding most of its days; a period in progress never
+breaks a streak. Pure domain module `streaks.ts` (`ona_streaks_v1`, presentation only, no storage,
+no migration); calendar rows, discs, bands, month line and legend; the level list replaced by a
+tappable path (LevelPath). Rules in GAME_SYSTEM.md, visuals in ONA_UI.md.
+
+Verification: nine new domain tests (day/week/month states, Thursday ownership incl. year boundary,
+in-progress periods, short/early practice, travel dates, a year of practice); TypeScript, lint and
+full test suite. Web build: fourteen real practices driven through the app with a controlled clock,
+then calendar and level-path screenshots at 390×844, no page errors. Not verified on a phone.

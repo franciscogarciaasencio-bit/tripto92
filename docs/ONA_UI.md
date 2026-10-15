@@ -167,6 +167,23 @@ The source PNG is neither tinted, stretched nor recompressed. Guide/intro use th
 asset; completion and intro use deliberate landscape crops. Audio retry is available
 through existing sound controls, with no floating Resume sound/Play sound buttons.
 
+### Journey calendar and level path (2026-10-15)
+
+Calendar: a streak strip (days in a row, active weeks, full months; "Best" only when higher) above the
+month. Each Monday–Sunday row is a week: an active week rests on a soft solid band, the week in
+progress has a hairline outline. Days with a 3+ minute practice are solid discs, joined to active
+neighbours in the same row; a dot marks a shorter practice. Days from neighbouring months are shown
+faintly so a week's band is explainable. Under the grid: whether the month counts ("All 5 weeks
+active · this month counts", "3 of 5 weeks active so far") and a one-line legend. Tones are solid
+mixes of ink on sand (#E9E0D1 band, #D9D0C1 disc) so overlaps never form darker seams. No flames,
+warnings or "streak lost" language.
+
+Levels: a single vertical thread through 25 category stops (icon in a ring, serif name, theme,
+status), each with five stepping stones: filled = achieved, ringed with a halo = current, open =
+ahead; Level 100 is a larger stone. Tapping a stone shows its level name, state and requirements
+from the domain table (Ripples, plus practice days/year where the table requires them). Categories
+ahead are softened but always inspectable. Implemented in level-path.tsx.
+
 ## Timer/data boundary and accessibility
 
 Screens render provider/repository results; pure domain computes rewards, qualification
