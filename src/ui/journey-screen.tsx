@@ -1,29 +1,65 @@
+import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 import { useOna } from '@/application/ona-provider';
 import { CategoryIcon } from './category-icon';
 import { HomeNavigation } from './home-navigation';
-import { LevelProgress } from './level-progress';
 import { formatRipples } from './format-ripples';
-import { Action, colors, Screen, Type, serifFont as serif } from './primitives';
+import { colors, Screen, Type, serifFont as serif } from './primitives';
 import { HowItWorks } from './progress-explanation';
 import { QuietPressable } from './quiet-pressable';
 import { getLevelCategoryPresentation } from './category-presentation';
+import { useMotionPreference } from './reduced-motion';
 
-const HABIT_MILESTONE_LEVEL = 100;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const RING = 176, STROKE = 2, RADIUS = (RING - STROKE * 4) / 2, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const ease = Easing.bezier(0.22, 0.61, 0.36, 1);
+
+/** 0 → 1 once after `delay`; instant with Reduced Motion (or before the preference is known). */
+function useEntrance(delay: number, duration: number) {
+  const still = useMotionPreference() !== false;
+  const value = useSharedValue(still ? 1 : 0);
+  useEffect(() => {
+    if (still) { value.set(1); return; }
+    value.set(withDelay(delay, withTiming(1, { duration, easing: ease, reduceMotion: ReduceMotion.Never })));
+    return () => cancelAnimation(value);
+  }, [still, delay, duration, value]);
+  return value;
+}
+
+/** The current stage's symbol inside a soft halo; a thin ring fills toward the next level. */
+function StageMedallion({ fraction, children }: { fraction: number; children: React.ReactNode }) {
+  const halo = useEntrance(0, 900), ring = useEntrance(250, 1100), symbol = useEntrance(120, 800);
+  const haloStyle = useAnimatedStyle(() => ({ opacity: halo.value, transform: [{ scale: 0.9 + 0.1 * halo.value }] }));
+  const symbolStyle = useAnimatedStyle(() => ({ opacity: symbol.value, transform: [{ scale: 0.86 + 0.14 * symbol.value }] }));
+  const arc = useAnimatedProps(() => ({ strokeDashoffset: CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, fraction)) * ring.value) }));
+  return <View style={styles.medallion}>
+    <Animated.View pointerEvents="none" style={[styles.haloOuter, haloStyle]} />
+    <Animated.View pointerEvents="none" style={[styles.haloInner, haloStyle]} />
+    <Svg width={RING} height={RING} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+      <Circle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke="rgba(20,20,20,0.12)" strokeWidth={STROKE} fill="none" />
+      <AnimatedCircle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke={colors.ink} strokeWidth={STROKE} fill="none"
+        strokeLinecap="round" strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`} animatedProps={arc} />
+    </Svg>
+    <Animated.View style={symbolStyle}>{children}</Animated.View>
+  </View>;
+}
 
 /**
- * Only the level you are on. Levels ahead stay undiscovered until you reach them; this screen
- * explains what the journey is for instead of listing what comes next.
+ * Only the stage you are in: its symbol at the centre and progress toward the next level.
+ * Stages ahead stay undiscovered; nothing measures the distance to Level 100.
  */
 export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }) {
   const { journey, habit } = useOna();
+  const words = useEntrance(380, 700);
+  const wordsStyle = useAnimatedStyle(() => ({ opacity: words.value, transform: [{ translateY: 8 * (1 - words.value) }] }));
   if (!journey) return <Screen />;
   const highest = habit?.highestLevel ?? journey.level.number;
   const level = journey.level.number;
   const presentation = getLevelCategoryPresentation(journey.level);
-  const towardHabit = Math.min(1, highest / HABIT_MILESTONE_LEVEL);
-  const complete = highest >= HABIT_MILESTONE_LEVEL;
+  const toward = journey.next ? `Toward Level ${journey.next.number}` : 'Your practice continues';
   return <View style={{ flex: 1 }}><Screen scroll={false} style={{ paddingBottom: 0 }}>
     <View style={styles.header}>
       <Type role="title">Journey</Type>
@@ -31,35 +67,31 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
         <Type role="secondary">Calendar</Type>
       </QuietPressable>
     </View>
-    <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ paddingBottom: 32 }}>
-      <View accessible accessibilityLabel={`Level ${level}, ${presentation.name}${level === 0 ? ', starting point' : `, ${journey.level.categoryStep} of 5`}. ${presentation.theme}`}
-        style={styles.current}>
-        <View style={styles.iconWell}><CategoryIcon category={journey.level.category} level={level} size={40} /></View>
-        <Type role="secondary" style={styles.kicker}>{level === 0 ? 'Starting point' : `Level ${level}`}</Type>
-        <Type role="heading" style={styles.name}>{presentation.name}</Type>
-        <Type role="secondary" style={{ textAlign: 'center' }}>{presentation.theme}</Type>
-        {level > 0 && <Type role="secondary" style={styles.step}>{`${journey.level.categoryStep} of 5`}</Type>}
+    <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={styles.content}>
+      <View accessible accessibilityRole="progressbar"
+        accessibilityLabel={`Level ${level}, ${presentation.name}. ${presentation.theme} ${toward}.`}
+        accessibilityValue={{ min: 0, max: 100, now: Math.floor(journey.fraction * 100) }}
+        style={styles.hero}>
+        <StageMedallion fraction={journey.next ? journey.fraction : 1}>
+          <CategoryIcon category={journey.level.category} level={level} size={58} />
+        </StageMedallion>
+        <Animated.View style={[styles.words, wordsStyle]}>
+          <Type role="secondary" style={styles.kicker}>{level === 0 ? 'STARTING POINT' : `LEVEL ${level}`}</Type>
+          <Type role="heading" style={styles.name}>{presentation.name}</Type>
+          <Type role="secondary" style={styles.theme}>{presentation.theme}</Type>
+          <Type role="secondary" style={styles.toward}>{toward}</Type>
+        </Animated.View>
       </View>
-      <View style={styles.section}>
-        <LevelProgress journey={journey} />
-        <Type role="secondary">{`${formatRipples(journey.metrics.lifetimeXpCenti)} Ripples · Highest level ${highest}`}</Type>
-        <Type role="secondary">Your current level follows your rhythm of practice. Half your highest level always remains protected.</Type>
-      </View>
-      <View style={styles.section}>
-        <Type role="heading" style={styles.sectionTitle}>{complete ? 'Your habit is built' : 'Toward Level 100'}</Type>
-        <View accessible accessibilityRole="progressbar" accessibilityLabel="Habit-building journey"
-          accessibilityValue={{ min: 0, max: 100, now: Math.min(100, highest) }} style={styles.track}>
-          <View style={[styles.trackFill, { width: `${towardHabit * 100}%` }]} />
-        </View>
-        <Type role="secondary">{complete ? 'Level 100 reached. Ona’s habit-building journey is complete.' : `Level ${highest} of 100`}</Type>
-        <Type>Ona exists for one purpose: to help meditation become a lasting part of your life.</Type>
-        <Type>Level 100 marks the end of the habit-building journey. Reaching it takes many months of returning to your practice. By then, meditation is a habit you have built yourself.</Type>
-        <Type role="secondary">Levels beyond 100 help you strengthen and sustain the habit. Each new stage is revealed only when you reach it.</Type>
-        <Type role="secondary">These milestones mark your returning. They do not measure meditation ability.</Type>
-      </View>
-      <View style={[styles.section, { gap: 8 }]}>
+      <Animated.View style={[styles.meaning, wordsStyle]}>
+        <View style={styles.rule} />
+        <Type style={styles.purpose}>Ona helps meditation become a lasting part of your life. Level 100 completes the habit.</Type>
+        <Type role="secondary" style={styles.facts}>{`${formatRipples(journey.metrics.lifetimeXpCenti)} Ripples${highest > level ? ` · Highest level ${highest}` : ''}`}</Type>
+      </Animated.View>
+      <View style={styles.links}>
         <HowItWorks />
-        <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
+        <QuietPressable accessibilityRole="button" onPress={() => router.push('/history')} style={styles.link}>
+          <Type role="secondary">Meditation history</Type>
+        </QuietPressable>
       </View>
     </ScrollView>
   </Screen><HomeNavigation active="journey" /></View>;
@@ -68,13 +100,20 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, gap: 12 },
   headerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  current: { alignItems: 'center', gap: 6, paddingTop: 28, paddingBottom: 32 },
-  iconWell: { width: 84, height: 84, borderRadius: 42, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  kicker: { fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' },
-  name: { fontFamily: serif, fontSize: 32, lineHeight: 40, letterSpacing: 0, textAlign: 'center' },
-  step: { fontSize: 12, marginTop: 4 },
-  section: { gap: 14, paddingVertical: 24, borderTopWidth: 1, borderColor: colors.line },
-  sectionTitle: { fontFamily: serif, fontSize: 24, lineHeight: 30, letterSpacing: 0 },
-  track: { height: 2, backgroundColor: colors.line, marginTop: 4 },
-  trackFill: { height: 2, backgroundColor: colors.ink },
+  content: { paddingBottom: 40, alignItems: 'center' },
+  hero: { alignItems: 'center', paddingTop: 28, width: '100%' },
+  medallion: { width: 260, height: 240, alignItems: 'center', justifyContent: 'center' },
+  haloOuter: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(232,214,184,0.28)' },
+  haloInner: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(232,214,184,0.45)' },
+  words: { alignItems: 'center', gap: 6, paddingHorizontal: 12 },
+  kicker: { fontSize: 11, letterSpacing: 3, marginTop: 4 },
+  name: { fontFamily: serif, fontSize: 34, lineHeight: 42, letterSpacing: 0, textAlign: 'center' },
+  theme: { textAlign: 'center' },
+  toward: { fontSize: 12, marginTop: 10, letterSpacing: 0.3 },
+  meaning: { alignItems: 'center', gap: 14, paddingTop: 36, paddingHorizontal: 20, maxWidth: 340 },
+  rule: { width: 28, height: 1, backgroundColor: colors.border, marginBottom: 6 },
+  purpose: { fontFamily: serif, fontSize: 19, lineHeight: 28, textAlign: 'center' },
+  facts: { fontSize: 12, textAlign: 'center' },
+  links: { alignItems: 'center', gap: 4, paddingTop: 36, width: '100%' },
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
 });

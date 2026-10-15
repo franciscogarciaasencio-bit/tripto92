@@ -189,12 +189,15 @@ its first day and extends to its last day like one brush stroke; the chosen day'
 into place when they change; pebbles and capsules fill in sequence. Reduced Motion, or a preference
 not yet known at cold start, draws everything finished immediately.
 
-Levels (owner direction 2026-10-15): Journey shows only the current level (icon in a ring, level,
-stage name, theme, step of five), progress to the next level, and a "Toward Level 100" section that
-explains the purpose: Level 100 completes the habit-building journey. Future stages are never
-listed. Stages 2–20 (Levels 6–100) are sealed surprises: the completion screen veils the level row
-as "A new stage" while the level animation runs, then reveals the stage's symbol (scale/fade, 900 ms)
-and name (500 ms later) once, the first time that stage is reached (stage-reveal.tsx).
+Levels (owner direction 2026-10-15): Journey is a centred composition, not a list: the current
+stage's symbol sits in a soft sand halo inside a thin ring that fills toward the next level only
+(never a 0–100 track, which would make progress feel slow); below it LEVEL n, the stage name in
+serif, its theme and "Toward Level n+1"; then one serif line of purpose ("Level 100 completes the
+habit"), Ripples, and quiet links to How it works and history. Halo, symbol, ring and words draw in
+over about a second (instant with Reduced Motion). Future stages are never listed. Stages 2–20
+(Levels 6–100) are sealed surprises: the completion screen veils the level row as "A new stage" while
+the level animation runs, then reveals the stage's symbol (scale/fade, 900 ms) and name (500 ms
+later) once, the first time that stage is reached (stage-reveal.tsx).
 
 Consistency bar (owner direction 2026-10-15): one rounded bar (ink on a darker sand track) with five
 small segments beneath it, one per milestone; a segment fills, with a tiny swell, as the bar passes
