@@ -1017,3 +1017,11 @@ away, tested) and `first`; the celebration welcomes returns without loss languag
 gains "The past year" field (53 weeks of dots, week bands, tap to open a week). JavaScript only: ships in
 the 1.2.0 APK or as an over-the-air update. Verified with seven weeks of seeded practice on web at
 390/320 wide.
+
+### Painted calendar — Complete (2026-10-15)
+
+Owner asked to rework the calendar's art in Ona's colours (reference image), keep two styles (days in a
+row joined in dark, consecutive consistent weeks joined in a lighter tone), adopt the large serif month,
+uppercase weekdays, week hairlines and a closing painting (the owner's own ink painting), and remove the
+past-year dots. painted-month.tsx now draws both the Journey calendar and the celebration. JavaScript and
+assets only: ships in the 1.2.0 APK or as an over-the-air update. Verified on web at 390 and 320 wide.

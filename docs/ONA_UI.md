@@ -217,11 +217,21 @@ Welcome back (owner choice, 2026-10-15): a practice after three or more days wit
 Every return counts." It ranks below a full month and a newly consistent week, above days in a row; a
 short practice does not end the time away. The very first practice says "The habit begins."
 
-The past year (Journey calendar, year-field.tsx): under the streak numbers, 53 week columns (Monday at
-the top) with a dot per day: counted days ink, shorter practices faint, quiet days barely visible,
-consistent weeks on the soft week band, today ringed and the open week outlined. Sparse month labels
-never overlap. Tapping a week opens it in the month calendar. It draws in once, left to right (900 ms,
-a soft-edged wipe), instant with Reduced Motion.
+### Painted calendar (2026-10-15)
+
+Owner direction (with a reference image): the month is painted, consistent with Ona's watercolour.
+painted-month.tsx draws every month (Journey calendar and the celebration after a practice) on square
+cells: counted days in a row are one deep warm grey watercolour shape (a single day is one drop;
+neighbours join with a soft waist), consecutive consistent weeks are one lighter warm grey wash that
+joins across rows, hairlines separate weeks, the week in progress has a hairline outline, today and the
+chosen day are thin rings, shorter practices a small dot. Sprites are cut to whole cells and never
+stretched (assets/ona/calendar/days-1…7, weeks-1…6, painted by scripts/calendar/build-calendar-art.cjs).
+Header: the month in large serif, "‹ 2026 ›" on the right, Today on a fixed line beneath (no layout shift);
+uppercase serif weekdays, serif dates. The calendar ends with the owner's ink painting of stones in still
+water (vignette.webp: paper matched to #F2E9DA, edges faded, bleeding to the screen edges). Runs draw in
+left to right and washes fade in row by row; in the celebration the new day's run grows from yesterday,
+two ripples spread and the week's wash arrives when that day made the week count. The past-year dot field
+was removed at the owner's request.
 
 ### App size and icon (2026-10-15)
 

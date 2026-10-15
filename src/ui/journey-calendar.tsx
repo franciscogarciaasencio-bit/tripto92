@@ -1,33 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
-import { MonthSlide, MonthStreakLine, SelectionDisc, StreakLegend, StreakOverview, streakRuns, WeekRow } from './calendar-streaks';
+import { MonthSlide, MonthStreakLine, StreakLegend, StreakOverview } from './calendar-streaks';
+import { CALENDAR_VIGNETTE, monthRows, PaintedMonth } from './painted-month';
 import { HomeNavigation } from './home-navigation';
-import { Action, colors, formatDuration, Notice, Screen, Type } from './primitives';
+import { Action, colors, formatDuration, Notice, Screen, serifFont, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
 import { PracticeRow } from './practice-row';
-import { YearField } from './year-field';
 import { UI_MOTION } from './motion';
 import { useReducedMotion } from './reduced-motion';
 import { groupPracticeHistory, monthPracticeSummary, practiceDateLabel, practiceTimeLabel } from './practice-history';
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HISTORY_PAGE_SIZE = 50;
 
 /** UTC is only used to lay out Gregorian calendar cells, never to reassign saved practice dates. */
 function calendarDate(month: string, day: number) {
   return `${month}-${String(day).padStart(2, '0')}`;
-}
-
-/** Calendar arithmetic on UTC midnights; only lays out cells. */
-function shiftDate(start: Date, days: number) {
-  return new Date(start.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
 function monthInstant(month: string, offset = 0) {
@@ -49,7 +43,6 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selected, setSelected] = useState(today);
   const [direction, setDirection] = useState<-1 | 0 | 1>(0);
-  const [gridWidth, setGridWidth] = useState(0);
   const [records, setRecords] = useState<readonly StoredMeditationSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -58,6 +51,9 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const [loadedCount, setLoadedCount] = useState(-1);
   const openingDetails = useRef(false);
   const reduced = useReducedMotion();
+  const windowWidth = useWindowDimensions().width, vignetteWidth = Math.min(windowWidth, 540);
+  // "September" must fit beside the year on a 320 pt phone without shrinking or truncating.
+  const monthNameSize = Math.round(Math.min(44, Math.max(32, (windowWidth - 48) * 0.13)));
   useFocusEffect(useCallback(() => { openingDetails.current = false; setToday(currentContext().localDate); }, []));
 
   useEffect(() => {
@@ -94,12 +90,6 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const shown = !loading && current && !error;
   const practiceDates = useMemo(() => new Set(byDate.keys()), [byDate]);
 
-  const first = monthInstant(month);
-  const dayOffset = (first.getUTCDay() + 6) % 7;
-  const nextMonth = monthInstant(month, 1);
-  nextMonth.setUTCDate(0);
-  const dayCount = nextMonth.getUTCDate();
-  const cellCount = Math.ceil((dayOffset + dayCount) / 7) * 7;
   const selectedRecords = byDate.get(selected) ?? [];
   const activeSeconds = selectedRecords.reduce((total, record) => total + record.session.activeDurationSeconds, 0);
 
@@ -122,15 +112,23 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
     <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1 }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
       {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
-      {shown && <YearField streaks={streaks} shortDays={practiceDates} today={today} selected={selected} onSelect={(date) => {
-        const destination = date.slice(0, 7);
-        setDirection(destination === month ? 0 : destination > month ? 1 : -1);
-        setMonth(destination); setSelected(date);
-      }} />}
       <View style={calendarStyles.monthHeading}>
-        <Type role="heading" accessibilityRole="header" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
-          {practiceDateLabel(`${month}-01`, { month: 'long', year: 'numeric' })}
-        </Type>
+        <Text accessibilityRole="header" accessibilityLiveRegion="polite" numberOfLines={1} adjustsFontSizeToFit
+          style={[calendarStyles.monthName, { fontSize: monthNameSize, lineHeight: monthNameSize * 1.18 }]}>{practiceDateLabel(`${month}-01`, { month: 'long' })}</Text>
+        <View style={calendarStyles.yearNav}>
+          <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
+            disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
+            <Chevron direction={-1} />
+          </QuietPressable>
+          <Text style={calendarStyles.year}>{month.slice(0, 4)}</Text>
+          <QuietPressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => changeMonth(1)}
+            disabled={month === '9999-12'} style={calendarStyles.monthArrow}>
+            <Chevron direction={1} />
+          </QuietPressable>
+        </View>
+      </View>
+      {/* A fixed line under the year, so Today appearing never moves the calendar. */}
+      <View style={calendarStyles.todayLine}>
         {(month !== today.slice(0, 7) || selected !== today) && <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.reveal)} exiting={reduced ? undefined : FadeOut.duration(UI_MOTION.reveal)}>
           <QuietPressable accessibilityRole="button" accessibilityLabel="Return to today in the practice calendar"
             onPress={() => {
@@ -138,55 +136,17 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
               setDirection(date.slice(0, 7) === month ? 0 : date.slice(0, 7) > month ? 1 : -1);
               setToday(date); setMonth(date.slice(0, 7)); setSelected(date);
             }} style={calendarStyles.todayAction}>
-            <Type role="secondary">Today</Type>
+            <Type role="secondary" style={{ fontSize: 13 }}>Today</Type>
           </QuietPressable>
         </Animated.View>}
-        <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
-          disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
-          <Chevron direction={-1} />
-        </QuietPressable>
-        <QuietPressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => changeMonth(1)}
-          disabled={month === '9999-12'} style={[calendarStyles.monthArrow, { marginRight: -12 }]}>
-          <Chevron direction={1} />
-        </QuietPressable>
       </View>
-      <View style={calendarStyles.weekdays}>
-        {WEEKDAYS.map((day) => <View key={day} style={calendarStyles.weekday}><Type role="secondary" style={calendarStyles.weekdayText}>{day}</Type></View>)}
-      </View>
-      <View onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
       <MonthSlide key={month} direction={direction}>
-      {Array.from({ length: cellCount / 7 }, (_, row) => {
-        const dates = Array.from({ length: 7 }, (_, column) => shiftDate(first, row * 7 + column - dayOffset));
-        const week = streaks.week(dates[0]!);
-        const runs = shown ? streakRuns(dates.map((date) => streaks.isActiveDay(date))) : [];
-        return <WeekRow key={`${month}:${dates[0]}`} row={row} state={shown ? week.state : 'future'} runs={runs} cell={gridWidth / 7}>
-          {dates.map((date, column) => {
-            const inMonth = date.startsWith(`${month}-`);
-            const count = byDate.get(date)?.length ?? 0;
-            const counts = shown && streaks.isActiveDay(date);
-            const chosen = date === selected && inMonth;
-            const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}, ${count} ${count === 1 ? 'practice' : 'practices'}`
-              + `${counts ? ', counts toward streaks' : ''}${column === 0 && shown && week.state === 'active' ? ', active week' : ''}${date === today ? ', today' : ''}`;
-            const content = <>
-              <View style={calendarStyles.dayTrack}>
-                {chosen && <SelectionDisc key={selected} />}
-                <View style={[calendarStyles.day, !chosen && date === today && calendarStyles.today]}>
-                  <Type style={{ fontSize: 15, color: chosen ? colors.background : inMonth ? colors.ink : 'rgba(20,20,20,0.35)' }}>{Number(date.slice(8))}</Type>
-                </View>
-              </View>
-              <View style={[calendarStyles.dot, { opacity: count && !counts ? 1 : 0 }]} />
-            </>;
-            return inMonth ? <QuietPressable key={date} accessibilityRole="button" accessibilityState={{ selected: chosen }}
-              accessibilityLabel={label} onPress={() => setSelected(date)} style={calendarStyles.cell}>{content}</QuietPressable>
-              : <View key={date} style={calendarStyles.cell} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{content}</View>;
-          })}
-        </WeekRow>;
-      })}
+        <PaintedMonth month={month} streaks={streaks} practiced={practiceDates} today={today} selected={selected}
+          onSelect={setSelected} live={shown} />
       </MonthSlide>
-      </View>
       {shown && <MonthStreakLine status={streaks.month(month)} />}
       {shown && <StreakLegend minutes={STREAK_RULES.minimumActiveSeconds / 60} days={STREAK_RULES.activeDaysPerWeek}
-        sharedWeeks={Array.from({ length: cellCount / 7 }, (_, row) => streaks.week(shiftDate(first, row * 7 - dayOffset)).month).some((owner) => owner !== month)} />}
+        sharedWeeks={monthRows(month).some((dates) => streaks.week(dates[0]!).month !== month)} />}
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
         {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
       </Type> : !error && <View style={calendarStyles.monthSummary}>
@@ -216,6 +176,9 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         </View>}
       </View>
       <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
+      {/* The calendar ends quietly: stones in still water, painted like the rest of Ona. */}
+      <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth * 722 / 1024, marginTop: 8,
+        ...(windowWidth <= 540 ? { marginLeft: windowWidth <= 375 ? -20 : -24 } : { alignSelf: 'center' }) }} />
     </ScrollView>
     </Animated.View>
   </Screen><HomeNavigation active="journey" /></View>;
@@ -224,18 +187,13 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
 const calendarStyles = StyleSheet.create({
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, paddingBottom: 16, gap: 12 },
   details: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  monthHeading: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 },
-  monthArrow: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
-  todayAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10 },
-  weekdays: { flexDirection: 'row' },
-  weekday: { width: '14.285714%', alignItems: 'center', paddingVertical: 12 },
-  weekdayText: { fontSize: 12, lineHeight: 16, letterSpacing: 0.4 },
-  // Fixed vertical rhythm: the day track always starts 7 pt down, where streak capsules are drawn.
-  cell: { width: '14.285714%', minHeight: 52, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 7, gap: 5 },
-  dayTrack: { alignSelf: 'stretch', height: 34, alignItems: 'center', justifyContent: 'center' },
-  day: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17 },
-  today: { borderWidth: 1, borderColor: colors.line },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink },
+  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, gap: 8 },
+  monthName: { flexShrink: 1, fontFamily: serifFont, fontSize: 44, lineHeight: 52, letterSpacing: -0.6, color: colors.ink },
+  yearNav: { flexDirection: 'row', alignItems: 'center', marginRight: -12 },
+  year: { fontFamily: serifFont, fontSize: 22, lineHeight: 28, color: 'rgba(20,20,20,0.6)', fontVariant: ['tabular-nums'] },
+  monthArrow: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
+  todayLine: { height: 30, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 },
+  todayAction: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 4 },
   monthSummary: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderColor: colors.line },
   dayDetails: { borderTopWidth: 1, borderColor: colors.line, marginTop: 28, paddingTop: 24, gap: 10 },
   record: { borderBottomWidth: 1, borderColor: colors.line, paddingVertical: 14, gap: 4 },

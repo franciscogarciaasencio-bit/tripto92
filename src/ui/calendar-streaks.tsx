@@ -1,15 +1,14 @@
 import { useEffect, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import type { MonthStatus, PeriodState, PracticeStreaks, WeekStatus } from '@/domain/progression';
 import { colors, serifFont, Type } from './primitives';
 import { useMotionPreference } from './reduced-motion';
-import { runGeometry, STREAK_DISC as DISC, STREAK_MOTION } from './streak-geometry';
+import { STREAK_MOTION } from './streak-geometry';
+import { DAY_SWATCH, WEEK_WASH } from './painted-month';
 export { streakRuns } from './streak-geometry';
 
 // Solid tones mixed from ink on sand, so overlapping discs, joins and bands never stack into darker seams.
-export const STREAK_FILL = '#D9D0C1';
-const WEEK_BAND = '#E9E0D1';
 const FAINT = 'rgba(20,20,20,0.13)';
 const OUTLINE = 'rgba(20,20,20,0.42)';
 
@@ -31,43 +30,8 @@ function useReveal(delay: number, duration: number) {
   return progress;
 }
 
-/**
- * One run of counting days drawn as a single capsule: it appears as a disc on the first day and
- * extends to the last like one brush stroke, so there are never seams between days.
- */
-export function StreakRun({ start, end, cell, delay }: { start: number; end: number; cell: number; delay: number }) {
-  const { length, extendDelay, extendDuration } = runGeometry(start, end, cell, delay);
-  const appear = useReveal(delay, STREAK_MOTION.disc);
-  const extend = useReveal(extendDelay, extendDuration);
-  const style = useAnimatedStyle(() => ({
-    opacity: appear.value,
-    width: DISC + (length - DISC) * extend.value,
-    transform: [{ scale: 0.6 + 0.4 * appear.value }],
-  }));
-  return <Animated.View pointerEvents="none" style={[styles.run, { left: runGeometry(start, end, cell, delay).left }, style]} />;
-}
 
-/** The ink circle of the chosen day eases in each time a day is chosen. */
-export function SelectionDisc() {
-  const progress = useReveal(0, STREAK_MOTION.select);
-  const style = useAnimatedStyle(() => ({ opacity: progress.value, transform: [{ scale: 0.8 + 0.2 * progress.value }] }));
-  return <Animated.View pointerEvents="none" style={[styles.disc, { backgroundColor: colors.ink }, style]} />;
-}
 
-/** A calendar row is one Monday–Sunday week; an active week rests on a soft band that unfolds. */
-export function WeekRow({ state, row, runs, cell, children }: {
-  state: PeriodState; row: number; runs: readonly (readonly [number, number])[]; cell: number; children: ReactNode;
-}) {
-  const progress = useReveal(row * STREAK_MOTION.rowStagger, STREAK_MOTION.band);
-  const style = useAnimatedStyle(() => ({ opacity: progress.value, transform: [{ scaleX: 0.96 + 0.04 * progress.value }] }));
-  return <View style={styles.week}>
-    {state === 'active' && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.activeWeek, style]} />}
-    {state === 'open' && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.openWeek, style]} />}
-    {cell > 0 && runs.map(([start, end]) => <StreakRun key={`${start}-${end}`} start={start} end={end} cell={cell}
-      delay={row * STREAK_MOTION.rowStagger + start * STREAK_MOTION.columnStagger} />)}
-    {children}
-  </View>;
-}
 
 /** The grid of a month slides in from the side it was reached from. */
 export function MonthSlide({ direction, children }: { direction: -1 | 0 | 1; children: ReactNode }) {
@@ -160,7 +124,7 @@ export function MonthStreakLine({ status }: { status: MonthStatus }) {
 export function StreakLegend({ minutes, days, sharedWeeks }: { minutes: number; days: number; sharedWeeks: boolean }) {
   return <View style={styles.legend} accessible accessibilityLabel={`Filled days: a practice of ${minutes} minutes or more. Banded weeks: at least ${days} such days. Dot: a shorter practice.${sharedWeeks ? ' A week belongs to the month that holds most of its days.' : ''}`}>
     <View style={styles.legendRow}>
-      <View style={styles.legendItem}><View style={styles.legendDisc} /><Type role="secondary" style={styles.legendText}>{`${minutes}+ minutes`}</Type></View>
+      <View style={styles.legendItem}><Image source={DAY_SWATCH} style={styles.legendDisc} /><Type role="secondary" style={styles.legendText}>{`${minutes}+ minutes`}</Type></View>
       <View style={styles.legendItem}><View style={styles.legendBand} /><Type role="secondary" style={styles.legendText}>{`Week with ${days}+ days`}</Type></View>
       <View style={styles.legendItem}><View style={styles.legendDot} /><Type role="secondary" style={styles.legendText}>Shorter practice</Type></View>
     </View>
@@ -187,18 +151,13 @@ const styles = StyleSheet.create({
   moon: { width: 10, height: 10, borderRadius: 5 },
   markOpen: { borderWidth: 1, borderColor: OUTLINE },
   markEmpty: { overflow: 'hidden' },
-  disc: { position: 'absolute', width: 34, height: 34, borderRadius: 17, backgroundColor: STREAK_FILL },
-  run: { position: 'absolute', top: 7, height: 34, borderRadius: 17, backgroundColor: STREAK_FILL, transformOrigin: '17px 17px' },
-  week: { flexDirection: 'row', marginVertical: 1 },
-  activeWeek: { borderRadius: 22, backgroundColor: WEEK_BAND },
-  openWeek: { borderRadius: 22, borderWidth: 1, borderColor: 'rgba(20,20,20,0.12)' },
   monthLine: { gap: 8, paddingTop: 16, paddingHorizontal: 4 },
   monthWeeks: { flexDirection: 'row', gap: 5 },
   legend: { gap: 8, paddingTop: 14, paddingHorizontal: 4 },
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 6 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendText: { fontSize: 12, lineHeight: 17 },
-  legendDisc: { width: 12, height: 12, borderRadius: 6, backgroundColor: STREAK_FILL },
-  legendBand: { width: 20, height: 12, borderRadius: 6, backgroundColor: WEEK_BAND, borderWidth: 1, borderColor: 'rgba(20,20,20,0.06)' },
+  legendDisc: { width: 16, height: 16 },
+  legendBand: { width: 22, height: 14, borderRadius: 7, backgroundColor: WEEK_WASH },
   legendDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink, marginHorizontal: 4 },
 });
