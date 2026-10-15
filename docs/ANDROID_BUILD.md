@@ -11,9 +11,28 @@ with Node 24.21.0. It is standalone: no Expo Go, development client or Metro is 
 app.json applies expo-build-properties: `buildArchs: ["armeabi-v7a", "arm64-v8a"]` (every Android
 phone; x86/x86_64 only served emulators) and `useLegacyPackaging: true` (native libraries compressed
 inside the APK). Runtime artwork is WebP and the Choir AAC (docs/ONA_UI.md, "App size and icon").
-Together these remove most of the first APK's 205 MB; the exact size is recorded after the next build.
+Together these reduce the APK from the first build's 205.29 MB to 94.44 MB in the verified build below.
 An x86_64 emulator can no longer install this APK; add "x86_64" to buildArchs for emulator testing.
 The launcher icon is Ona's own (assets/images, scripts/icon/build-icons.cjs), not the Expo template.
+
+### Verified preview 1.2.0 (3) — 2026-10-15
+
+- Build ID: `9965c099-b649-43b8-8946-0cac1449d6bc`;
+  [build page](https://expo.dev/accounts/tripto92/projects/MeditationApp/builds/9965c099-b649-43b8-8946-0cac1449d6bc).
+- [Download APK](https://expo.dev/artifacts/eas/OvcG8iz0OPjWalgbSYSoCiURGmfz2h5CbtOVW3bVyiY.apk):
+  **94.44 MB** (94,441,581 bytes; decimal MB, compared with the first APK's 205.29 MB).
+- APK SHA-256: `207b959959cd542d9023c456edfb856dcdc76c2e018d63ba48da1e7c0ec23a36`.
+- Signing certificate SHA-256: `15fccec1f10e5788cbfc12612184df2bc997872d761715c25031c4e2bd48bce7`.
+
+Built from `e5b97563f965c087a121e51373586da701fb809f`, using the existing EAS-managed key.
+The verifier passed: release identity, signature, bundled Hermes/offline audio, ZIP and ARM64
+16 KB ELF alignment. Additional artifact checks confirmed exactly 26 compressed native libraries
+per ARM ABI, current runtime artwork/audio hashes, and enabled EAS Update with runtime `1.2.0`,
+channel `preview`, check on launch and zero launch wait. TypeScript, lint, 996 tests, seven APK
+verifier fixtures and the all-platform export passed. No verifier changes were needed.
+Ignored local files: artifacts/android/ona-preview-1.2.0-3.apk and verification-1.2.0-3.json.
+Install over the existing Ona app **without uninstalling** to retain practice data. Installation
+and subsequent OTA arrival still need the owner's confirmation; see docs/UPDATES.md.
 
 The cloud workspace cannot reach Expo's build service, so the owner starts builds from the Windows PC
 (through Codex): pull main, `npm ci`, `npm run check`, then the EAS command below. EAS keeps the same

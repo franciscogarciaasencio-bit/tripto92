@@ -17,8 +17,9 @@ unverified on a physical phone, blocked or not done by decision. Open items, in 
    Expo Go through `--tunnel`. Numeric LAN callbacks remain rejected by Supabase.
    See AUTH_DEBUG.md.
 2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
-3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
-   raise `android.versionCode` and keeps the approved package and signing key.
+3. Owner requested the 1.2.0 (3) APK with EAS Update support (2026-10-15). Build and artifact
+   verification are complete with the approved package/key; installation and OTA arrival await
+   owner confirmation. See ANDROID_BUILD.md and UPDATES.md.
 4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
 5. ~~Clock skew defect~~ fixed 2026-10-15 (see "Clock skew" in the log).
 
@@ -1010,12 +1011,25 @@ launch; Settings shows the version and the running update's date. native-runtime
 test stop native changes from silently shipping as updates. The 1.2.0 APK must be built and installed
 once (through Codex); after that, updates are published with `eas update` (docs/UPDATES.md).
 
+## Android preview 1.2.0 (3) — 2026-10-15
+
+Merged the owner's ota-updates branch, checked version/runtime/channel settings, and pushed main.
+Node 24.21.0, clean npm ci, TypeScript/lint, 996 tests and all-platform export passed. Corrected the
+SDK 57 publishing command to select the preview EAS environment and configured only the two public
+Supabase values there. The superseded 1.1.0 build finished; no replacement 1.1.0 build was started.
+
+EAS build 9965c099-b649-43b8-8946-0cac1449d6bc produced a 94.44 MB APK. Signature matches the approved
+certificate; package/version, ARM-only compressed libraries, ARM64 16 KB alignment, bundled runtime
+assets and embedded OTA runtime/channel configuration passed. Details and hashes: ANDROID_BUILD.md.
+The APK/report stay gitignored. Device installation and OTA arrival remain unverified; publish the
+requested verification update only after the owner confirms installing 1.2.0 over the existing app.
+
 ### Welcome back and the past year — Complete (2026-10-15)
 
 Owner picked "welcome back" and the calendar idea. `streakMoment` now has `return` (three or more days
 away, tested) and `first`; the celebration welcomes returns without loss language. Journey's calendar
-gains "The past year" field (53 weeks of dots, week bands, tap to open a week). JavaScript only: ships in
-the 1.2.0 APK or as an over-the-air update. Verified with seven weeks of seeded practice on web at
+gains "The past year" field (53 weeks of dots, week bands, tap to open a week). JavaScript only: not in the
+1.2.0 APK (built from e5b9756); ships to it as an over-the-air update. Verified with seven weeks of seeded practice on web at
 390/320 wide.
 
 ### Painted calendar — Complete (2026-10-15)
@@ -1024,7 +1038,7 @@ Owner asked to rework the calendar's art in Ona's colours (reference image), kee
 row joined in dark, consecutive consistent weeks joined in a lighter tone), adopt the large serif month,
 uppercase weekdays, week hairlines and a closing painting (the owner's own ink painting), and remove the
 past-year dots. painted-month.tsx now draws both the Journey calendar and the celebration. JavaScript and
-assets only: ships in the 1.2.0 APK or as an over-the-air update. Verified on web at 390 and 320 wide.
+assets only: ships to the installed 1.2.0 as an over-the-air update. Verified on web at 390 and 320 wide.
 
 ### Calendar marks matched to the owner's reference — Complete (2026-10-15)
 
