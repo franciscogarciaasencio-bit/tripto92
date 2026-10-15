@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useOna } from '@/application/ona-provider';
 import { CategoryIcon } from './category-icon';
@@ -11,7 +11,8 @@ import { colors, Screen, Type, serifFont as serif } from './primitives';
 import { HowItWorks } from './progress-explanation';
 import { QuietPressable } from './quiet-pressable';
 import { getLevelCategoryPresentation } from './category-presentation';
-import { useMotionPreference } from './reduced-motion';
+import { useMotionPreference, useReducedMotion } from './reduced-motion';
+import { UI_MOTION } from './motion';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const RING = 176, STROKE = 2, RADIUS = (RING - STROKE * 4) / 2, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -52,7 +53,7 @@ function StageMedallion({ fraction, children }: { fraction: number; children: Re
  * Stages ahead stay undiscovered; nothing measures the distance to Level 100.
  */
 export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }) {
-  const { journey, habit } = useOna();
+  const { journey, habit } = useOna(), reduced = useReducedMotion();
   const words = useEntrance(380, 700);
   const wordsStyle = useAnimatedStyle(() => ({ opacity: words.value, transform: [{ translateY: 8 * (1 - words.value) }] }));
   if (!journey) return <Screen />;
@@ -67,6 +68,7 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
         <Type role="secondary">Calendar</Type>
       </QuietPressable>
     </View>
+    <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1, minHeight: 0 }}>
     <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={styles.content}>
       <View accessible accessibilityRole="progressbar"
         accessibilityLabel={`Level ${level}, ${presentation.name}. ${presentation.theme} ${toward}.`}
@@ -94,11 +96,12 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
         </QuietPressable>
       </View>
     </ScrollView>
+    </Animated.View>
   </Screen><HomeNavigation active="journey" /></View>;
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, gap: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, gap: 12 },
   headerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
   content: { paddingBottom: 40, alignItems: 'center' },
   hero: { alignItems: 'center', paddingTop: 28, width: '100%' },
@@ -106,14 +109,14 @@ const styles = StyleSheet.create({
   haloOuter: { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(232,214,184,0.28)' },
   haloInner: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(232,214,184,0.45)' },
   words: { alignItems: 'center', gap: 6, paddingHorizontal: 12 },
-  kicker: { fontSize: 11, letterSpacing: 3, marginTop: 4 },
+  kicker: { fontSize: 12, lineHeight: 18, letterSpacing: 2.6, marginTop: 4 },
   name: { fontFamily: serif, fontSize: 34, lineHeight: 42, letterSpacing: 0, textAlign: 'center' },
   theme: { textAlign: 'center' },
-  toward: { fontSize: 12, marginTop: 10, letterSpacing: 0.3 },
+  toward: { fontSize: 13, marginTop: 10, letterSpacing: 0.3 },
   meaning: { alignItems: 'center', gap: 14, paddingTop: 36, paddingHorizontal: 20, maxWidth: 340 },
   rule: { width: 28, height: 1, backgroundColor: colors.border, marginBottom: 6 },
   purpose: { fontFamily: serif, fontSize: 19, lineHeight: 28, textAlign: 'center' },
-  facts: { fontSize: 12, textAlign: 'center' },
+  facts: { fontSize: 13, textAlign: 'center' },
   links: { alignItems: 'center', gap: 4, paddingTop: 36, width: '100%' },
   link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
 });

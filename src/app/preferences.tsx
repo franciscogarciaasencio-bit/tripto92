@@ -30,8 +30,8 @@ export default function Preferences() {
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
     {!confirmReset && <View pointerEvents={app.busy ? 'none' : 'auto'} style={{ marginTop: 24 }}>
       <ChoiceRow label="Home ambience" value={edited.homeEnabled ? 'On' : 'Off'} onPress={() => setEdited({ ...edited, homeEnabled: !edited.homeEnabled })} />
-      <ChoiceRow label="Home volume" value={`${Math.round(edited.homeVolume * 100)}%`} divider={false} />
-      <VolumeControl value={edited.homeVolume} onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
+      <Type style={{ marginTop: 18 }}>Home volume</Type>
+      <VolumeControl value={edited.homeVolume} label="Home volume" onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
       <MeditationSounds preferences={edited} onChange={setEdited} />
       <Action quiet textRole="label" onPress={() => router.push('/credits')}>About Ona sound</Action>
       {app.cloudAvailable && <View style={{ marginTop: 16, borderTopWidth: 1, borderColor: colors.line }}>
@@ -57,8 +57,8 @@ export default function Preferences() {
     </View>
     <Notice>{app.error ? lastAction === 'reset' ? 'Practice data could not be deleted. Please try again.' : 'Preferences could not be saved. Please try again.' : null}</Notice>
     </ScrollView>
-    {!confirmReset && <View style={{ gap: 4, paddingTop: 8, paddingBottom: 8, borderTopWidth: 1, borderColor: colors.line }}>
-      {unsaved && <Type role="secondary" accessibilityLiveRegion="polite" style={{ fontSize: 12, textAlign: 'center' }}>Unsaved sound changes</Type>}
+    {!confirmReset && <View style={{ gap: 4, paddingTop: 10, paddingBottom: 10, alignItems: 'center', borderTopWidth: 1, borderColor: colors.line }}>
+      {unsaved && <Type role="secondary" accessibilityLiveRegion="polite" style={{ fontSize: 13, textAlign: 'center' }}>Unsaved sound changes</Type>}
       <Action disabled={app.busy} onPress={() => {
       setLastAction('preferences');
       void app.saveAudioPreferences(edited).then((saved) => { if (saved) router.dismissTo('/'); });

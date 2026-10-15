@@ -1,21 +1,41 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { HomeIcon } from './home-icons';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
-import { Action, Type } from './primitives';
+import { Action, colors, Type } from './primitives';
 import { AMBIENCES } from '@/audio/assets';
 import { QuietPressable } from './quiet-pressable';
 import { useReducedMotion } from './reduced-motion';
 import { UI_MOTION } from './motion';
 
+/** A quiet − / + step control (5%) with a thin level line between, so volume reads at a glance. */
 export function VolumeControl({ value, onChange, disabled = false, label = 'volume' }: { value: number; onChange: (value: number) => void; disabled?: boolean; label?: string }) {
   const change = (direction: number) => onChange(Math.min(1, Math.max(0, Math.round((value + direction * 0.05) * 100) / 100)));
-  return <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-    <Action quiet label={`Decrease ${label}`} disabled={disabled || value === 0} onPress={() => change(-1)}>Less</Action>
-    <Type role="secondary" accessibilityLabel={`Volume ${Math.round(value * 100)} percent`}>{`${Math.round(value * 100)}%`}</Type>
-    <Action quiet label={`Increase ${label}`} disabled={disabled || value === 1} onPress={() => change(1)}>More</Action>
+  const reduced = useReducedMotion(), level = useSharedValue(value);
+  useEffect(() => {
+    level.set(withTiming(value, { duration: reduced ? 0 : UI_MOTION.expand, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }));
+    return () => cancelAnimation(level);
+  }, [level, reduced, value]);
+  const fill = useAnimatedStyle(() => ({ width: `${level.value * 100}%` }));
+  const percent = Math.round(value * 100);
+  const step = (direction: -1 | 1) => <QuietPressable accessibilityRole="button" accessibilityLabel={`${direction < 0 ? 'Decrease' : 'Increase'} ${label}`}
+    accessibilityState={{ disabled: disabled || value === (direction < 0 ? 0 : 1) }} disabled={disabled || value === (direction < 0 ? 0 : 1)}
+    onPress={() => change(direction)} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+    <Svg width={16} height={16} viewBox="0 0 16 16" accessible={false}>
+      <Path d={direction < 0 ? 'M3 8h10' : 'M3 8h10M8 3v10'} stroke={colors.ink} strokeWidth={1.4} strokeLinecap="round" />
+    </Svg>
+  </QuietPressable>;
+  return <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: -14 }}>
+    {step(-1)}
+    <View style={{ flex: 1, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(20,20,20,0.12)', overflow: 'hidden' }}>
+      <Animated.View style={[fill, { height: '100%', borderRadius: 1.5, backgroundColor: colors.ink }]} />
+    </View>
+    {step(1)}
+    <Type role="secondary" accessibilityLabel={`${label}, ${percent} percent`}
+      style={{ width: 44, textAlign: 'right', marginRight: 14, fontVariant: ['tabular-nums'] }}>{`${percent}%`}</Type>
   </View>;
 }
 export function SessionSound({ compact = false }: { compact?: boolean }) {

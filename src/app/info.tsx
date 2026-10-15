@@ -11,7 +11,7 @@ export default function Guide() {
   return <View style={{ flex: 1, backgroundColor: '#F4EBDD' }}>
     <CoastalTexture width={width} height={height} />
     <Screen style={{ backgroundColor: 'transparent', paddingBottom: 24 }}>
-      <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 40, textAlign: 'center', marginTop: 32 }}>Ona</Text>
+      <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 40, lineHeight: 48, textAlign: 'center', marginTop: 32 }}>Ona</Text>
       <View style={{ gap: 20, paddingTop: 36, maxWidth: 390, alignSelf: 'center' }}>
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Why Ona?</Text>
         <Type>Ona helps you build a lasting meditation habit through simple practice and gentle progression.</Type>
@@ -19,7 +19,7 @@ export default function Guide() {
         <QuietPressable accessibilityRole="button" accessibilityLabel="Replay the Ona introduction" onPress={() => router.push('/introduction')}
           style={{ minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' }}>
           <Type role="label">A quiet introduction →</Type>
-          <Type role="secondary" style={{ fontSize: 12 }}>Four short chapters, at your own pace.</Type>
+          <Type role="secondary" style={{ fontSize: 13 }}>Four short chapters, at your own pace.</Type>
         </QuietPressable>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>How to Meditate</Text>

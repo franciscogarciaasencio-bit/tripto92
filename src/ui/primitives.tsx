@@ -1,17 +1,22 @@
-import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextProps, type ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions, type TextProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import theme from './theme.json';
 import { QuietPressable } from './quiet-pressable';
+import { HomeIcon } from './home-icons';
 
 export const colors = { ...theme, secondary: 'rgba(20,20,20,0.72)', border: 'rgba(20,20,20,0.62)', line: 'rgba(20,20,20,0.18)' };
-export const serifFont = Platform.select({ ios: 'Times New Roman', android: 'serif', default: 'Times New Roman' });
+/**
+ * Newsreader (SIL OFL, bundled in assets/fonts) is Ona's editorial serif on every platform, so the
+ * wordmark, level names and timer look the same on iOS, Android and web. Manrope carries the text.
+ */
+export const serifFont = 'NewsreaderRegular';
 const typography = StyleSheet.create({
   body: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeRegular' },
   label: { fontSize: 16, lineHeight: 24, fontFamily: 'ManropeMedium' },
   secondary: { fontSize: 14, lineHeight: 20, fontFamily: 'ManropeRegular', color: colors.secondary },
-  title: { fontSize: 28, lineHeight: 36, letterSpacing: -0.55, fontFamily: 'ManropeMedium' },
-  heading: { fontSize: 22, lineHeight: 30, letterSpacing: -0.25, fontFamily: 'ManropeMedium' },
+  title: { fontSize: 34, lineHeight: 42, letterSpacing: -0.5, fontFamily: serifFont },
+  heading: { fontSize: 24, lineHeight: 32, letterSpacing: -0.2, fontFamily: serifFont },
   duration: { fontSize: 64, lineHeight: 76, letterSpacing: -1.6, fontFamily: 'ManropeRegular' },
   timer: { fontSize: 56, lineHeight: 68, letterSpacing: -1.4, fontFamily: 'ManropeRegular', fontVariant: ['tabular-nums'] },
   wordmark: { fontSize: 64, lineHeight: 76, letterSpacing: -2, fontFamily: 'ManropeMedium' },
@@ -37,9 +42,12 @@ export function Screen({ children, style, scroll = true }: { children?: ReactNod
   return scroll ? <ScrollView style={styles.surface} contentContainerStyle={content} keyboardShouldPersistTaps="handled">{children}</ScrollView> :
     <View style={[styles.surface, content]}>{children}</View>;
 }
+/** A screen title with an optional quiet back arrow (48 pt target, the same arrow the forest uses). */
 export function Header({ title, back }: { title?: string; back?: () => void }) {
-  return <View style={{ gap: 24 }}>
-    {back && <View style={{ alignSelf: 'flex-start', marginLeft: -12 }}><Action quiet textRole="label" onPress={back}>Back</Action></View>}
+  return <View style={{ paddingTop: back ? 4 : 16, gap: 8 }}>
+    {back && <QuietPressable accessibilityRole="button" accessibilityLabel="Back" onPress={back} hitSlop={4} style={styles.back}>
+      <View style={{ transform: [{ rotate: '180deg' }] }}><HomeIcon name="arrow" size={22} color={colors.secondary} /></View>
+    </QuietPressable>}
     {title && <Type role="title">{title}</Type>}
   </View>;
 }
@@ -65,4 +73,5 @@ export const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   row: { minHeight: 64, paddingVertical: 16, borderBottomWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   footer: { alignItems: 'center', gap: 8, paddingTop: 24 },
+  back: { width: 48, height: 48, marginLeft: -13, alignItems: 'center', justifyContent: 'center' },
 });

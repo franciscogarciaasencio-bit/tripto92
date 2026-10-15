@@ -37,7 +37,7 @@ export function StageReveal({ level, scale }: { level: JourneyLevel; scale: numb
       <CategoryIcon category={level.category} level={level.number} size={84 * scale} />
     </Animated.View>
     <Animated.View style={[wordsStyle, { alignItems: 'center', gap: 2 * scale }]}>
-      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 10 * scale, lineHeight: 16 * scale, letterSpacing: 2 * scale, color: coastalQuiet }}>A NEW STAGE</Text>
+      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 16 * scale, letterSpacing: 2 * scale, color: coastalQuiet }}>A NEW STAGE</Text>
       <Text style={{ fontFamily: coastalSerif, fontSize: 24 * scale, lineHeight: 30 * scale, color: coastalInk, textAlign: 'center' }}>{presentation.name}</Text>
       <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, color: coastalQuiet, textAlign: 'center' }}>{presentation.theme}</Text>
     </Animated.View>

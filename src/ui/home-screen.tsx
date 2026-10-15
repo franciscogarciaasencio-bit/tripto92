@@ -84,9 +84,12 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
           <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 19 * scale, marginTop: 10 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
         </QuietPressable>
         <View style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale }}>
-          <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink, marginTop: 24 * scale }}>Consistency</Text>
-          <View style={{ height: 19 * scale }} />
-          <View style={{ marginTop: 4 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
+          {/* Same rhythm as the level column: a 46 pt title row, one caption line, then the bar. */}
+          <View style={{ height: 46 * scale, marginTop: 2 * scale, justifyContent: 'center' }}>
+            <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>Consistency</Text>
+          </View>
+          <View style={{ height: 20 * scale }} />
+          <View style={{ marginTop: 9 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
         </View>
       </View>}
     </View>

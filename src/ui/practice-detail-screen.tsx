@@ -35,7 +35,7 @@ export function PracticeDetailScreen() {
     <Screen style={{ backgroundColor: 'transparent', paddingBottom: 24 }}>
       <Header back={back} />
       {details ? <View style={{ width: '100%', maxWidth: 400, alignSelf: 'center', paddingTop: 36 }}>
-        <Text style={{ fontFamily: 'ManropeMedium', color: coastalQuiet, fontSize: 10, lineHeight: 18, letterSpacing: 2.5, textAlign: 'center' }}>YOUR PRACTICE</Text>
+        <Text style={{ fontFamily: 'ManropeMedium', color: coastalQuiet, fontSize: 11, lineHeight: 18, letterSpacing: 2.5, textAlign: 'center' }}>YOUR PRACTICE</Text>
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 40, lineHeight: 48, textAlign: 'center', marginTop: 12 }}>A quiet moment.</Text>
         <Type role="secondary" style={{ textAlign: 'center', marginTop: 12 }}>
           {practiceDateLabel(details.session.localDate, { month: 'long', day: 'numeric', year: 'numeric' })}

@@ -957,3 +957,17 @@ schema change), the timer is cleared, nothing is earned, and Home shows one calm
 before a confirmed reset is still refused (deletion wins). Tests: placement outcomes; two phones through
 real Supabase SQL (overlap set aside, survives restart, syncs to the other phone); startup recovery of an
 unplaceable finished timer; backdated save kept aside atomically. 992 tests.
+
+### Typography and layout polish — Complete (2026-10-15)
+
+Owner request: "keep improving the app, font sizes, positioning of letters, make it smooth and
+beautiful". Compared five OFL serifs on the real screens (Newsreader, EB Garamond, Cormorant,
+Libre Caslon, the platform serif); bundled Newsreader Regular (screen-tuned, lining and tabular
+figures, balanced metrics) so the serif is identical on iOS, Android and web. Titles and headings are
+serif; small sentence text raised to at least 12 pt; back arrow header; Home level/consistency columns
+aligned; calendar month row with chevrons and Today; one practice row for History and calendar (fixes
+the pause line that sat under the next divider); − / + volume control; Journey view crossfade.
+No rules, migrations or stored data changed. Verified: web screenshots at 390 and 320 wide, npm run
+check (534 domain + 458 data tests), export for all platforms (fonts present in both native bundles).
+Not verified on a phone: Android line-box rendering of Newsreader and native fade timing.
+

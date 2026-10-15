@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 
 import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
 import { MonthSlide, MonthStreakLine, SelectionDisc, StreakLegend, StreakOverview, streakRuns, WeekRow } from './calendar-streaks';
 import { HomeNavigation } from './home-navigation';
-import { Action, colors, formatDuration, formatTime, Notice, Screen, Type } from './primitives';
+import { Action, colors, formatDuration, Notice, Screen, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
+import { PracticeRow } from './practice-row';
+import { UI_MOTION } from './motion';
+import { useReducedMotion } from './reduced-motion';
 import { groupPracticeHistory, monthPracticeSummary, practiceDateLabel, practiceTimeLabel } from './practice-history';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -30,6 +35,13 @@ function monthInstant(month: string, offset = 0) {
   return date;
 }
 
+/** A thin chevron drawn to match Ona's line icons, instead of a font glyph that varies by platform. */
+function Chevron({ direction }: { direction: -1 | 1 }) {
+  return <Svg width={18} height={18} viewBox="0 0 24 24" accessible={false}>
+    <Path d={direction < 0 ? 'M15 4.5 7.5 12l7.5 7.5' : 'M9 4.5 16.5 12 9 19.5'} fill="none" stroke={colors.ink} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>;
+}
+
 export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void }) {
   const { history, ready, completedPractices, practiceRevision } = useOna();
   const [today, setToday] = useState(() => currentContext().localDate);
@@ -44,6 +56,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const [loadedRevision, setLoadedRevision] = useState(-1);
   const [loadedCount, setLoadedCount] = useState(-1);
   const openingDetails = useRef(false);
+  const reduced = useReducedMotion();
   useFocusEffect(useCallback(() => { openingDetails.current = false; setToday(currentContext().localDate); }, []));
 
   useEffect(() => {
@@ -103,31 +116,35 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         <Type role="secondary">Progress details</Type>
       </QuietPressable>
     </View>
+    {/* Switching from the level view crossfades only the content; the title and tabs stay still. */}
+    <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1 }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
       {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
       <View style={calendarStyles.monthHeading}>
-        <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
-          disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
-          <Type style={calendarStyles.arrow}>‹</Type>
-        </QuietPressable>
-        <Type role="heading" accessibilityRole="header" accessibilityLiveRegion="polite">
+        <Type role="heading" accessibilityRole="header" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
           {practiceDateLabel(`${month}-01`, { month: 'long', year: 'numeric' })}
         </Type>
+        {(month !== today.slice(0, 7) || selected !== today) && <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.reveal)} exiting={reduced ? undefined : FadeOut.duration(UI_MOTION.reveal)}>
+          <QuietPressable accessibilityRole="button" accessibilityLabel="Return to today in the practice calendar"
+            onPress={() => {
+              const date = currentContext().localDate;
+              setDirection(date.slice(0, 7) === month ? 0 : date.slice(0, 7) > month ? 1 : -1);
+              setToday(date); setMonth(date.slice(0, 7)); setSelected(date);
+            }} style={calendarStyles.todayAction}>
+            <Type role="secondary">Today</Type>
+          </QuietPressable>
+        </Animated.View>}
+        <QuietPressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => changeMonth(-1)}
+          disabled={month === '0001-01'} style={calendarStyles.monthArrow}>
+          <Chevron direction={-1} />
+        </QuietPressable>
         <QuietPressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => changeMonth(1)}
-          disabled={month === '9999-12'} style={calendarStyles.monthArrow}>
-          <Type style={calendarStyles.arrow}>›</Type>
+          disabled={month === '9999-12'} style={[calendarStyles.monthArrow, { marginRight: -12 }]}>
+          <Chevron direction={1} />
         </QuietPressable>
       </View>
-      <QuietPressable accessibilityRole="button" accessibilityLabel="Return to today in the practice calendar"
-        onPress={() => {
-          const date = currentContext().localDate;
-          setDirection(date.slice(0, 7) === month ? 0 : date.slice(0, 7) > month ? 1 : -1);
-          setToday(date); setMonth(date.slice(0, 7)); setSelected(date);
-        }} style={{ minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 8 }}>
-        <Type role="secondary">Today</Type>
-      </QuietPressable>
       <View style={calendarStyles.weekdays}>
-        {WEEKDAYS.map((day) => <View key={day} style={calendarStyles.weekday}><Type role="secondary" style={{ fontSize: 11 }}>{day}</Type></View>)}
+        {WEEKDAYS.map((day) => <View key={day} style={calendarStyles.weekday}><Type role="secondary" style={calendarStyles.weekdayText}>{day}</Type></View>)}
       </View>
       <View onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
       <MonthSlide key={month} direction={direction}>
@@ -183,31 +200,29 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         {!loading && current && !error && (selectedRecords.length ? <Type role="secondary">
           {`${selectedRecords.length} ${selectedRecords.length === 1 ? 'practice' : 'practices'} · ${formatDuration(activeSeconds)}`}
         </Type> : <Type role="secondary">No recorded practice on this date.</Type>)}
-        {!loading && current && !error && selectedRecords.map(({ session }) => <QuietPressable key={session.id} accessibilityRole="button"
-          accessibilityLabel={`View saved practice, ${formatDuration(session.activeDurationSeconds)}, ${practiceDateLabel(session.localDate, { month: 'long', day: 'numeric' })}`}
-          accessibilityHint="Opens duration, pauses and saved Ripples" onPress={() => {
+        {!loading && current && !error && <View>
+          {selectedRecords.map(({ session }) => <PracticeRow key={session.id} session={session} onPress={() => {
             if (openingDetails.current) return;
             openingDetails.current = true;
             router.push({ pathname: '/practice-detail', params: { id: session.id } });
-          }} style={calendarStyles.record}>
-          <Type>{formatDuration(session.activeDurationSeconds)}</Type>
-          <Type role="secondary">{session.status === 'completed' ? 'Complete' : 'Ended early'} · {session.timeZone}</Type>
-          {session.pausedDurationSeconds > 0 && <Type role="secondary">Paused for {formatTime(session.pausedDurationSeconds).padStart(5, '0')}</Type>}
-        </QuietPressable>)}
+          }} />)}
+        </View>}
       </View>
       <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
     </ScrollView>
+    </Animated.View>
   </Screen><HomeNavigation active="journey" /></View>;
 }
 
 const calendarStyles = StyleSheet.create({
-  heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, paddingBottom: 20, gap: 12 },
+  heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, paddingBottom: 16, gap: 12 },
   details: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12 },
+  monthHeading: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 },
   monthArrow: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
-  arrow: { fontSize: 32, lineHeight: 40 },
+  todayAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10 },
   weekdays: { flexDirection: 'row' },
-  weekday: { width: '14.285714%', alignItems: 'center', paddingVertical: 14 },
+  weekday: { width: '14.285714%', alignItems: 'center', paddingVertical: 12 },
+  weekdayText: { fontSize: 12, lineHeight: 16, letterSpacing: 0.4 },
   // Fixed vertical rhythm: the day track always starts 7 pt down, where streak capsules are drawn.
   cell: { width: '14.285714%', minHeight: 52, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 7, gap: 5 },
   dayTrack: { alignSelf: 'stretch', height: 34, alignItems: 'center', justifyContent: 'center' },

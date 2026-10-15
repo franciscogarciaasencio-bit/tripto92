@@ -28,7 +28,7 @@ export function MeditationSounds({ preferences: prefs, onChange }: { preferences
         onPress={() => { audio.stopPreview(); onChange({ ...prefs,sessionSound: sound.id }); }}
         style={{ flex: 1, minHeight: 64, justifyContent: 'center' }}>
         <Type role={prefs.sessionSound === sound.id ? 'label' : 'body'}>{`${prefs.sessionSound === sound.id ? '✓  ' : ''}${sound.name}`}</Type>
-        <Type role="secondary" style={{ fontSize: 12, lineHeight: 18 }}>{sound.description}</Type>
+        <Type role="secondary" style={{ fontSize: 13, lineHeight: 18 }}>{sound.description}</Type>
       </QuietPressable>
       {sound.id !== 'silence' && <Action quiet disabled={!canPreview || prefs.sessionVolume === 0} label={audio.previewing === sound.id ? `Stop ${sound.name} preview` : `Preview ${sound.name}`}
         onPress={() => audio.preview(sound.id as Exclude<AudioPreferences['sessionSound'],'silence'>,prefs.sessionVolume)}>

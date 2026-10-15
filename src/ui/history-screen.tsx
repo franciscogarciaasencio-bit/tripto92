@@ -4,9 +4,9 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import { useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { HomeNavigation } from './home-navigation';
-import { Action, ChoiceRow, colors, formatDuration, formatTime, Header, Notice, Screen, Type } from './primitives';
+import { Action, colors, formatDuration, Header, Notice, Screen, Type } from './primitives';
+import { PracticeRow } from './practice-row';
 import { appendHistoryPage, groupPracticeHistory, practiceDateLabel } from './practice-history';
-import { QuietPressable } from './quiet-pressable';
 
 interface HistoryView {
   records: readonly StoredMeditationSession[];
@@ -80,28 +80,21 @@ export function HistoryScreen() {
 
   return <View style={{ flex: 1 }}><Screen scroll={false} style={{ paddingBottom: 0 }}>
     <Header title="History" back={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} />
-    <SectionList style={{ flex: 1, marginTop: 24 }} sections={sections} keyExtractor={({ session }) => session.id}
+    <SectionList style={{ flex: 1, marginTop: 8 }} sections={sections} keyExtractor={({ session }) => session.id}
       stickySectionHeadersEnabled contentContainerStyle={{ paddingBottom: 24 }}
       refreshControl={<RefreshControl refreshing={current && view.busy === 'refresh'} onRefresh={() => { void refresh(); }}
         tintColor={colors.ink} colors={[colors.ink]} progressBackgroundColor={colors.background} />}
-      renderSectionHeader={({ section }) => <View style={{ gap: 4, paddingTop: 12, paddingBottom: 8, backgroundColor: colors.background }}>
-        <Type role="heading" accessibilityRole="header" style={{ fontSize: 20 }}>
+      renderSectionHeader={({ section }) => <View style={{ gap: 2, paddingTop: 20, paddingBottom: 6, backgroundColor: colors.background }}>
+        <Type role="heading" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 30 }}>
           {practiceDateLabel(section.key, { month: 'long', day: 'numeric', year: 'numeric' })}
         </Type>
         <Type role="secondary">{`${section.data.length} ${section.data.length === 1 ? 'practice' : 'practices'}${view.hasMore ? ' shown' : ''} · ${formatDuration(section.activeSeconds)}`}</Type>
       </View>}
-      renderItem={({ item: { session } }) => <QuietPressable accessibilityRole="button"
-        accessibilityLabel={`View saved practice, ${formatDuration(session.activeDurationSeconds)}, ${practiceDateLabel(session.localDate, { month: 'long', day: 'numeric' })}`}
-        accessibilityHint="Opens duration, pauses and saved Ripples" onPress={() => {
-          if (openingDetails.current) return;
-          openingDetails.current = true;
-          router.push({ pathname: '/practice-detail', params: { id: session.id } });
-        }} style={{ paddingBottom: 12 }}>
-        <ChoiceRow label={formatDuration(session.activeDurationSeconds)} value={session.status === 'completed' ? 'Complete' : 'Ended early'} />
-        {session.pausedDurationSeconds > 0 && <Type role="secondary" style={{ paddingTop: 8 }}>
-          Paused for {formatTime(session.pausedDurationSeconds).padStart(5, '0')}
-        </Type>}
-      </QuietPressable>}
+      renderItem={({ item: { session } }) => <PracticeRow session={session} onPress={() => {
+        if (openingDetails.current) return;
+        openingDetails.current = true;
+        router.push({ pathname: '/practice-detail', params: { id: session.id } });
+      }} />}
       ListEmptyComponent={<View style={{ paddingVertical: 24, gap: 12 }}>
         {(!current || view.busy === 'first') ? <Type role="secondary">Opening your history…</Type>
           : view.loaded && !view.error ? <>

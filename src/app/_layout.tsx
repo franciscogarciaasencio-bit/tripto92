@@ -45,6 +45,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ManropeRegular: require('../../assets/fonts/Manrope-Regular.ttf'),
     ManropeMedium: require('../../assets/fonts/Manrope-Medium.ttf'),
+    NewsreaderRegular: require('../../assets/fonts/Newsreader-Regular.ttf'),
   });
   useEffect(() => { if (fontError) void SplashScreen.hideAsync(); }, [fontError]);
   if (!fontsLoaded && !fontError) return null;

@@ -67,20 +67,20 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
         {showTotal ? 'Total earned' : motion.stage === 'consistency' && completion.consistencyIndicator.after > completion.consistencyIndicator.before ? 'Your Consistency grows' : 'From your practice'}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 * scale, gap: 4 }}>
-        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 18 * scale, color: coastalQuiet }}>{`Base · ${formatRipples(base)} Ripples`}</Text>
+        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, color: coastalQuiet }}>{`Base · ${formatRipples(base)} Ripples`}</Text>
         {displayedBonus > 0 && <Animated.Text accessibilityElementsHidden={!showTotal} aria-hidden={!showTotal}
           importantForAccessibility={showTotal ? 'auto' : 'no-hide-descendants'}
-          style={[motion.bonusStyle, { fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 18 * scale, color: coastalQuiet }]}>
+          style={[motion.bonusStyle, { fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, color: coastalQuiet }]}>
           {`Consistency · +${displayedBonus} Ripples`}
         </Animated.Text>}
       </View>
       <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 10 * scale }} />
       <Animated.View style={motion.levelContainerStyle}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 }}>
-        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>
+        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>
           <Text style={{ color: coastalInk }}>{`Level ${displayLevel.number}`}</Text>{veiled ? ' · A new stage' : ` · ${getLevelCategoryPresentation(displayLevel).name}`}
         </Text>
-        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>{next ? `Toward Level ${next.number}` : 'Journey complete'}</Text>
+        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>{next ? `Toward Level ${next.number}` : 'Journey complete'}</Text>
       </View>
       <Animated.View style={[motion.levelGlow, { paddingVertical: 7 * scale, marginTop: 3 * scale, borderRadius: 8 }]}>
         <View accessible accessibilityRole="progressbar" accessibilityLabel="Level progress"
@@ -91,7 +91,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
         </View>
       </Animated.View>
       </Animated.View>
-      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 10 * scale, lineHeight: 16 * scale, color: coastalQuiet, marginTop: 3 * scale }}>
+      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 3 * scale }}>
         {beforeLevel !== undefined && afterLevel !== undefined && afterLevel > beforeLevel ? `Level ${beforeLevel} → Level ${afterLevel}` : 'One return at a time.'}
       </Text>
       {newStage && motion.stage === 'done' && afterLevel !== undefined && <StageReveal level={levels[afterLevel - 1]!} scale={scale} />}
@@ -102,7 +102,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 20 * scale, color: coastalInk }}>Consistency</Text>
       </View>
       <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} scale={scale} label="Consistency progress" /></View>
-      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 11 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
+      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
         {explanation ?? 'A gentle rhythm of returning.'}
       </Text>
     </View>

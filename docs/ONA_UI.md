@@ -5,8 +5,11 @@
 Preserve the approved Design 3 proportions and later user-supplied coastal/forest artwork:
 warm sand, restrained ink, generous space, minimal native controls and a single living wave.
 src/ui/theme.json defines background #F2E9DA and ink #141414; primitives.tsx supplies
-supporting tokens/components. Manrope Regular/Medium supports the system; editorial
-wordmark/headings/timer use Times New Roman on iOS/web and serif on Android.
+supporting tokens/components. Manrope Regular/Medium carries text, labels and controls;
+Newsreader Regular (bundled, SIL OFL, assets/fonts) is the editorial serif on every platform:
+wordmark, screen titles and section headings (`title` 34/42, `heading` 24/32), level names,
+the timer and streak numbers. Bundling it replaced the platform serifs (Times New Roman on iOS,
+Noto Serif on Android), so iOS, Android and web now share letterforms and vertical metrics.
 Do not introduce Expo starter styling, generic cards/gradients or new decorative motifs.
 
 assets/ona/design3/coastal-background.png is the byte-for-byte supplied Forest 2/1.png
@@ -143,7 +146,8 @@ never a scientific claim. Settings reset preserves unrelated preferences.
 
 Journey's monthly summary includes all saved practice (including short sessions),
 with captured practice days and active time only; it is not another Consistency score.
-Today returns to the current calendar date without changing historical assignments.
+Today returns to the current calendar date without changing historical assignments; it sits in the
+month row beside thin chevrons and fades in only when another month or day is shown.
 history-screen.tsx uses a virtualized SectionList, groups by captured day, preserves
 repository order within each day and supports native pull-to-refresh. While more pages
 remain, day summaries say “shown”; loading/reset/navigation guards ignore stale reads.
@@ -155,7 +159,7 @@ History's day headers remain visible while scrolling. Details ignore late reads 
 leaving/reset; captured local-time labels never fall back to the current device zone.
 Returning from details retains loaded history pages and scroll position; new completion
 or reset invalidates them, and pull-to-refresh explicitly reloads the first page.
-Settings keeps its save action above navigation while the sound controls scroll.
+Settings keeps its save action (centred, above navigation) while the sound controls scroll.
 Unsaved sound changes are marked; Save changes uses the existing explicit save flow.
 
 coastal-composition.ts owns the new asset's source landmarks and uniform aspect ratio.
@@ -166,6 +170,19 @@ strips or a duplicate halo/shoreline.
 The source PNG is neither tinted, stretched nor recompressed. Guide/intro use the same
 asset; completion and intro use deliberate landscape crops. Audio retry is available
 through existing sound controls, with no floating Resume sound/Play sound buttons.
+
+### Typography and layout pass (2026-10-15)
+
+Owner request: better font sizes, letter positioning, smooth and beautiful. Screen titles and section
+headings are serif (Newsreader); body, labels and controls stay Manrope. Sentence text is at least 12 pt
+(letter-spaced capitals at least 11). Secondary screens open with a quiet back arrow (48 pt target,
+the forest's arrow) instead of the word Back, then the title. Home: "Level n" and "Consistency" share a
+46 pt title row and the two bars start at the same height. Calendar: month title left in serif with
+chevrons and Today on the same row (one row less before the grid); streak numbers share a baseline.
+History and the calendar day share one practice row: duration, then start time (with the zone only when
+it differs from this phone's) and any pause, inside one divider. Volume is a − / + step control (5 %)
+with a thin animated level line and the percentage. Switching Journey between calendar and levels
+crossfades the content while title and tabs stay still. Reduced Motion turns the new fades off.
 
 ### Journey calendar and level path (2026-10-15)
 
