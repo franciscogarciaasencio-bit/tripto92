@@ -19,6 +19,12 @@ unverified on a physical phone, blocked or not done by decision. Open items, in 
 3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
    raise `android.versionCode` and keeps the approved package and signing key.
 4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
+5. **Clock skew defect (found 2026-10-15):** progression refuses to settle at a time earlier than
+   its stored `asOf` ("Cannot rewind progression time"). After a sync pull from a phone whose clock
+   is ahead, or after the phone clock is set back, reads fail ("Your practice could not be opened")
+   and a new practice ending before the stored time would be rejected, until the clock catches up.
+   Reproduced in a data test with two phones 2 minutes apart. Needs a designed fix (e.g. settle
+   reads at max(now, stored asOf); define how a practice that ends before it is recorded).
 
 Read AGENTS.md first. Never claim device/listening results the owner has not reported.
 
@@ -908,3 +914,15 @@ agent, verified and committed here without the contents ever being printed. Stab
 achievements and history are unchanged (presentation v3 only).
 
 Open: Levels 101–125 remain visible (owner was asked whether to seal them too). Not verified on a phone.
+
+### Watercolour stage paintings — Complete (2026-10-15), owner request
+
+Owner supplied a watercolour Monkey Mind and asked for all stage icons to be redesigned to match
+Ona. Monkey Mind is the owner's painting (cut out with soft, fringe-free edges); the five visible
+stages (Levels 101–125) were painted here and shown to the owner; the 19 sealed stages were painted
+by the helper agent out of view in two rounds (stages 2–10, 11–20), each with several render/review
+passes and a final whole-family review, sealed as veiled PNG plus veiled scene source. Painter,
+cutout, contact sheets and style guide in scripts/watercolor. Tests: visible paintings wired and
+384 px RGBA; no sealed painting file exists; every sealed stage has veiled art and scene; veil round
+trip is byte-exact; leak guard. Android bundle 7.3 MB after adding the paintings. Not verified on a
+phone (rendering of data-URI paintings is standard RN Image behaviour on iOS/Android).

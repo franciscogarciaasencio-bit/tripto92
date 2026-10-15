@@ -24,3 +24,13 @@ test('Sealed stages never exist as viewable painting files', () => {
   for (const name of readdirSync(stages)) assert.ok(!sealed.has(name.replace(/\.png$/, '')), 'no sealed painting file');
   assert.equal(collection.length, api.JOURNEY_CATEGORIES.length);
 });
+
+test('Every sealed stage carries a veiled painting and its veiled scene source', () => {
+  const sealed = JSON.parse(readFileSync(path.join(root, 'assets/ona/categories-sealed.json'), 'utf8'));
+  assert.equal(sealed.length, collection.filter((stage) => stage.sealed).length);
+  for (const entry of sealed) {
+    assert.ok(typeof entry.art === 'string' && entry.art.length > 1000, `${entry.id} has a painting`);
+    assert.ok(typeof entry.scene === 'string' && entry.scene.length > 100, `${entry.id} keeps its scene source`);
+    assert.notEqual(Buffer.from(entry.art, 'base64').subarray(1, 4).toString(), 'PNG', `${entry.id} painting is veiled`);
+  }
+});

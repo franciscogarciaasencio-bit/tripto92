@@ -199,6 +199,15 @@ over about a second (instant with Reduced Motion). Future stages are never liste
 the level animation runs, then reveals the stage's symbol (scale/fade, 900 ms) and name (500 ms
 later) once, the first time that stage is reached (stage-reveal.tsx).
 
+Stage paintings (owner direction 2026-10-15): stage symbols are small watercolour paintings, not
+line icons. Monkey Mind (Level 0 and Levels 1–5) is the owner's own painting, cut out of its paper
+by scripts/watercolor/cutout.py; every other stage is painted in code to match it
+(scripts/watercolor: SVG washes with wet-in-wet shading, mottling, pooled rims, paper grain, rendered
+in Chromium; STYLE.md). 384 px RGBA, shown at 46 pt beside the level on Home, 112 pt in the Journey
+medallion and 84 pt in the new-stage reveal. Visible stages are bundled PNGs (stage-art.ts); sealed
+stages are XOR-veiled inside the sealed data and unveiled in memory to a data URI (core RN Image);
+no sealed painting exists as an image file. The old line symbols remain only as a fallback.
+
 Consistency bar (owner direction 2026-10-15): one rounded bar (ink on a darker sand track) with five
 small segments beneath it, one per milestone; a segment fills, with a tiny swell, as the bar passes
 its milestone. Same component on Home, completion and the introduction.
