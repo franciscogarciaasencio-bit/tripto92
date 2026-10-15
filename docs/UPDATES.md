@@ -25,7 +25,7 @@ with the same validation, so an update can carry migration 14+ like a new build.
 git pull origin main
 npm ci
 npm run check
-npx eas-cli@latest update --channel preview --platform android --environment preview --message "<what changed>"
+npx eas-cli@latest update --channel preview --platform all --environment preview --message "<what changed>"
 ```
 
 SDK 57 requires `--environment`. Before publishing, the EAS `preview` environment must contain
@@ -34,7 +34,9 @@ profile. Updates do not read that profile's `env` or local `.env` when an EAS en
 Only the project URL and publishable key belong there; never add server credentials.
 See [Expo's environment-variable guidance](https://docs.expo.dev/eas/environment-variables/usage/).
 
-The preview build profile uses channel `preview`. Builds made before 1.2.0 have no update support
+The preview build profile uses channel `preview`; app.json `updates.requestHeaders` names the same
+channel for the iPhone build made outside EAS (docs/IOS_SIDELOAD.md). `--platform all` reaches both;
+use `--platform android` only while no iPhone build exists. Builds made before 1.2.0 have no update support
 and must be replaced once by the 1.2.0 APK. An update that misbehaves can be undone by republishing
 the previous commit (`eas update:republish` or a new update from that commit).
 

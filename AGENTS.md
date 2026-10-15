@@ -31,6 +31,8 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   development build when native configuration changes; Expo Go cannot apply plugins.
 - Over-the-air updates (docs/UPDATES.md): JS/asset changes ship with `eas update --channel preview`;
   native changes (modules, plugins, app.json native settings) need a raised expo.version and a new APK.
+- iPhone: free-Apple-ID sideload of an unsigned GitHub Actions build (docs/IOS_SIDELOAD.md);
+  keep the app entitlement-free and never commit ios/, .ipa files or Apple credentials.
 - Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
   the approved application ID and signing key; never commit credentials or APK artifacts.
 - Sealed journey stages: names, themes and icons of sealed categories (assets/ona/categories-sealed.json)

@@ -108,3 +108,18 @@ test('Over-the-air updates: EAS Update channel, app-version runtime, native modu
   assert.deepEqual(actual.plugins.map((plugin) => Array.isArray(plugin) ? plugin[0] : plugin), recorded.plugins);
   assert.equal(actual.version, recorded.runtimeVersion);
 });
+
+test('iPhone build: same identity as Android, iPhone only, and the update channel of the APK', () => {
+  const actual = configuration();
+  const eas = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
+  assert.equal(actual.ios.bundleIdentifier, actual.android.package);
+  assert.equal(actual.ios.supportsTablet, false);
+  assert.equal(actual.ios.config.usesNonExemptEncryption, false);
+  // Builds made outside EAS (the free iPhone sideload) learn their channel from app.json.
+  assert.deepEqual(actual.updates.requestHeaders, { 'expo-channel-name': eas.build.preview.channel });
+  // A free Apple ID cannot sign entitlements: no plugin may add push, app groups or iCloud.
+  assert.equal(actual.ios.entitlements, undefined);
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/ios-unsigned.yml'), 'utf8');
+  assert.ok(workflow.includes('CODE_SIGNING_ALLOWED=NO'));
+  assert.ok(workflow.includes(`grep -qx ${actual.version}`));
+});

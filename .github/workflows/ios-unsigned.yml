@@ -1,0 +1,74 @@
+# Builds Ona for iPhone without an Apple signature, for installing with a free Apple ID through
+# AltStore/Sideloadly (docs/IOS_SIDELOAD.md). Run it by hand: gh workflow run ios-unsigned.yml --ref main
+# The ios folder exists only on the runner (Continuous Native Generation); never commit it.
+name: iOS unsigned build
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.21.0
+          cache: npm
+
+      - run: npm ci
+
+      # Only the public project URL and publishable key, the same values the Android build uses.
+      - name: Public Supabase values from eas.json
+        run: node -e "const env=require('./eas.json').build.preview.env;for(const[k,v]of Object.entries(env))require('fs').appendFileSync(process.env.GITHUB_ENV,k+'='+v+'\n')"
+
+      - run: npm run check
+
+      - run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+
+      - name: Build without signing
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/Ona.xcworkspace -scheme Ona -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Verify the app before packaging
+        run: |
+          app=build/Build/Products/Release-iphoneos/Ona.app
+          test -f "$app/main.jsbundle"
+          test -f "$app/EXUpdates.bundle/app.manifest" || find "$app" -name app.manifest | grep -q .
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist" | grep -qx com.meditation.ona
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist" | grep -qx 1.2.0
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes:0' "$app/Info.plist" | grep -qx audio
+          expo=$(find "$app" -name Expo.plist | head -1)
+          /usr/libexec/PlistBuddy -c 'Print :EXUpdatesRuntimeVersion' "$expo" | grep -qx 1.2.0
+          /usr/libexec/PlistBuddy -c 'Print :EXUpdatesRequestHeaders:expo-channel-name' "$expo" | grep -qx preview
+          du -sh "$app"
+
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Ona.app Payload/
+          zip -qry Ona-1.2.0-unsigned.ipa Payload
+          shasum -a 256 Ona-1.2.0-unsigned.ipa | tee Ona-1.2.0-unsigned.ipa.sha256
+          ls -lh Ona-1.2.0-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ona-ios-unsigned-${{ github.sha }}
+          path: |
+            Ona-1.2.0-unsigned.ipa
+            Ona-1.2.0-unsigned.ipa.sha256
+          retention-days: 14
+          if-no-files-found: error

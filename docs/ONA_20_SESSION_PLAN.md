@@ -1064,3 +1064,10 @@ Published Android OTA group `b3642b6d-0149-4489-af59-17f244359a2a` from clean co
 to runtime `1.2.0` on channel `preview`, after npm ci, TypeScript/lint, 997 tests and all-platform
 export passed. Owner confirmed APK installation over the old app; OTA arrival/listening remains
 a device check. Details and dashboard link: UPDATES.md. No APK was built.
+
+### iPhone without a paid Apple account — Prepared (2026-10-15)
+
+Owner chose the free route: an unsigned build from GitHub Actions (ios-unsigned.yml), signed with
+a free Apple ID through AltStore, renewed every 7 days, updated over the air like the APK. app.json
+gains the iOS identity and the preview channel header; tests guard both. Not yet run: the macOS build,
+install and on-device checks (docs/IOS_SIDELOAD.md).

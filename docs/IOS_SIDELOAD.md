@@ -1,0 +1,55 @@
+# Ona on iPhone without a paid Apple account
+
+The owner chose not to pay for the Apple Developer Program yet (2026-10-15). Ona therefore reaches
+the iPhone the free way: an **unsigned** app built on GitHub's Mac runners, signed on the owner's
+Windows PC with a **free Apple ID** by AltStore (or Sideloadly), and renewed every 7 days.
+Over-the-air updates work exactly as on Android once it is installed.
+
+## What is configured
+
+- app.json `ios`: bundle identifier `com.meditation.ona` (same as Android), build number 1,
+  iPhone only, no export-encryption declaration needed. `updates.requestHeaders` names the
+  `preview` channel, so builds made outside EAS (this one) listen to the same channel as the APK.
+- expo-audio's `enableBackgroundPlayback` adds `UIBackgroundModes: audio`, so a practice keeps its
+  sound with the screen locked. The app needs **no entitlements** (no push, no app groups, no
+  iCloud), which is what a free Apple ID can sign.
+- Google sign-in returns through `meditationapp://auth-callback`, the same redirect the APK uses
+  (already allowed in Supabase). It opens Apple's secure sign-in sheet.
+- .github/workflows/ios-unsigned.yml: on demand, a macOS runner runs `npm ci`, `npm run check`,
+  `expo prebuild --platform ios`, CocoaPods and an unsigned Release `xcodebuild`, verifies the
+  bundled JavaScript, bundle ID, version 1.2.0, background audio and the update runtime/channel,
+  then uploads `Ona-1.2.0-unsigned.ipa` (kept 14 days). The ios folder exists only on the runner.
+
+Private repositories get limited free macOS minutes each month (counted ×10); one build takes
+roughly 20–40 runner minutes, so build only when the native app changes. If GitHub retires the
+`macos-26` image name, use the newest macOS image that has the Xcode Expo SDK 57 requires.
+
+## Installing (owner's PC, once)
+
+1. Run the workflow and download the .ipa (Codex: `gh workflow run ios-unsigned.yml --ref main`,
+   then `gh run download`). Never commit the .ipa.
+2. Install AltServer for Windows from altstore.io, following its current instructions (it relies
+   on Apple's iTunes and iCloud for Windows). Connect the iPhone by USB, trust the PC, install
+   AltStore onto the iPhone with the owner's Apple ID.
+3. On the iPhone: Settings → General → VPN & Device Management → trust the Apple ID; turn on
+   Settings → Privacy & Security → Developer Mode (restart when asked).
+4. AltServer → Sideload .ipa → choose the downloaded file (or open the .ipa in AltStore → My Apps).
+
+The Apple ID password is typed into AltServer, a third-party tool; that is the owner's decision.
+
+## Living with it
+
+- **Every 7 days** the signature expires. AltStore renews in the background while the PC runs
+  AltServer and the iPhone is on the same Wi-Fi; otherwise open AltStore → My Apps → Refresh All,
+  or plug in by USB. An expired Ona will not open until refreshed; its practice data stays as
+  long as the app is **never deleted**. Refresh, do not reinstall from scratch.
+- A free Apple ID allows 3 sideloaded apps at once (AltStore counts as one).
+- Updates: publish with `--platform all` (docs/UPDATES.md). JavaScript and assets reach both
+  phones; native changes need a new runtime version, a new APK **and** a new run of this workflow,
+  then installing the new .ipa over the old one with AltStore (data kept).
+
+## Not verified here
+
+The cloud workspace cannot reach GitHub's runners or a phone. Unverified until the first build
+and install: the macOS build itself, background audio on a locked iPhone, Google sign-in on iOS,
+haptics/safe areas on the owner's model, and update arrival on iPhone.
