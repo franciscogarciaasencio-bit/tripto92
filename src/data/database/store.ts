@@ -1,4 +1,4 @@
-import { advanceProgression, changeProgressionRules, createProgressionState, getProgressSnapshot } from '../../domain/progression';
+import { advanceProgression, changeProgressionRules, createProgressionState, getProgressSnapshot, readingContext } from '../../domain/progression';
 import { settleTimer, timerSession } from '../../domain/meditation/timer';
 import type { CalendarContext, ProgressionRules } from '../../domain/progression';
 import { DEFAULT_PREFERENCES } from '../preferences';
@@ -42,15 +42,17 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
         recoveredSession = timerSession(draft);
         state = await persistCompletion(sql, state, recoveredSession, asOf.timestamp);
       }
-      state = advanceProgression(state, asOf);
+      // A device clock behind the stored settlement opens at that settlement; it never rewinds.
+      const at = readingContext(state.asOf, asOf);
+      state = advanceProgression(state, at);
       // Deliberate release policy supplied by the native adapter, AFTER old pending completions and old decay.
       const releasedUpgrade = (state.activeRulesVersion === 'progression_v1' && activateRulesVersion !== 'progression_v1') ||
         (['progression_v1', 'progression_v2', 'progression_v3'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v4') ||
         (['progression_v1', 'progression_v2', 'progression_v3', 'progression_v4'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v5') ||
         (['progression_v1', 'progression_v2'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v3');
       if (activateRulesVersion && releasedUpgrade) {
-        const changed = changeProgressionRules(state, registry.get(activateRulesVersion), asOf);
-        await appendTransition(sql, state, changed, asOf.timestamp);
+        const changed = changeProgressionRules(state, registry.get(activateRulesVersion), at);
+        await appendTransition(sql, state, changed, at.timestamp);
         state = changed;
       }
       await loadPreferences(sql);
@@ -60,7 +62,7 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       await validateCompletions(sql, registry);
       const dismissed = await loadExplanationDismissal(sql);
       const sync = await loadSyncState(sql);
-      return { initialSnapshot: getProgressSnapshot(state, asOf), initialTimer: draft?.phase === 'finished' ? null : draft,
+      return { initialSnapshot: getProgressSnapshot(state, at), initialTimer: draft?.phase === 'finished' ? null : draft,
         initialJourney: habit?.journey ?? await loadJourney(sql, state), initialHabit: habit?.checkpoint ?? null, initialExplanationDismissed: dismissed !== null,
         recoveredSession, previousRank, initialCompletion: await pendingCompletion(sql),
         initialCompletedPractices: await completedPracticeCount(sql), initialSync: sync };

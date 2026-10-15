@@ -1,4 +1,4 @@
-import { dayNumber, dateFromDay, validateContext, type CalendarContext } from './calendar';
+import { dayNumber, dateFromDay, forwardOnly, validateContext, type CalendarContext } from './calendar';
 import { progressionConsistency, CONTINUOUS_CONSISTENCY } from './consistency';
 import { getJourneyFromState, getLifetimeJourney, getJourneyProgressTransition, HABIT_LEVELS, HABIT_JOURNEY_VERSION, practiceCredits, type JourneyProgressTransition } from './journey';
 import { assertNonnegativeInteger, freeze, multiplyRatio } from './numeric';
@@ -41,9 +41,9 @@ export function habitJourney(checkpoint: HabitCheckpoint, state: ProgressionStat
   return getLifetimeJourney({ ...metrics, lifetimeXpCenti: state.lifetimeXpCenti, effectiveXpCenti: checkpoint.effectiveXpCenti, asOf: checkpoint.asOf.timestamp },
     { version: HABIT_JOURNEY_VERSION, level: floor, achievedAt: checkpoint.asOf.timestamp }, { version: HABIT_JOURNEY_VERSION });
 }
-export function advanceHabit(checkpoint: HabitCheckpoint, state: ProgressionState, asOf: CalendarContext): HabitCheckpoint {
-  validateHabit(checkpoint); validateContext(asOf);
-  if (asOf.timestamp < checkpoint.asOf.timestamp) throw new RangeError('Cannot rewind habit time');
+export function advanceHabit(checkpoint: HabitCheckpoint, state: ProgressionState, requested: CalendarContext): HabitCheckpoint {
+  validateHabit(checkpoint); validateContext(requested);
+  const asOf = forwardOnly(checkpoint.asOf, requested);
   const dates = practiceCredits(state.sessions.map((entry) => entry.session)).dates.map((date) => dayNumber(date.localDate));
   const sessions = new Map(state.sessions.map((entry) => [entry.session.id, entry.session]));
   for (const award of state.awards) {

@@ -1,5 +1,5 @@
 import { sameSession, validateSession, type MeditationSession } from '../meditation/session';
-import { dateFromDay, dayNumber, validateContext, type CalendarContext } from './calendar';
+import { dateFromDay, dayNumber, forwardOnly, validateContext, type CalendarContext } from './calendar';
 import { decayOneDay, protectedFloor } from './decay';
 import { isRewardEligible, occasionEarnings } from './earnings';
 import { freeze, multiplyRatio, safeAdd } from './numeric';
@@ -29,9 +29,9 @@ export function createProgressionState(asOf: CalendarContext, rules: Progression
 }
 
 /** Settle only dates strictly BEFORE asOf.localDate. No wall-clock or local-zone access. */
-export function advanceProgression(state: ProgressionState, asOf: CalendarContext): ProgressionState {
-  validateContext(asOf);
-  if (asOf.timestamp < state.asOf.timestamp) throw new RangeError('Cannot rewind progression time');
+export function advanceProgression(state: ProgressionState, requested: CalendarContext): ProgressionState {
+  validateContext(requested);
+  const asOf = forwardOnly(state.asOf, requested);
   const rules = rulesForVersion(state);
   const through = Math.max(dayNumber(state.settledThroughDate), dayNumber(asOf.localDate) - 1);
   const activeDays = qualifyingDates(state).map(dayNumber).sort((a, b) => a - b);
@@ -60,6 +60,19 @@ function updateBest(state: ProgressionState): ProgressionState {
   };
 }
 
+/**
+ * A practice may end slightly before the settlement cursor when the device clock is behind the
+ * moment Ona last settled (clock correction, or a checkpoint synced from a phone running ahead).
+ * It is recorded truthfully when its date is at most one day before the settled calendar (as for
+ * westward travel) and nothing in the progression is dated after its end, so the award is exactly
+ * what replaying history up to that practice reproduces. Anything older remains a rewind.
+ */
+function acceptsLateEnding(state: ProgressionState, session: MeditationSession) {
+  return dayNumber(session.localDate) >= dayNumber(state.asOf.localDate) - 1 &&
+    (state.consistencyActivations ?? []).every((anchor) => anchor.asOf.timestamp <= session.endedAt) &&
+    state.highestRankAchieved.achievedAt <= session.endedAt;
+}
+
 /** Append in timestamp order. Replays are no-ops; conflicting IDs and backdated edits fail loudly. */
 export function recordSession(state: ProgressionState, session: MeditationSession): ProgressionState {
   validateSession(session);
@@ -72,6 +85,7 @@ export function recordSession(state: ProgressionState, session: MeditationSessio
   if (previous && session.startedAt < previous.session.endedAt) {
     throw new RangeError('Sessions must be appended in order without overlaps');
   }
+  if (session.endedAt < state.asOf.timestamp && !acceptsLateEnding(state, session)) throw new RangeError('Cannot rewind progression time');
   const settled = advanceProgression(state, {
     timestamp: session.endedAt, localDate: session.localDate, timeZone: session.timeZone,
   });

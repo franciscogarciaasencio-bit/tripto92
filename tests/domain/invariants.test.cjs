@@ -84,7 +84,8 @@ test('Overlapping or backdated session writes are rejected rather than rewriting
   assert.throws(() => api.recordSession(state, session({ day: 1 })), /order without overlaps/);
   assert.throws(() => api.recordSession(state, session({ day: 2, hour: 9.05 })), /order without overlaps/);
   assert.throws(() => api.recordSession(api.advanceProgression(state, context(5)), session({ day: 3 })), /rewind/);
-  assert.throws(() => snapshot(state, 1), /rewind/);
+  // A read with a clock behind the settlement reads at the settlement: no error, nothing rewinds.
+  assert.deepEqual(snapshot(state, 1), api.getProgressSnapshot(state, state.asOf));
 });
 
 for (const [label, changes] of [

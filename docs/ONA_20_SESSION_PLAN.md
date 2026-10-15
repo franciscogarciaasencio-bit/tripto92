@@ -19,12 +19,7 @@ unverified on a physical phone, blocked or not done by decision. Open items, in 
 3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
    raise `android.versionCode` and keeps the approved package and signing key.
 4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
-5. **Clock skew defect (found 2026-10-15):** progression refuses to settle at a time earlier than
-   its stored `asOf` ("Cannot rewind progression time"). After a sync pull from a phone whose clock
-   is ahead, or after the phone clock is set back, reads fail ("Your practice could not be opened")
-   and a new practice ending before the stored time would be rejected, until the clock catches up.
-   Reproduced in a data test with two phones 2 minutes apart. Needs a designed fix (e.g. settle
-   reads at max(now, stored asOf); define how a practice that ends before it is recorded).
+5. ~~Clock skew defect~~ fixed 2026-10-15 (see "Clock skew" in the log).
 
 Read AGENTS.md first. Never claim device/listening results the owner has not reported.
 
@@ -926,3 +921,27 @@ cutout, contact sheets and style guide in scripts/watercolor. Tests: visible pai
 384 px RGBA; no sealed painting file exists; every sealed stage has veiled art and scene; veil round
 trip is byte-exact; leak guard. Android bundle 7.3 MB after adding the paintings. Not verified on a
 phone (rendering of data-URI paintings is standard RN Image behaviour on iOS/Android).
+
+### Clock skew — Fixed (2026-10-15)
+
+Defect found while testing: progression and the habit checkpoint refused to settle at a moment
+earlier than their stored one, and the timer refused a clock behind its cursor. A phone whose clock
+ran even a minute behind another phone's (after a sync pull), or a clock set back by hand, could not
+open its practice ("Your practice could not be opened") until the clock caught up; a practice ending
+slightly before the stored moment could not be saved.
+
+Fix (no rule version or migration: identical results for every request at or after the stored
+moment, so V1–V5 histories and receipts are unchanged): settlement is forward-only (`forwardOnly`:
+an earlier request settles at the stored moment itself, date included, so every replay reproduces
+it); reads, startup and snapshots use it as `readingContext`; the timer holds its cursor until the
+clock catches up and the deadline watcher keeps one pending callback; a practice ending before the
+stored moment is recorded with its true times when its date is at most a day before the settled
+calendar and no rules activation or rank achievement is dated after its end (so the integrity
+replay reproduces its award); resets still refuse a moment before the settlement.
+
+Verification: domain tests (late ending equals the unskewed award, older late endings and post-
+upgrade late endings refused, reads/habit never rewind and replay deterministically, timer holds),
+data tests (two phones 2 minutes apart through real Supabase SQL: pull, read, save, reopen, sync back;
+cross-midnight save and revalidated reopen; clock set back two days; reset refused), and a seeded
+60-day stress test with random backward steps up to an hour and six reopenings: 83 practices saved,
+0 refused, every reopen validated. 988 tests in total.

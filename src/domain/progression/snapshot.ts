@@ -1,4 +1,4 @@
-import { dateFromDay, dayNumber, precedingActiveDays, type CalendarContext } from './calendar';
+import { dateFromDay, dayNumber, precedingActiveDays, readingContext, type CalendarContext } from './calendar';
 import { consistencyRatio } from './earnings';
 import { freeze } from './numeric';
 import { qualifyingDates } from './occasions';
@@ -10,7 +10,8 @@ import { isLinearConsistency, progressionConsistency } from './consistency';
 import { getConsistencyIndicator } from './consistency-indicator';
 
 /** A projection only. Repeated reads do not mutate balances, receipts, or checkpoints. */
-export function getProgressSnapshot(state: ProgressionState, asOf: CalendarContext): ProgressSnapshot {
+export function getProgressSnapshot(state: ProgressionState, requested: CalendarContext): ProgressSnapshot {
+  const asOf = readingContext(state.asOf, requested);
   const projected = advanceProgression(state, asOf);
   const rules = rulesForVersion(projected);
   const dates = qualifyingDates(projected);

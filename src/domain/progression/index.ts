@@ -10,6 +10,7 @@ export { createProgressionState, recordSession, advanceProgression, changeProgre
 export { getProgressSnapshot } from './snapshot';
 export { CENTI_XP_PER_XP } from './numeric';
 export type { CalendarContext, LocalDate } from './calendar';
+export { forwardOnly, readingContext } from './calendar';
 export { STREAK_RULES, practiceStreaks, qualifiesForStreak } from './streaks';
 export type { PracticeStreaks, StreakCount, WeekStatus, MonthStatus, PeriodState } from './streaks';
 export type { MeditationSession } from '../meditation/session';

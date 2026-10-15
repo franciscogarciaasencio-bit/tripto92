@@ -55,5 +55,5 @@ test('Open cursor rejects changing meaning, unfinished status and rollback', () 
   assert.throws(() => validateTimer({ ...d, targetSeconds: 600 }), /duration/);
   assert.throws(() => validateTimer({ ...d, mode: undefined }), /mode/);
   assert.throws(() => validateTimer({ ...finishTimer(d, at(1, 10)), completionStatus: 'ended_early' }), /status/);
-  assert.throws(() => activeElapsedSeconds(d, d.startedAt - 1), /backwards/);
+  assert.equal(activeElapsedSeconds(d, d.startedAt - 1), 0, 'a clock behind the start counts nothing');
 });

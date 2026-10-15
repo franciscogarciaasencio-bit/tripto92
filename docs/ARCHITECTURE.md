@@ -51,7 +51,12 @@ All clock context is explicit: safe-integer UTC milliseconds, captured localDate
 timeZone; completed durations are integer seconds and XP remains integer centi-XP.
 Application creates stable UUIDs. Original createdAt wins on identical retry.
 Submit pending finished sessions before advancing beyond their completion timestamp.
-Backdated/overlapping sessions and clock rollback fail explicitly. Refresh history
+Overlapping sessions and practices dated more than a day before the settled calendar fail
+explicitly. A device clock behind the stored settlement (manual change, network correction, a
+checkpoint synced from a phone running ahead) never fails reads or startup: they read at the stored
+moment, date included (`readingContext` = `forwardOnly`), the timer holds time until the
+clock catches up, and a practice ending slightly before the settlement is recorded truthfully when
+replaying history reproduces its award (GAME_SYSTEM.md). Resets stay strict. Refresh history
 pagination if a new record appears between pages; calendar loads every page.
 Practice-detail reads decode the session and immutable award under their registered
 versions. They never advance progression, acknowledge a completion or reconstruct a

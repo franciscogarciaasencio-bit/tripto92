@@ -155,7 +155,16 @@ Session IDs are stable opaque unique IDs. Absolute times are safe-integer UTC Un
 milliseconds; session durations are integer seconds. Each session stores its historical
 local date and IANA zone. Travel never reassigns old dates; actual timestamps govern
 occasion separation and six-hour gaps. Every time-dependent operation accepts asOf;
-backdated/overlapping sessions and backwards absolute clocks fail explicitly.
+overlapping sessions fail explicitly.
+
+Clocks that step back (2026-10-15): settlement is forward-only. A requested moment earlier than the
+stored `asOf` settles at the stored moment itself, date included (`forwardOnly`; reads and snapshots
+use it as `readingContext`), so every replay of history reproduces it exactly. A practice ending
+before the stored moment is recorded with its true times when its date is at most one day before the
+settled calendar and no consistency activation or rank achievement is dated after its end; then its
+award is exactly what the integrity replay reproduces. Older backdated practices still fail as a
+rewind, and resets refuse a moment before the settlement. For every request at or after the stored
+moment these functions are the identity, so released V1–V5 histories and receipts are unchanged.
 
 Awards are append-only incremental receipts with session/occasion references, amount,
 breakdown, timestamp and frozen rules version. Retrying an identical session is a no-op;

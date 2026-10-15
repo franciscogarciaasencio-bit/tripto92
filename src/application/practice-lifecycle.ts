@@ -30,7 +30,11 @@ export function watchTimerDeadline(draft: TimerDraft | null, clock: DeadlineCloc
         if (finished.phase === 'finished') {
           delivered = true;
           complete(finished);
-        } else cancelNext = clock.schedule(check, Math.max(1, deadline - now));
+        } else {
+          // One pending deadline at a time; a clock that stepped back simply waits longer.
+          cancelNext();
+          cancelNext = clock.schedule(check, Math.max(1, deadline - Math.max(now, draft.changedAt)));
+        }
       } catch (error) { delivered = true; fail(error); }
     };
     check();

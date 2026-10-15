@@ -1,4 +1,4 @@
-import { advanceProgression, changeProgressionRules, createProgressionState, getProgressSnapshot, JOURNEY_VERSION } from '../../domain/progression';
+import { advanceProgression, changeProgressionRules, createProgressionState, getProgressSnapshot, JOURNEY_VERSION, readingContext } from '../../domain/progression';
 import type { CalendarContext, MeditationSession } from '../../domain/progression';
 import type { Transactions } from '../database/connection';
 import { checkpointMetadata, decodeAwardRow, decodeContext, decodeSession, decodeSessionRow, type RulesRegistry, type StoredMeditationSession } from '../database/decoders';
@@ -86,9 +86,12 @@ export function createMeditationRepository(database: Transactions, registry: Rul
     },
 
     async getCurrentProgressionSnapshot(input: CalendarContext) {
-      const asOf = decodeContext(input);
+      const now = decodeContext(input);
       return database.transaction(async (sql) => {
-        const state = advanceProgression(await loadState(sql, registry), asOf);
+        const loaded = await loadState(sql, registry);
+        // A device clock behind the stored settlement reads at that settlement; it never rewinds.
+        const asOf = readingContext(loaded.asOf, now);
+        const state = advanceProgression(loaded, asOf);
         await writeCheckpoint(sql, state);
         await loadJourney(sql, state);
         return getProgressSnapshot(state, asOf);
@@ -96,9 +99,11 @@ export function createMeditationRepository(database: Transactions, registry: Rul
     },
 
     async getCurrentPracticeProgress(input: CalendarContext) {
-      const asOf = decodeContext(input);
+      const now = decodeContext(input);
       return database.transaction(async (sql) => {
-        const state = advanceProgression(await loadState(sql, registry), asOf);
+        const loaded = await loadState(sql, registry);
+        const asOf = readingContext(loaded.asOf, now);
+        const state = advanceProgression(loaded, asOf);
         await writeCheckpoint(sql, state);
         const habit = await loadHabit(sql, state);
         return { snapshot: getProgressSnapshot(state, asOf), journey: habit?.journey ?? await loadJourney(sql, state), habit: habit?.checkpoint ?? null };
@@ -111,7 +116,10 @@ export function createMeditationRepository(database: Transactions, registry: Rul
       return database.transaction(async (sql) => {
         requireData(await loadTimer(sql) === null, 'Finish or discard the current meditation before resetting progression');
         requireData(await pendingCompletion(sql) === null, 'Return Home from the pending completion before resetting progression');
-        const before = advanceProgression(await loadState(sql, registry), asOf);
+        const loaded = await loadState(sql, registry);
+        // Destructive: never placed at a moment before the settled one (device clock behind).
+        if (asOf.timestamp < loaded.asOf.timestamp) throw new RangeError('Cannot rewind progression time');
+        const before = advanceProgression(loaded, asOf);
         const generation = await currentGeneration(sql);
         // A retry of the same confirmed boundary cannot manufacture additional generations.
         if (generation.boundary && canonical(generation.boundary) === canonical(asOf) && before.sessions.length === 0) {

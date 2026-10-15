@@ -80,11 +80,14 @@ test('Early timeout reschedules only the remaining deadline', () => {
   f.jump(START + 180000); f.fire(); assert.equal(f.completed.length, 1);
 });
 
-test('Clock rollback fails explicitly without repeated callbacks or fabricated time', () => {
+test('Clock rollback is held: no error, no fabricated time, one pending deadline, completes when time arrives', () => {
   const f = clock(); f.watch(startTimer('rollback', 180, START, 'UTC'));
-  const stale = [...f.tasks][0]; f.jump(START - 1); f.fire(); stale.callback();
-  assert.equal(f.errors.length, 1); assert.match(String(f.errors[0]), /backwards/);
-  assert.equal(f.tasks.size, 0); assert.equal(f.completed.length, 0);
+  const stale = [...f.tasks][0]; f.jump(START - 60_000); f.fire(); stale.callback();
+  assert.equal(f.errors.length, 0); assert.equal(f.completed.length, 0);
+  assert.equal(f.tasks.size, 1, 'stale callbacks never pile up deadlines');
+  f.jump(START + 180_000); f.fire();
+  assert.equal(f.completed.length, 1);
+  assert.equal(f.completed[0].activeMilliseconds, 180_000, 'exactly the chosen length, nothing fabricated');
 });
 
 test('Real SQLite recovery supplies running, paused, saved and acknowledged route states', async t => {

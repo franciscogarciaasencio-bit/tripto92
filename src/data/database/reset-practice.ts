@@ -38,7 +38,11 @@ export async function restoreDeleteGuards(sql: SqlConnection) {
 
 /** Caller owns BEGIN IMMEDIATE: records, guards and empty continuation commit together. */
 export async function resetAllPracticeData(sql: SqlConnection, registry: RulesRegistry, asOf: CalendarContext) {
-  const before = advanceProgression(await loadState(sql, registry), asOf);
+  const loaded = await loadState(sql, registry);
+  // A reset is destructive: with a device clock behind the settled moment it fails explicitly rather
+  // than placing its boundary at a time the person did not choose.
+  if (asOf.timestamp < loaded.asOf.timestamp) throw new RangeError('Cannot rewind progression time');
+  const before = advanceProgression(loaded, asOf);
   await suspendDeleteGuards(sql);
   for (const table of ['meditation_timer', 'sync_set_aside_sessions', 'habit_reward_receipts', 'habit_checkpoints', 'journey_animation_receipts', 'journey_legacy_peaks', 'journey_completions', 'progression_consistency_activations',
     'practice_completions', 'progression_awards', 'meditation_sessions', 'journey_checkpoint', 'legacy_journey_checkpoint',

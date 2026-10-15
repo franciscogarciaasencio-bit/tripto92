@@ -78,10 +78,18 @@ export function startOpenEndedTimer(id: string, timestamp: number, timeZone: str
   return draft;
 }
 
-function elapsed(draft: TimerDraft, now: number) {
+/**
+ * Wall-clock time as the timer may use it. A device clock that stepped back (manual change, network
+ * correction) is held at the timer's last cursor until it catches up: those moments are neither
+ * counted nor allowed to rewind active or paused time.
+ */
+function forward(draft: TimerDraft, now: number) {
   validateTimer(draft);
-  if (!Number.isSafeInteger(now) || now < draft.changedAt) throw new RangeError('Device clock moved backwards');
-  return now - draft.changedAt;
+  if (!Number.isSafeInteger(now)) throw new RangeError('Invalid device time');
+  return Math.max(now, draft.changedAt);
+}
+function elapsed(draft: TimerDraft, now: number) {
+  return forward(draft, now) - draft.changedAt;
 }
 
 /** Legacy timed sessions finish at their deadline; open-ended sessions retain their running cursor. */
@@ -94,20 +102,23 @@ export function settleTimer(draft: TimerDraft, now: number, completionTimeZone =
     activeMilliseconds: draft.targetSeconds * 1000 };
 }
 
-export function pauseTimer(draft: TimerDraft, now: number, completionTimeZone = draft.timeZone): TimerDraft {
+export function pauseTimer(draft: TimerDraft, requested: number, completionTimeZone = draft.timeZone): TimerDraft {
+  const now = forward(draft, requested);
   const settled = settleTimer(draft, now, completionTimeZone);
   if (settled.phase !== 'running') return settled;
   return { ...settled, phase: 'paused', changedAt: now,
     activeMilliseconds: settled.activeMilliseconds + elapsed(settled, now) };
 }
 
-export function resumeTimer(draft: TimerDraft, now: number): TimerDraft {
+export function resumeTimer(draft: TimerDraft, requested: number): TimerDraft {
+  const now = forward(draft, requested);
   const delta = elapsed(draft, now);
   if (draft.phase !== 'paused') return settleTimer(draft, now);
   return { ...draft, phase: 'running', changedAt: now, pausedMilliseconds: draft.pausedMilliseconds + delta };
 }
 
-export function finishTimer(draft: TimerDraft, now: number, completionTimeZone = draft.timeZone): TimerDraft {
+export function finishTimer(draft: TimerDraft, requested: number, completionTimeZone = draft.timeZone): TimerDraft {
+  const now = forward(draft, requested);
   const settled = settleTimer(draft, now, completionTimeZone);
   if (settled.phase === 'finished') return settled;
   const delta = elapsed(settled, now);

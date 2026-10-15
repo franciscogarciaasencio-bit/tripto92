@@ -30,9 +30,9 @@ test('Pause at/after deadline completes normally; paused recovery does not auto-
   const paused = pauseTimer(draft, draft.startedAt + 300_000);
   assert.deepEqual(settleTimer(paused, draft.startedAt + 10_000_000), paused);
 });
-test('Clock rollback, malformed cursors, zones and incomplete saves fail explicitly', () => {
+test('Malformed cursors, zones and incomplete saves fail explicitly; a clock rollback is held, never counted', () => {
   const draft = begin();
-  assert.throws(() => remainingSeconds(draft, draft.startedAt - 1), /backwards/);
+  assert.equal(remainingSeconds(draft, draft.startedAt - 60_000), remainingSeconds(draft, draft.startedAt));
   assert.throws(() => timerSession(draft), /finished/);
   assert.throws(() => validateTimer({ ...draft, activeMilliseconds: 1 }), /cursor/);
   assert.throws(() => validateTimer({ ...draft, timeZone: undefined }), /zone/);
