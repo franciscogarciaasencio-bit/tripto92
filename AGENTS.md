@@ -29,6 +29,8 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   Use npx expo install for SDK-compatible additions; avoid unrelated upgrades.
 - Do not manually create/edit ios or android folders. Use app config/plugins and a
   development build when native configuration changes; Expo Go cannot apply plugins.
+- Over-the-air updates (docs/UPDATES.md): JS/asset changes ship with `eas update --channel preview`;
+  native changes (modules, plugins, app.json native settings) need a raised expo.version and a new APK.
 - Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
   the approved application ID and signing key; never commit credentials or APK artifacts.
 - Sealed journey stages: names, themes and icons of sealed categories (assets/ona/categories-sealed.json)

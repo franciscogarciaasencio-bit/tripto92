@@ -7,6 +7,7 @@ import { HomeNavigation } from '@/ui/home-navigation';
 import { Action, ChoiceRow, colors, Header, Notice, Screen, Type } from '@/ui/primitives';
 import { VolumeControl } from '@/ui/session-sound';
 import { BellSettings } from '@/ui/bell-settings';
+import { appVersionLabel } from '@/application/app-version';
 import type { AudioPreferences } from '@/data';
 
 /**
@@ -64,6 +65,7 @@ export default function Preferences() {
         {resetComplete && <Type role="secondary">All practice data deleted. Level 0 · Monkey Mind.</Type>}
       </>}
     </View>
+    {!confirmReset && <Type role="secondary" style={{ fontSize: 12, textAlign: 'center', marginTop: 28 }}>{appVersionLabel()}</Type>}
     <Notice>{app.error ? lastAction === 'reset' ? 'Practice data could not be deleted. Please try again.' : 'Preferences could not be saved. Please try again.' : null}</Notice>
     </ScrollView>
     {!confirmReset && <View style={{ gap: 4, paddingTop: 10, paddingBottom: 10, alignItems: 'center', borderTopWidth: 1, borderColor: colors.line }}>

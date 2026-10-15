@@ -1,0 +1,37 @@
+{
+  "note": "Native modules and config plugins the installed app was built with. Over-the-air updates (EAS Update) only reach builds with the same runtime version (app.json expo.version). If this list must change, raise expo.version and android.versionCode, update this file and build a new APK.",
+  "runtimeVersion": "1.2.0",
+  "nativeModules": {
+    "expo": "~57.0.26",
+    "expo-asset": "~57.0.19",
+    "expo-audio": "~57.0.5",
+    "expo-constants": "~57.0.20",
+    "expo-crypto": "~57.0.3",
+    "expo-font": "~57.0.4",
+    "expo-image": "~57.0.5",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.24",
+    "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
+    "expo-sqlite": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "expo-updates": "~57.0.24",
+    "expo-web-browser": "~57.0.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-worklets": "0.10.1"
+  },
+  "plugins": [
+    "expo-router",
+    "expo-splash-screen",
+    "expo-sqlite",
+    "expo-asset",
+    "expo-audio",
+    "expo-build-properties"
+  ]
+}

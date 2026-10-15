@@ -33,7 +33,7 @@ application architecture tutorial. Read AGENTS.md and the existing technical doc
 | Project | `@tripto92/MeditationApp` |
 | EAS project UUID | `3ec57447-1b2b-428b-a9cf-dd0216e351b5` |
 | Permanent Android application ID, chosen by user | `com.meditation.ona` |
-| Current version / Android versionCode | `1.1.0` / `2` in app.json (next APK); the installed APK is `1.0.0` / `1` |
+| Current version / Android versionCode | `1.2.0` / `3` in app.json (first build with over-the-air updates, docs/UPDATES.md) |
 | Build profile | `preview`, internal distribution, release APK, Node `24.21.0` |
 | Current URL scheme | `meditationapp` (not configured as OAuth) |
 

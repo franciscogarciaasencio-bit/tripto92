@@ -90,3 +90,21 @@ test('Unneeded legacy storage and overlay permissions are blocked from the relea
   assert.ok(!(actual.android.permissions ?? []).some(name => actual.android.blockedPermissions.includes(name)));
   assert.ok(!(actual.android.permissions ?? []).includes('android.permission.RECORD_AUDIO'));
 });
+
+test('Over-the-air updates: EAS Update channel, app-version runtime, native modules recorded for that runtime', () => {
+  const actual = configuration();
+  const recorded = JSON.parse(fs.readFileSync(path.join(root, 'native-runtime.json'), 'utf8'));
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const eas = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
+  assert.deepEqual(actual.runtimeVersion, { policy: 'appVersion' });
+  assert.equal(actual.updates.url, `https://u.expo.dev/${actual.extra.eas.projectId}`);
+  assert.equal(actual.updates.fallbackToCacheTimeout, 0, 'never wait for the network at launch');
+  assert.equal(eas.build.preview.channel, 'preview');
+  // A native change cannot reach installed apps through an update. Changing native modules or plugins
+  // fails here until expo.version (the runtime) is raised and native-runtime.json is updated.
+  const native = Object.fromEntries(Object.entries(pkg.dependencies).filter(([name]) => name === 'react-native'
+    || ['expo-module.config.json', 'android', 'ios'].some((entry) => fs.existsSync(path.join(root, 'node_modules', name, entry)))).sort());
+  assert.deepEqual(native, recorded.nativeModules, 'native modules changed: raise expo.version and update native-runtime.json');
+  assert.deepEqual(actual.plugins.map((plugin) => Array.isArray(plugin) ? plugin[0] : plugin), recorded.plugins);
+  assert.equal(actual.version, recorded.runtimeVersion);
+});

@@ -1002,3 +1002,10 @@ clean up the app and reduce its size; then build the Android app.
 - Open option: interval timelines are now the largest audio (19 MB); three instead of six hours would
   halve them.
 
+### Over-the-air updates — Complete in code, needs one APK (2026-10-15)
+
+Owner chose "updates without a new APK". expo-updates with EAS Update (channel `preview`, runtime =
+app version 1.2.0, versionCode 3): launch never waits for the network; updates apply on the next
+launch; Settings shows the version and the running update's date. native-runtime.json plus a config
+test stop native changes from silently shipping as updates. The 1.2.0 APK must be built and installed
+once (through Codex); after that, updates are published with `eas update` (docs/UPDATES.md).

@@ -13,7 +13,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://zmebgjgcmptmivwqumxg.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EVd7NrtvcmrnJisnyN50LQ_RcRcQMCy"
-      }
+      },
+      "channel": "preview"
     }
   }
 }

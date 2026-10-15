@@ -126,3 +126,9 @@ tools and proper signing through configuration/plugins, rather than modifying CN
 References: [Expo APK builds](https://docs.expo.dev/build-reference/apk/),
 [CNG](https://docs.expo.dev/workflow/continuous-native-generation/),
 [local build limits](https://docs.expo.dev/build-reference/local-builds/).
+
+## Over-the-air updates
+
+From 1.2.0 (versionCode 3) builds receive JavaScript/asset updates through EAS Update (channel
+`preview`), so most changes no longer need a new APK. See docs/UPDATES.md for what qualifies and how to
+publish. Native changes still need a new APK with a raised `expo.version`.
