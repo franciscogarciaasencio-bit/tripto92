@@ -766,3 +766,33 @@ choose Calm/Rain/10 → Begin → Session showing 09:57 counting down with "Sett
 errors. TypeScript, lint and all-platform exports pass. Not verified: locked-screen bell on a physical
 phone (owner check), listening balance of a coincident interval + End bell.
 
+### 19 — Complete (2026-10-15): accessibility, performance and release-candidate polish
+
+Owner direction (2026-10-15): **no further APK builds** in this program; Session 20 audits only.
+
+Accessibility: every `Type` with the title/heading role is announced as a header (screen-reader
+navigation by heading), the Journey month figures are read with their labels ("12 practice days"),
+the Prepare screen labels each choice group and switches to two/three wider columns with large
+system text (or very narrow screens) so words stay whole. Copy: the fixed-length line no longer
+promises a bell when the ending bell is off; the Guide answers mention choosing a length and
+choosing Silence before beginning.
+
+Performance: each background sync used to hash the whole ledger twice in pure JS (about 0.9 s of
+blocked JavaScript per sync after a year, measured with JIT disabled). Hashes are now remembered
+per process (computation only, bounded), the stored base reuses its saved hashes, and long exports
+yield every 200 rows: later syncs take about 0.05 s. Sync no longer touches React state while a
+practice is open, so the session screen is not re-rendered by the 15-minute sync timer.
+
+Dependency audit (`npm audit`, 30 advisories, all transitive from Expo tooling): `braces`,
+`node-forge`, `uuid` are build-time only (Metro/config plugins/code signing) and never ship in the
+app. `decode-uri-component@0.2.2` ships through expo-router's `query-string` (deep-link parsing);
+its advisory is slow decoding of malformed percent-encoding (a crafted link could make Ona pause
+briefly; no data exposure). The fixed 0.5.0 is ESM-only under a different API generation, so an
+override is riskier than the issue; accepted and to be revisited with the next Expo SDK upgrade.
+`npm audit fix --force` would install Expo 44 and must never be run.
+
+Verification: **957 tests** (515 domain + 442 data; new: wrong/malformed stored base hashes, hash
+memo exactness), TypeScript, lint, all-platform export; web flow screenshots at 390×844, 320×568 and
+280×640 (two-column layout), no page errors. Not verified: TalkBack/VoiceOver reading order and
+large-font rendering on a physical phone; Hermes timing (estimated from jitless V8).
+

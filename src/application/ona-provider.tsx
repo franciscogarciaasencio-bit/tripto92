@@ -79,6 +79,8 @@ function useApplication() {
   const runSync = useCallback(async () => {
     const database = store.current;
     if (!cloudLedger || !accountRef.current || !database) return;
+    // Never touch state (or re-render the session screen) while a practice is running or paused.
+    if (timer.current !== null) return;
     if (syncRunning.current) { syncAgain.current = true; return; }
     syncRunning.current = true;
     setSyncStatus((status) => ({ ...status, phase: 'syncing' }));
