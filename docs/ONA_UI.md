@@ -225,7 +225,7 @@ counted day is a round drop of near-black ink with a light number; consecutive c
 warm-grey wash whose drops flow into each other through soft necks, with dark numbers. Weeks are separated
 by hairlines; the week in progress has a rounded hairline outline; a chosen day other than today a thin ring; a
 shorter practice a small dot. Proportions measured on the reference: drops 0.73 of a column, wash drops
-0.76 with necks 0.48. Columns are square for the marks and rows 1.22 × taller, as in the reference.
+0.76 with necks 0.48, numbers 0.34, the short-practice dot 0.115 just under its number. Columns are square for the marks and rows 1.22 × taller, as in the reference.
 Sprites (assets/ona/calendar/ink-1…3, wash-2…7) are painted by scripts/calendar/build-calendar-art.cjs
 (ink filter with feathered edge and faint lighter pools; wash with mottled blooms and a pooled rim; drops
 plus bridges re-sharpened into rounded necks) and cut to whole columns, never stretched.

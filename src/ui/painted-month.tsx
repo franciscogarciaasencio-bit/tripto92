@@ -125,7 +125,7 @@ function DayNumber({ day, inMonth, onInk, wasOnInk, cell, turnsAt, fade = 260, s
   const start = turnsAt === null ? (onInk ? 1 : 0) : (wasOnInk ? 1 : 0), end = onInk ? 1 : 0;
   const light = useAnimatedStyle(() => ({ opacity: start + (end - start) * turn.value }));
   const dark = useAnimatedStyle(() => ({ opacity: 1 - (start + (end - start) * turn.value) }));
-  const size = Math.min(21, cell * 0.36);
+  const size = Math.min(20, cell * 0.34);
   const text = { fontFamily: serifFont, fontSize: size, lineHeight: size * 1.3, color: inMonth ? colors.ink : 'rgba(20,20,20,0.32)' };
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
     <Animated.View style={[styles.center, dark]}><Text style={text}>{day}</Text></Animated.View>
@@ -147,7 +147,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
 }) {
   const still = useMotionPreference() !== false;
   const [width, setWidth] = useState(0);
-  const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2, dot = Math.max(4, Math.round(cell * 0.11));
+  const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2, dot = Math.max(4, Math.round(cell * 0.115));
   const rows = monthRows(month);
   return <View>
     <View style={styles.weekdays}>
@@ -199,7 +199,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
               <DayNumber day={Number(date.slice(8))} inMonth={inMonth} onInk={single} wasOnInk={!!moment && !isMoment && wasSingle} cell={cell} still={still}
                 fade={moment ? 260 : 160}
                 turnsAt={moment ? (isMoment || wasSingle !== single ? 620 : null) : single ? drawDelay(row, column) + 30 : null} />
-              {short && <View style={[styles.dot, { width: dot, height: dot, borderRadius: dot / 2, top: rowHeight * 0.85 - dot / 2, left: (cell - dot) / 2 }]} />}
+              {short && <View style={[styles.dot, { width: dot, height: dot, borderRadius: dot / 2, top: rowHeight * 0.76 - dot / 2, left: (cell - dot) / 2 }]} />}
             </>;
             const frame = { position: 'absolute' as const, left: column * cell, top: 0, width: cell, height: rowHeight };
             return inMonth && onSelect
@@ -215,7 +215,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
 
 const styles = StyleSheet.create({
   weekdays: { flexDirection: 'row', paddingBottom: 6 },
-  weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 12, lineHeight: 16, letterSpacing: 1.1, color: 'rgba(20,20,20,0.5)' },
+  weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 10.5, lineHeight: 16, letterSpacing: 0.6, color: 'rgba(20,20,20,0.5)' },
   line: { position: 'absolute', top: 0, left: 2, right: 2, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },
   week: { position: 'absolute', left: -4, right: -4, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.3)' },
   ring: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(20,20,20,0.55)' },
