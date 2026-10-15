@@ -17,8 +17,9 @@ unverified on a physical phone, blocked or not done by decision. Open items, in 
    Expo Go through `--tunnel`. Numeric LAN callbacks remain rejected by Supabase.
    See AUTH_DEBUG.md.
 2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
-3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
-   raise `android.versionCode` and keeps the approved package and signing key.
+3. Owner requested the 1.2.0 (3) APK with EAS Update support (2026-10-15). Build and artifact
+   verification are complete with the approved package/key; installation and OTA arrival await
+   owner confirmation. See ANDROID_BUILD.md and UPDATES.md.
 4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
 5. ~~Clock skew defect~~ fixed 2026-10-15 (see "Clock skew" in the log).
 
@@ -1009,3 +1010,16 @@ app version 1.2.0, versionCode 3): launch never waits for the network; updates a
 launch; Settings shows the version and the running update's date. native-runtime.json plus a config
 test stop native changes from silently shipping as updates. The 1.2.0 APK must be built and installed
 once (through Codex); after that, updates are published with `eas update` (docs/UPDATES.md).
+
+## Android preview 1.2.0 (3) — 2026-10-15
+
+Merged the owner's ota-updates branch, checked version/runtime/channel settings, and pushed main.
+Node 24.21.0, clean npm ci, TypeScript/lint, 996 tests and all-platform export passed. Corrected the
+SDK 57 publishing command to select the preview EAS environment and configured only the two public
+Supabase values there. The superseded 1.1.0 build finished; no replacement 1.1.0 build was started.
+
+EAS build 9965c099-b649-43b8-8946-0cac1449d6bc produced a 94.44 MB APK. Signature matches the approved
+certificate; package/version, ARM-only compressed libraries, ARM64 16 KB alignment, bundled runtime
+assets and embedded OTA runtime/channel configuration passed. Details and hashes: ANDROID_BUILD.md.
+The APK/report stay gitignored. Device installation and OTA arrival remain unverified; publish the
+requested verification update only after the owner confirms installing 1.2.0 over the existing app.
