@@ -12,6 +12,7 @@ import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, Notice, Screen, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
 import { PracticeRow } from './practice-row';
+import { YearField } from './year-field';
 import { UI_MOTION } from './motion';
 import { useReducedMotion } from './reduced-motion';
 import { groupPracticeHistory, monthPracticeSummary, practiceDateLabel, practiceTimeLabel } from './practice-history';
@@ -91,6 +92,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const summary = useMemo(() => monthPracticeSummary(current ? records : [], month), [current, records, month]);
   const streaks = useMemo(() => practiceStreaks((current ? records : []).map(({ session }) => session), today), [current, records, today]);
   const shown = !loading && current && !error;
+  const practiceDates = useMemo(() => new Set(byDate.keys()), [byDate]);
 
   const first = monthInstant(month);
   const dayOffset = (first.getUTCDay() + 6) % 7;
@@ -120,6 +122,11 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
     <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1 }}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
       {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
+      {shown && <YearField streaks={streaks} shortDays={practiceDates} today={today} selected={selected} onSelect={(date) => {
+        const destination = date.slice(0, 7);
+        setDirection(destination === month ? 0 : destination > month ? 1 : -1);
+        setMonth(destination); setSelected(date);
+      }} />}
       <View style={calendarStyles.monthHeading}>
         <Type role="heading" accessibilityRole="header" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
           {practiceDateLabel(`${month}-01`, { month: 'long', year: 'numeric' })}

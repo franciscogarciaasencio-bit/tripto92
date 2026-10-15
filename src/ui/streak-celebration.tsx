@@ -41,6 +41,11 @@ export function celebrationCopy(moment: StreakMoment) {
     case 'week': return { kicker: 'Congratulations', headline: 'A very consistent week.',
       lines: [moment.weeksInRow > 1 ? `${moment.weeksInRow} consistent weeks in a row.` : `${needed} days of practice this week.`,
         moment.daysInRow > 1 ? `And ${moment.daysInRow} days in a row.` : 'See you tomorrow.'] };
+    // A return after time away is welcomed, never framed as a loss.
+    case 'return': return { kicker: 'Welcome back', headline: 'Good to see you again.',
+      lines: [`${moment.daysAway} days away, and you came back.`, 'Every return counts.'] };
+    case 'first': return { kicker: 'Your first day', headline: 'The habit begins.',
+      lines: ['Come back tomorrow for two in a row.', weekLine] };
     case 'days': return { kicker: 'Congratulations', headline: `${moment.daysInRow} days in a row.`,
       lines: [`Come back tomorrow for ${moment.daysInRow + 1}.`, weekLine] };
     default: return { kicker: 'Your rhythm', headline: 'Today counts.',

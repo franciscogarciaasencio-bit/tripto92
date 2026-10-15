@@ -169,7 +169,9 @@ export function practiceStreaks(sessions: Iterable<Pick<MeditationSession, 'stat
 }
 
 /** What a just-saved practice changed in the calendar, for the celebration after completion. */
-export type StreakMomentKind = 'month' | 'week' | 'days' | 'day';
+export type StreakMomentKind = 'month' | 'week' | 'return' | 'days' | 'first' | 'day';
+/** Days without practice before a return that is welcomed back (three or more). */
+export const WELCOME_BACK_DAYS = 3;
 export interface StreakMoment {
   readonly kind: StreakMomentKind;
   /** The practice's own (captured) date. */
@@ -187,12 +189,15 @@ export interface StreakMoment {
   readonly monthBecameActive: boolean;
   readonly month: string;
   readonly monthsInRow: number;
+  /** Days without qualifying practice just before this one; null for the very first practice. */
+  readonly daysAway: number | null;
 }
 
 /**
  * Compares the calendar without and with one saved practice. Returns null when the practice did not
  * add a new active day (too short, ended early, or its day already counted): nothing new to celebrate.
- * Priority of the message: a full month, then a week that now counts, then days in a row, then a day.
+ * Priority of the message: a full month, a week that now counts, a return after three or more days
+ * away (welcomed, never framed as a loss), days in a row, the very first practice, then a day.
  */
 export function streakMoment(sessions: Iterable<Pick<MeditationSession, 'id' | 'status' | 'activeDurationSeconds' | 'localDate'>>,
   practice: Pick<MeditationSession, 'id' | 'status' | 'activeDurationSeconds' | 'localDate'>, today: LocalDate): StreakMoment | null {
@@ -214,7 +219,16 @@ export function streakMoment(sessions: Iterable<Pick<MeditationSession, 'id' | '
   const monthBecameActive = before.month(month).state !== 'active' && after.month(month).state === 'active';
   let monthsInRow = 0;
   if (after.month(month).state === 'active') for (let current = month; after.month(current).state === 'active'; current = addMonths(current, -1)) monthsInRow++;
-  const kind: StreakMomentKind = monthBecameActive ? 'month' : weekBecameActive ? 'week' : daysInRow >= 2 ? 'days' : 'day';
+  // The latest earlier active day (practice dated later, from another zone, does not count as before).
+  let previous: number | null = null;
+  for (const session of others) {
+    if (!qualifiesForStreak(session)) continue;
+    const other = dayNumber(session.localDate);
+    if (other < day && (previous === null || other > previous)) previous = other;
+  }
+  const daysAway = previous === null ? null : day - previous - 1;
+  const kind: StreakMomentKind = monthBecameActive ? 'month' : weekBecameActive ? 'week'
+    : daysAway !== null && daysAway >= WELCOME_BACK_DAYS ? 'return' : daysInRow >= 2 ? 'days' : previous === null ? 'first' : 'day';
   return Object.freeze({ kind, date, daysInRow, weekDaysBefore: weekBefore.activeDays, weekDays: week.activeDays,
-    weekBecameActive, weeksInRow, monthBecameActive, month, monthsInRow });
+    weekBecameActive, weeksInRow, monthBecameActive, month, monthsInRow, daysAway });
 }

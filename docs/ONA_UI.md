@@ -212,6 +212,17 @@ week's band unfolds when that day made the week count, this week's three pebbles
 and a completed month sends one soft wave down its weeks. Everything settles in about two seconds, never
 loops, and Reduced Motion shows the end state. No haptics, rewards or stored data are involved.
 
+Welcome back (owner choice, 2026-10-15): a practice after three or more days without one
+(`WELCOME_BACK_DAYS`) is greeted "Welcome back · Good to see you again. · N days away, and you came back.
+Every return counts." It ranks below a full month and a newly consistent week, above days in a row; a
+short practice does not end the time away. The very first practice says "The habit begins."
+
+The past year (Journey calendar, year-field.tsx): under the streak numbers, 53 week columns (Monday at
+the top) with a dot per day: counted days ink, shorter practices faint, quiet days barely visible,
+consistent weeks on the soft week band, today ringed and the open week outlined. Sparse month labels
+never overlap. Tapping a week opens it in the month calendar. It draws in once, left to right (900 ms,
+a soft-edged wipe), instant with Reduced Motion.
+
 ### App size and icon (2026-10-15)
 
 Owner request: clean up and shrink the app before the next APK. Runtime scenes (coastal background,

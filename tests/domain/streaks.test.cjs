@@ -134,8 +134,9 @@ test('Streak moment: what one saved practice changed, for the celebration after 
   const saved = (id, localDate, minutes = 10, status = 'completed') => ({ id, ...practice(localDate, minutes, status) });
   // 2026-10-12 is a Monday.
   const first = saved('a', '2026-10-12');
-  assert.deepEqual({ ...streakMoment([first], first, '2026-10-12') }, { kind: 'day', date: '2026-10-12', daysInRow: 1,
-    weekDaysBefore: 0, weekDays: 1, weekBecameActive: false, weeksInRow: 0, monthBecameActive: false, month: '2026-10', monthsInRow: 0 });
+  assert.deepEqual({ ...streakMoment([first], first, '2026-10-12') }, { kind: 'first', date: '2026-10-12', daysInRow: 1,
+    weekDaysBefore: 0, weekDays: 1, weekBecameActive: false, weeksInRow: 0, monthBecameActive: false, month: '2026-10', monthsInRow: 0,
+    daysAway: null });
   const second = saved('b', '2026-10-13');
   const two = streakMoment([first, second], second, '2026-10-13');
   assert.equal(two.kind, 'days'); assert.equal(two.daysInRow, 2); assert.equal(two.weekDays, 2);
@@ -155,6 +156,7 @@ test('Streak moment: what one saved practice changed, for the celebration after 
   const gap = [saved('m', '2026-10-12'), saved('w', '2026-10-14')];
   const gapMoment = streakMoment(gap, gap[1], '2026-10-14');
   assert.equal(gapMoment.kind, 'day'); assert.equal(gapMoment.daysInRow, 1); assert.equal(gapMoment.weekDays, 2);
+  assert.equal(gapMoment.daysAway, 1);
 });
 
 test('Streak moment: completing every week of a month is the biggest moment; weeks in a row carry over', () => {
@@ -170,4 +172,20 @@ test('Streak moment: completing every week of a month is the biggest moment; wee
   assert.equal(moment.monthBecameActive, true); assert.equal(moment.weekBecameActive, true);
   assert.equal(moment.weeksInRow, 6); assert.equal(moment.daysInRow, 3);
   assert.equal(moment.monthsInRow, 1, 'September had a missed week before the 21st');
+});
+
+test('Streak moment: a return after three or more days away is welcomed back; two days away is not', () => {
+  const { streakMoment, WELCOME_BACK_DAYS } = api;
+  assert.equal(WELCOME_BACK_DAYS, 3);
+  const saved = (id, localDate, minutes = 10) => ({ id, ...practice(localDate, minutes) });
+  const before = [saved('a', '2026-10-01'), saved('short', '2026-10-05', 2)];
+  const back = saved('b', '2026-10-05');
+  const moment = streakMoment([...before, back], back, '2026-10-05');
+  assert.equal(moment.kind, 'return'); assert.equal(moment.daysAway, 3, 'a short practice does not end the time away');
+  const near = saved('c', '2026-10-04');
+  assert.equal(streakMoment([before[0], near], near, '2026-10-04').kind, 'day');
+  // A week that now counts still leads: Mon, Tue, then back on Saturday makes three days.
+  const week = [saved('m', '2026-10-12'), saved('t', '2026-10-13')], saturday = saved('s', '2026-10-17');
+  const counted = streakMoment([...week, saturday], saturday, '2026-10-17');
+  assert.equal(counted.kind, 'week'); assert.equal(counted.daysAway, 3);
 });

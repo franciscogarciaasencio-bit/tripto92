@@ -1009,3 +1009,11 @@ app version 1.2.0, versionCode 3): launch never waits for the network; updates a
 launch; Settings shows the version and the running update's date. native-runtime.json plus a config
 test stop native changes from silently shipping as updates. The 1.2.0 APK must be built and installed
 once (through Codex); after that, updates are published with `eas update` (docs/UPDATES.md).
+
+### Welcome back and the past year — Complete (2026-10-15)
+
+Owner picked "welcome back" and the calendar idea. `streakMoment` now has `return` (three or more days
+away, tested) and `first`; the celebration welcomes returns without loss language. Journey's calendar
+gains "The past year" field (53 weeks of dots, week bands, tap to open a week). JavaScript only: ships in
+the 1.2.0 APK or as an over-the-air update. Verified with seven weeks of seeded practice on web at
+390/320 wide.
