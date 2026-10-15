@@ -3,7 +3,7 @@
     "name": "Ona",
     "slug": "MeditationApp",
     "owner": "tripto92",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meditationapp",
@@ -12,12 +12,9 @@
     },
     "userInterfaceStyle": "light",
     "backgroundColor": "#F2E9DA",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
       "package": "com.meditation.ona",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#F2E9DA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,6 +48,12 @@
         "recordAudioAndroid": false,
         "enableBackgroundRecording": false,
         "enableBackgroundPlayback": true
+      }],
+      ["expo-build-properties", {
+        "android": {
+          "buildArchs": ["armeabi-v7a", "arm64-v8a"],
+          "useLegacyPackaging": true
+        }
       }]
     ],
     "experiments": {

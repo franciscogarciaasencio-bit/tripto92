@@ -2,9 +2,11 @@
 
 User-supplied sources from `Images Ona Desgin 3`:
 
-Current artwork: `coastal-background.png`, an unchanged copy of the user-supplied
-`OneDrive/Desktop/Ona/Forest 2/1.png` (853 × 1844, original PNG bytes). SHA-256:
-`8b4c197da02529904fbc800c62c1d99f0a3828184029c7a5646fb0e89bfe8fc9`.
+Current artwork: `coastal-background.webp`, the user-supplied `OneDrive/Desktop/Ona/Forest 2/1.png`
+(853 × 1844; original PNG SHA-256 `8b4c197da02529904fbc800c62c1d99f0a3828184029c7a5646fb0e89bfe8fc9`)
+encoded as quality-95 WebP on 2026-10-15 to shrink the app (1.6 MB → 80 KB; same dimensions and
+landmarks, no tint or crop). The original PNG is in Git history, for example
+`git show 6f62785:assets/ona/design3/coastal-background.png`.
 Its halo, shoreline and trees are stationary. The previous `forest-background.png`
 (941 × 1672) remains a design source, unreferenced by the app. The original sources below remain
 design references; Home no longer loads their background.

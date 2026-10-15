@@ -66,6 +66,20 @@ test('Unrelated audio/Router/SQLite plugins retain their configuration', () => {
   assert.equal(actual.backgroundColor, theme.background);
 });
 
+test('Android ships only ARM libraries, compressed, and every platform uses Ona\'s own icon', () => {
+  const actual = configuration();
+  const properties = actual.plugins.find(plugin => Array.isArray(plugin) && plugin[0] === 'expo-build-properties');
+  assert.deepEqual(properties[1].android.buildArchs, ['armeabi-v7a', 'arm64-v8a']);
+  assert.equal(properties[1].android.useLegacyPackaging, true);
+  assert.equal(actual.ios?.icon, undefined, 'iOS uses icon.png, not the Expo template bundle');
+  const size = file => { const png = fs.readFileSync(path.resolve(root, file)); return [png.readUInt32BE(16), png.readUInt32BE(20)]; };
+  assert.deepEqual(size(actual.icon), [1024, 1024]);
+  assert.deepEqual(size(actual.android.adaptiveIcon.foregroundImage), [512, 512]);
+  assert.deepEqual(size(actual.android.adaptiveIcon.backgroundImage), [512, 512]);
+  assert.deepEqual(size(actual.android.adaptiveIcon.monochromeImage), [432, 432]);
+  assert.ok(!fs.existsSync(path.join(root, 'assets/expo.icon')));
+});
+
 test('Unneeded legacy storage and overlay permissions are blocked from the release manifest', () => {
   const actual = configuration();
   assert.deepEqual([...actual.android.blockedPermissions].sort(), [

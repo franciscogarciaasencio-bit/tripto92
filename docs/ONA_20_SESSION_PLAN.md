@@ -984,3 +984,21 @@ captions so each title sits on its bar; stage symbol smaller on Home (30 pt, sof
 only its own fields (no overwrite of a Prepare choice). Verified on web at 320, 390 and 430 wide; npm
 run check; export for all platforms.
 
+### Streak celebration, cleanup and app size — Complete (2026-10-15)
+
+Owner requests: remove Gentle haptics and the sound credits from Settings; after a practice show the
+calendar with satisfying animations and congratulations ("2 days in a row", "a very consistent week");
+clean up the app and reduce its size; then build the Android app.
+
+- Settings: haptics removed entirely (expo-haptics uninstalled; the stored hapticsEnabled field is kept
+  for compatibility and ignored); "About Ona sound" and the /credits route removed.
+- Celebration: `streakMoment` (domain, tested) + streak-celebration.tsx, shown after "Well done" when the
+  practice added a new active day (docs/ONA_UI.md). Verified in web renders over three practice days.
+- Size: forest/coastal scenes to WebP q95 (25 MB → 2.8 MB), Choir WAV → AAC 192 kbps (22 MB → 1.8 MB),
+  Android ARM-only ABIs with compressed native libraries, Expo template icon (and its iOS icon bundle)
+  replaced by Ona's own icon set. Version 1.1.0 / versionCode 2.
+- APK: this workspace cannot reach Expo's build service (policy-blocked), so the build runs from the
+  owner's PC through Codex with the existing EAS signing key (docs/ANDROID_BUILD.md).
+- Open option: interval timelines are now the largest audio (19 MB); three instead of six hours would
+  halve them.
+

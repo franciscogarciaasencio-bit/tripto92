@@ -220,19 +220,15 @@ test('A failed audio preference transaction leaves the original saved settings i
   await assert.rejects(settings.saveAudioPreferences({ ...defaults, homeEnabled: false }), /Simulated/);
   assert.deepEqual(await settings.loadAudioPreferences(), defaults);
 });
-test('Approved WAV is bundled byte-for-byte with silent endpoints and its exact offline asset reference', () => {
+test('Choir ships as a compact AAC encode of the approved recording, with its offline asset reference', () => {
   const { readFileSync } = require('node:fs'); const { createHash } = require('node:crypto');
-  const wav = readFileSync(path.join(__dirname, '../../assets/audio/meditation-choir.wav'));
-  assert.equal(createHash('sha256').update(wav).digest('hex'), 'b974de6aa17ae128b89a53dcc1619c7f0debcf17a5f81993c91d76a3a7227a85');
-  assert.equal(wav.subarray(0, 4).toString(), 'RIFF'); assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
-  let offset = 12, frames;
-  while (offset < wav.length) {
-    const tag = wav.subarray(offset, offset + 4).toString(), size = wav.readUInt32LE(offset + 4);
-    if (tag === 'fmt ') { assert.equal(wav.readUInt16LE(offset + 8), 1); assert.equal(wav.readUInt16LE(offset + 10), 2); assert.equal(wav.readUInt32LE(offset + 12), 48000); assert.equal(wav.readUInt16LE(offset + 22), 24); }
-    if (tag === 'data') { frames = size / 6; assert.deepEqual([...wav.subarray(offset + 8, offset + 14)], [0, 0, 0, 0, 0, 0]); assert.deepEqual([...wav.subarray(offset + 8 + size - 6, offset + 8 + size)], [0, 0, 0, 0, 0, 0]); }
-    offset += 8 + size + (size % 2);
-  }
-  assert.equal(frames, 3672118);
+  // 192 kbps stereo 48 kHz AAC of the supplied CC0 WAV (SHA-256 b974de6a…, kept in Git history and
+  // assets/audio/README.md). Decoded correlation with the original is above 0.9999; both ends stay silent.
+  const m4a = readFileSync(path.join(__dirname, '../../assets/audio/meditation-choir.m4a'));
+  assert.equal(createHash('sha256').update(m4a).digest('hex'), 'f218aaef83de9ff948577198cac0e1c9a66cb64c3408ef8ee0c29a168ecff1cf');
+  assert.equal(m4a.subarray(4, 8).toString(), 'ftyp');
+  assert.ok(m4a.length < 2_000_000, 'about a tenth of the original WAV');
+  assert.match(readFileSync(path.join(__dirname, '../../src/audio/assets.ts'), 'utf8'), /ocean_music: require\('\.\.\/\.\.\/assets\/audio\/meditation-choir\.m4a'\)/);
 });
 
 test('A native volume getter failure cannot throw into navigation/session actions', async () => {

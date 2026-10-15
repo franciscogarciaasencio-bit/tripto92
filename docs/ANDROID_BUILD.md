@@ -6,6 +6,19 @@ app.json owns identity/version; app.config.ts preserves these while applying the
 eas.json's preview profile produces an internally distributed, signed **release APK**,
 with Node 24.21.0. It is standalone: no Expo Go, development client or Metro is needed.
 
+## Size settings (from 1.1.0, versionCode 2)
+
+app.json applies expo-build-properties: `buildArchs: ["armeabi-v7a", "arm64-v8a"]` (every Android
+phone; x86/x86_64 only served emulators) and `useLegacyPackaging: true` (native libraries compressed
+inside the APK). Runtime artwork is WebP and the Choir AAC (docs/ONA_UI.md, "App size and icon").
+Together these remove most of the first APK's 205 MB; the exact size is recorded after the next build.
+An x86_64 emulator can no longer install this APK; add "x86_64" to buildArchs for emulator testing.
+The launcher icon is Ona's own (assets/images, scripts/icon/build-icons.cjs), not the Expo template.
+
+The cloud workspace cannot reach Expo's build service, so the owner starts builds from the Windows PC
+(through Codex): pull main, `npm ci`, `npm run check`, then the EAS command below. EAS keeps the same
+signing key, so the new APK installs over the old one and keeps the phone's practice.
+
 ## Build and installation
 
 First verified release preview (Session 11): **1.0.0 (1)**, 205.29 MB, Android 7+

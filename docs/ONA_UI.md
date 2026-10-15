@@ -41,7 +41,6 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | /account | Optional Google account: sign in/out, sync status, guest copy, remove/delete |
 | /history | Paginated saved meditation history |
 | /practice-detail?id=… | Read-only saved duration, pauses, historical local time and Ripples |
-| /credits | About Ona / sound provenance |
 | /how-progress-works | Secondary explanation of practice/progression |
 | /introduction | Manually opened four-chapter coastal introduction |
 
@@ -190,9 +189,38 @@ stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match
 ("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
 captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
 Settings holds only what lives nowhere else: Bells (starting/ending on/off with a small play button
-each, interval Off/5/10/15 with play, bell volume), Home ambience volume, Gentle haptics, Account,
-About Ona sound and Reset. Ambience choice is made on Prepare and its volume from the speaker during
+each, interval Off/5/10/15 with play, bell volume), Home ambience volume, Account and Reset. Gentle
+haptics and the in-app sound credits were removed at the owner's request (2026-10-15): nothing vibrates,
+and sound provenance lives in docs/AUDIO.md and the asset READMEs. Ambience choice is made on Prepare and its volume from the speaker during
 a practice; Home's speaker mutes Home. Saving writes only those fields onto the current preferences.
+
+### Streak celebration after completion (2026-10-15)
+
+Owner request: after a practice, the calendar appears with satisfying animation and congratulations
+that encourage coming back. Continue on "Well done" now opens a second, display-only moment on the
+same completion screen (streak-celebration.tsx) whenever the practice added a new active day (at
+least three minutes, completed, its day not already counted); otherwise Continue returns Home as
+before. The acknowledgement still happens only on the final Continue, so a restart reopens "Well done".
+`streakMoment` (domain/progression/streaks.ts, tested) compares the calendar without and with the
+practice. Message priority, weeks before days: a full month ("A full month." — every week of the month
+consistent), a week that just reached three days ("A very consistent week."), days in a row
+("2 days in a row." with the number rolling up from 1; "Come back tomorrow for 3."), otherwise
+"Today counts." with how many days remain for a consistent week. The month of the practice is drawn
+with its week bands and streak capsules: the practice's day joins yesterday's capsule (or appears as a
+disc), its ink disc settles with a slight overshoot, two thin ripples spread from it like water, the
+week's band unfolds when that day made the week count, this week's three pebbles fill with a small pop,
+and a completed month sends one soft wave down its weeks. Everything settles in about two seconds, never
+loops, and Reduced Motion shows the end state. No haptics, rewards or stored data are involved.
+
+### App size and icon (2026-10-15)
+
+Owner request: clean up and shrink the app before the next APK. Runtime scenes (coastal background,
+forest stages, forest entry scenes) are quality-95 WebP (about 25 MB → 2.8 MB, same dimensions); the
+Choir is 192 kbps AAC (22 MB → 1.8 MB); haptics (expo-haptics) and the credits route are gone; Android
+builds only ARM ABIs (armeabi-v7a, arm64-v8a; x86 is emulator-only) with compressed native libraries
+(expo-build-properties). The Expo template icon was replaced by Ona's own: a smooth warm sun resting on
+the two-line wave, on sand (scripts/icon/build-icons.cjs renders the iOS/Expo icon, Android adaptive
+foreground/background/monochrome and favicon).
 
 ### Journey calendar and level path (2026-10-15)
 

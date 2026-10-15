@@ -13,7 +13,7 @@ import type { AudioPreferences } from '@/data';
  * What Settings edits. Ambience choice and volume belong to the practice screens, Home's mute to its
  * speaker, so saving here never overwrites a choice made there in the meantime.
  */
-const OWNED = ['homeVolume', 'openingBellEnabled', 'closingBellEnabled', 'bellVolume', 'intervalSeconds', 'hapticsEnabled'] as const;
+const OWNED = ['homeVolume', 'openingBellEnabled', 'closingBellEnabled', 'bellVolume', 'intervalSeconds'] as const;
 function owned(preferences: AudioPreferences) {
   return Object.fromEntries(OWNED.map((key) => [key, preferences[key]])) as Pick<AudioPreferences, typeof OWNED[number]>;
 }
@@ -43,11 +43,9 @@ export default function Preferences() {
       <Type role="heading" style={{ marginTop: 36 }}>Home</Type>
       <Type style={{ marginTop: 14 }}>Ambience volume</Type>
       <VolumeControl value={edited.homeVolume} label="Home ambience volume" onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
-      <View style={{ marginTop: 28, borderTopWidth: 1, borderColor: colors.line }}>
-        <ChoiceRow label="Gentle haptics" value={edited.hapticsEnabled ? 'On' : 'Off'} onPress={() => setEdited({ ...edited, hapticsEnabled: !edited.hapticsEnabled })} />
-        {app.cloudAvailable && <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} onPress={() => router.push('/account')} />}
-        <ChoiceRow label="About Ona sound" value="" divider={false} onPress={() => router.push('/credits')} />
-      </View>
+      {app.cloudAvailable && <View style={{ marginTop: 28, borderTopWidth: 1, borderColor: colors.line }}>
+        <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} divider={false} onPress={() => router.push('/account')} />
+      </View>}
     </View>}
     <View style={{ marginTop: confirmReset ? 40 : 32, gap: 12, paddingTop: confirmReset ? 0 : 24, borderTopWidth: confirmReset ? 0 : 1, borderTopColor: colors.line }}>
       {confirmReset ? <>

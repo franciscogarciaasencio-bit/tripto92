@@ -16,7 +16,6 @@ export interface SessionAudioBackend {
   timeline(seconds: 300 | 600 | 900): ClipPlayer;
   /** One hour of silence, then the End bell: rings at a fixed practice's end while JavaScript sleeps. */
   ending(): ClipPlayer;
-  feedback(): void;
 }
 export interface SessionSoundInput {
   ready: boolean; foreground: boolean; now: number; draft: TimerDraft | null;
@@ -111,7 +110,6 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
       Promise.resolve(player.play()).catch(() => { if (token === clipRevision) { releaseClip(); notify('unavailable'); } });
     } catch { releaseClip(); notify('unavailable'); }
   }
-  function feedback(prefs: AudioPreferences) { if (prefs.hapticsEnabled) try { backend.feedback(); } catch { /* Unsupported hardware is silent. */ } }
   function syncTimeline() {
     const prefs = input?.preferences, draft = input?.draft;
     if (!input?.ready || !prefs || !draft || draft.phase === 'finished' || !prefs.intervalSeconds || prefs.bellVolume === 0 || blocked) { releaseTimeline(); return; }
@@ -195,10 +193,9 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
       if (!next.foreground && (preview !== null || next.draft?.phase !== 'running')) releaseClip();
       if (next.ready && prefs && previous?.draft) {
         const old = previous.draft, phase = next.draft?.id === old.id ? next.draft.phase : null;
-        if (old.phase === 'running' && phase === 'paused') { releaseClip(); feedback(prefs); }
-        if (old.phase === 'paused' && phase === 'running') feedback(prefs);
+        if (old.phase === 'running' && phase === 'paused') releaseClip();
         if (!ended.has(old.id) && (phase === 'finished' || next.completionId === old.id)) {
-          ended.add(old.id); releaseTimeline(); releaseClip(); feedback(prefs);
+          ended.add(old.id); releaseTimeline(); releaseClip();
           const finished = next.draft?.id === old.id && next.draft.phase === 'finished' ? next.draft : null;
           if (finished && rangFromTimeline(finished) && ending && endingKey === old.id) {
             // Already ringing (or rung) at the target: never a second End bell; release after its tail.
@@ -220,7 +217,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
       syncTimeline();
       syncEnding();
     },
-    begin(prefs: AudioPreferences) { blocked = false; notify(null); releaseClip(); feedback(prefs); if (prefs.openingBellEnabled) playClip('start',prefs.bellVolume*MASTER_PLAYBACK_GAIN,false); },
+    begin(prefs: AudioPreferences) { blocked = false; notify(null); releaseClip(); if (prefs.openingBellEnabled) playClip('start',prefs.bellVolume*MASTER_PLAYBACK_GAIN,false); },
     preview(sound: PreviewSound, volume: number) {
       if (input?.draft?.phase === 'running') return;
       if (preview === sound) { releaseClip(); return; }

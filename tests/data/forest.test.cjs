@@ -7,14 +7,25 @@ const art = require('../../src/ui/forest-artwork.json');
 const { alignedForestArtwork, forestMetadata, shouldNavigateForest } = data('../ui/forest-geometry.js');
 const { coastalComposition } = data('../ui/coastal-composition.js');
 const { getForestStage } = domain('forest/growth.js');
+/** Width and height of a lossy WebP (RIFF 'VP8 ' frame header). */
+function webpSize(bytes) {
+  assert.equal(bytes.subarray(0, 4).toString(), 'RIFF'); assert.equal(bytes.subarray(8, 16).toString(), 'WEBPVP8 ');
+  assert.deepEqual([...bytes.subarray(23, 26)], [0x9d, 0x01, 0x2a]);
+  return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+}
 
-test('All supplied source assets remain byte-identical, correctly dimensioned and locally bundled', () => {
-  for (const [id, metadata] of Object.entries(art)) {
-    const filename = id === 'entry' ? 'assets/ona/forest/forest-entry.png' : id === 'coast_1'
-      ? 'assets/ona/design3/coastal-background.png' : `assets/ona/forest/stage-${id.slice(-1)}.png`;
-    const png = readFileSync(path.join(__dirname, '../../', filename));
-    assert.equal(createHash('sha256').update(png).digest('hex'), metadata.sha256);
-    assert.equal(png.readUInt32BE(16), metadata.width); assert.equal(png.readUInt32BE(20), metadata.height);
+test('Bundled scenes are the recorded WebP encodes of the supplied art, at its exact dimensions', () => {
+  // sha256 is the supplied PNG (provenance, in Git history); fileSha256 is the shipped quality-95 WebP.
+  const entry = readFileSync(path.join(__dirname, '../../assets/ona/forest/forest-entry.png'));
+  assert.equal(createHash('sha256').update(entry).digest('hex'), art.entry.sha256);
+  assert.equal(entry.readUInt32BE(16), art.entry.width); assert.equal(entry.readUInt32BE(20), art.entry.height);
+  for (const [id, metadata] of Object.entries(art).filter(([id]) => id !== 'entry')) {
+    const folder = id === 'coast_1' ? 'assets/ona/design3' : 'assets/ona/forest';
+    const bytes = readFileSync(path.join(__dirname, '../../', folder, metadata.file));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), metadata.fileSha256);
+    assert.deepEqual(webpSize(bytes), { width: metadata.width, height: metadata.height });
+    assert.ok(bytes.length < 300_000, `${id} stays small`);
+    assert.match(readFileSync(path.join(__dirname, '../../src/ui/forest-assets.ts'), 'utf8'), new RegExp(metadata.file.replace('.', '\\.')));
   }
 });
 test('Every stage aligns its sun at the same coordinates without stretching across phone sizes', () => {

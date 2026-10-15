@@ -167,3 +167,54 @@ export function practiceStreaks(sessions: Iterable<Pick<MeditationSession, 'stat
       (_, index) => monthAt(addMonths(lastMonth, index - (boundedCount(size) - 1))))),
   });
 }
+
+/** What a just-saved practice changed in the calendar, for the celebration after completion. */
+export type StreakMomentKind = 'month' | 'week' | 'days' | 'day';
+export interface StreakMoment {
+  readonly kind: StreakMomentKind;
+  /** The practice's own (captured) date. */
+  readonly date: LocalDate;
+  /** Consecutive active days ending on `date`, including it. */
+  readonly daysInRow: number;
+  /** Active days in the week of `date`, before and after this practice. */
+  readonly weekDaysBefore: number;
+  readonly weekDays: number;
+  /** This practice was the one that made its week count (its third active day). */
+  readonly weekBecameActive: boolean;
+  /** Active weeks in a row ending with this one (0 unless the week counts). */
+  readonly weeksInRow: number;
+  /** This practice completed every week of the month that owns its week. */
+  readonly monthBecameActive: boolean;
+  readonly month: string;
+  readonly monthsInRow: number;
+}
+
+/**
+ * Compares the calendar without and with one saved practice. Returns null when the practice did not
+ * add a new active day (too short, ended early, or its day already counted): nothing new to celebrate.
+ * Priority of the message: a full month, then a week that now counts, then days in a row, then a day.
+ */
+export function streakMoment(sessions: Iterable<Pick<MeditationSession, 'id' | 'status' | 'activeDurationSeconds' | 'localDate'>>,
+  practice: Pick<MeditationSession, 'id' | 'status' | 'activeDurationSeconds' | 'localDate'>, today: LocalDate): StreakMoment | null {
+  if (!qualifiesForStreak(practice)) return null;
+  const others = [...sessions].filter((session) => session.id !== practice.id);
+  const reference = dayNumber(today) >= dayNumber(practice.localDate) ? today : practice.localDate;
+  const before = practiceStreaks(others, reference);
+  if (before.isActiveDay(practice.localDate)) return null;
+  const after = practiceStreaks([...others, practice], reference);
+  const date = practice.localDate, day = dayNumber(date);
+  let daysInRow = 0;
+  while (after.isActiveDay(dateFromDay(day - daysInRow))) daysInRow++;
+  const weekBefore = before.week(date), week = after.week(date);
+  const weekBecameActive = weekBefore.state !== 'active' && week.state === 'active';
+  // Active weeks in a row ending with this practice's week.
+  let weeksInRow = 0;
+  if (week.state === 'active') for (let monday = mondayOf(day); after.week(dateFromDay(monday)).state === 'active'; monday -= 7) weeksInRow++;
+  const month = week.month;
+  const monthBecameActive = before.month(month).state !== 'active' && after.month(month).state === 'active';
+  let monthsInRow = 0;
+  if (after.month(month).state === 'active') for (let current = month; after.month(current).state === 'active'; current = addMonths(current, -1)) monthsInRow++;
+  const kind: StreakMomentKind = monthBecameActive ? 'month' : weekBecameActive ? 'week' : daysInRow >= 2 ? 'days' : 'day';
+  return Object.freeze({ kind, date, daysInRow, weekDaysBefore: weekBefore.activeDays, weekDays: week.activeDays,
+    weekBecameActive, weeksInRow, monthBecameActive, month, monthsInRow });
+}

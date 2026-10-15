@@ -25,7 +25,7 @@ are external CC0 material, not original Ona synthesis. Everything is bundled off
 | Ocean, Rain, Storm | Layered evolving circular synthesis, three-minute stereo AAC loops |
 | Brown Noise | Warm circular spectral synthesis, three-minute lossless FLAC loop |
 | Silence | No ambience; optional bells remain independent |
-| Choir | Unchanged user-supplied CC0 Meditation Choir; Home and optional meditation source |
+| Choir | User-supplied CC0 Meditation Choir, shipped as 192 kbps AAC since 2026-10-15 (original WAV in Git history); Home and optional meditation source |
 
 Choir's one-time provenance/hash is in assets/audio/README.md; saved ocean_music IDs
 still select it. The earlier progression swell is retired, with its original synthesis
@@ -42,8 +42,9 @@ No screen owns a player; sound never changes timer, rewards, persistence or wave
 
 Ambience is chosen on Prepare before each practice; its volume (and a change of ambience) is
 adjusted live from the meditation speaker. Settings keeps only what lives nowhere else: starting/
-ending bell toggles with previews, Off/5/10/15-minute intervals with a preview, bell volume, Home
-ambience volume and optional gentle haptics. Done persists only those fields onto the current
+ending bell toggles with previews, Off/5/10/15-minute intervals with a preview, bell volume and Home
+ambience volume. Haptics were removed (the stored `hapticsEnabled` field is kept for compatibility
+and ignored). Done persists only those fields onto the current
 preferences; Back cancels edits. Previews use edited volumes, are exclusive/bounded, and stop on
 navigation/background; they cannot overlap a running meditation. Home's speaker is its mute.
 There is no floating Resume sound/Play sound action on Home or meditation. After a
@@ -79,13 +80,14 @@ version 1 → 2 while preserving old choices. Malformed/future values fail expli
 - Unexpected media stops fail closed; explicit Resume sound realigns playback. Cleanup
   cancels timers/listeners and attempts background release, pause and removal separately
   so one native error cannot strand a player. No late async seek/load can revive disposal.
-- Optional live-action haptics use Soft on iOS and frequent-tick on Android; web is silent.
 
 ## Size, analysis and verification limits
 
-All assets are local at 24 kHz except unchanged Choir. The new collection is about
-39.56 MB, including 19.33 MB of sparse interval timelines; native decoders stream
+All assets are local at 24 kHz except Choir (48 kHz AAC). Bundled audio is about 41 MB, including
+19.33 MB of sparse interval timelines (the largest remaining item; shortening them from six to three
+active hours would halve that, at the cost of the six-hour interval limit); native decoders stream
 only selected files. Intervals stop after six active hours; ambience/timing continue.
+On 2026-10-15 the Choir moved from its 22 MB WAV to a 1.8 MB AAC encode (assets/audio/README.md).
 
 Generation analysis checks headroom/DC, soft attacks/tails, >0.99 decoded/master
 correlation, ordinary-sized wrap steps and first/second/final interval timing. Brown Noise
@@ -100,11 +102,10 @@ it is not physical-device listening. Exports likewise do not test native audio.
 Use an SDK-compatible Expo Go for foreground checks. A **rebuilt development/standalone
 binary** is required to apply enableBackgroundPlayback in app.json. Physical iPhone and
 Android review remains required for 20–60-minute loops, speaker/headphone loudness,
-immediate locking, calls/audio focus, route changes, cold offline recovery and haptics.
+immediate locking, calls/audio focus, route changes and cold offline recovery.
 Native background mode and interruption behavior depend on OS/device policy.
 
-SDK 57 references: [Audio](https://docs.expo.dev/versions/v57.0.0/sdk/audio/),
-[Haptics](https://docs.expo.dev/versions/v57.0.0/sdk/haptics/).
+SDK 57 reference: [Audio](https://docs.expo.dev/versions/v57.0.0/sdk/audio/).
 
 ## Ending timeline for fixed-length practice (2026-10-14)
 

@@ -1,9 +1,9 @@
 {
-  "coast_0": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/0.png", "sha256": "f988715a3cbe4541b1f96f124fdbcad434bc098a9d2d3a95c90edb0970b54eb9" },
-  "coast_1": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/1.png", "sha256": "8b4c197da02529904fbc800c62c1d99f0a3828184029c7a5646fb0e89bfe8fc9" },
-  "coast_2": { "width": 863, "height": 1822, "haloX": 431, "haloY": 744, "source": "Forest 2/2.png", "sha256": "f4c3ca47c76222f825565de8e6d1080194d53550efe902fcafd4e215e56ee289" },
-  "coast_3": { "width": 853, "height": 1844, "haloX": 426, "haloY": 739, "source": "Forest 2/3.png", "sha256": "67689482b95065fbc517effaeb81a47770eba6a4792e8cbde150c695e5b6e663" },
-  "coast_4": { "width": 853, "height": 1844, "haloX": 426, "haloY": 742, "source": "Forest 2/4.png", "sha256": "fe09b072357c7955df9a4b9b221f7120f0a1eb55fac1e8a5741543a3c97628b2" },
-  "coast_5": { "width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/5.png", "sha256": "94eb5147658d68e1faf783b8e2a5f7fc7071510171d6f55fb224afda301fbba4" },
-  "entry": { "width": 853, "height": 1844, "sceneTop": 260, "sceneBottom": 1750, "source": "Forest 2/Forest entry.png", "sha256": "dd5605d7589ca39d470b86239507a3c75814e7d8b4dbca2a2acf3e93dfc87b2f" }
+  "coast_0": {"width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/0.png", "sha256": "f988715a3cbe4541b1f96f124fdbcad434bc098a9d2d3a95c90edb0970b54eb9", "file": "stage-0.webp", "fileSha256": "ca5850fdf665d9da83012147878bf386e10177fd9d16d60bd69454001019e1b7"},
+  "coast_1": {"width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/1.png", "sha256": "8b4c197da02529904fbc800c62c1d99f0a3828184029c7a5646fb0e89bfe8fc9", "file": "coastal-background.webp", "fileSha256": "e3760167c45ac430445977aeb5d770797280998a8328e9041596f05ebccc6c92"},
+  "coast_2": {"width": 863, "height": 1822, "haloX": 431, "haloY": 744, "source": "Forest 2/2.png", "sha256": "f4c3ca47c76222f825565de8e6d1080194d53550efe902fcafd4e215e56ee289", "file": "stage-2.webp", "fileSha256": "4013c95acccbf7b25c20f39faefb69992c0375d85491ab61961b678637e32d3e"},
+  "coast_3": {"width": 853, "height": 1844, "haloX": 426, "haloY": 739, "source": "Forest 2/3.png", "sha256": "67689482b95065fbc517effaeb81a47770eba6a4792e8cbde150c695e5b6e663", "file": "stage-3.webp", "fileSha256": "5d9d3d0171b377485b801457201b355228e5cc5f2de4ec6b18f096aae879464a"},
+  "coast_4": {"width": 853, "height": 1844, "haloX": 426, "haloY": 742, "source": "Forest 2/4.png", "sha256": "fe09b072357c7955df9a4b9b221f7120f0a1eb55fac1e8a5741543a3c97628b2", "file": "stage-4.webp", "fileSha256": "3024f94f48b41a9495737e88cc93069611289bf77374ab95bdbcbb50d7ce6ced"},
+  "coast_5": {"width": 853, "height": 1844, "haloX": 426, "haloY": 751, "source": "Forest 2/5.png", "sha256": "94eb5147658d68e1faf783b8e2a5f7fc7071510171d6f55fb224afda301fbba4", "file": "stage-5.webp", "fileSha256": "755c96d6904a012bb7643ccb0100b46066cd88adafe04e76ad08950326b19a9d"},
+  "entry": {"width": 853, "height": 1844, "sceneTop": 260, "sceneBottom": 1750, "source": "Forest 2/Forest entry.png", "sha256": "dd5605d7589ca39d470b86239507a3c75814e7d8b4dbca2a2acf3e93dfc87b2f"}
 }

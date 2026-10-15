@@ -13,7 +13,7 @@ export { serifFont as coastalSerif } from './primitives';
 
 export { coastalComposition } from './coastal-composition';
 export type CoastalComposition = ReturnType<typeof coastalComposition>;
-export const coastalArtwork = require('../../assets/ona/design3/coastal-background.png');
+export const coastalArtwork = require('../../assets/ona/design3/coastal-background.webp');
 
 /** Texture uses only the source's empty lower portion. The halo/shoreline appear once. */
 export const CoastalTexture = memo(function CoastalTexture({ width, height }: { width: number; height: number }) {

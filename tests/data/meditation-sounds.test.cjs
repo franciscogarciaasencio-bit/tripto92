@@ -138,7 +138,7 @@ test('Intervals align to actual active time, exclude pauses, continue without a 
  const paused=pauseTimer(draft,f.start+120000,'UTC');f.controller.update({...f.input,draft:paused,now:paused.changedAt,preferences:prefs});
  assert.equal(timeline.playing,false);const resumed=resumeTimer(paused,f.start+720000);
  f.controller.update({...f.input,draft:resumed,now:resumed.changedAt,preferences:prefs});await flush();
- assert.deepEqual(timeline.seeks,[0,120]);assert.equal(timeline.plays,2);assert.equal(f.haptics,2);
+ assert.deepEqual(timeline.seeks,[0,120]);assert.equal(timeline.plays,2);assert.equal(f.haptics,0,'haptics were removed; an old stored flag never vibrates');
  assert.equal(activeAudioSeconds(resumed,resumed.changedAt+180000),300);
  f.controller.update({...f.input,draft:resumed,now:resumed.changedAt,foreground:false,preferences:prefs});await flush();
  assert.equal(timeline.removed,false);assert.equal(timeline.plays,2);
@@ -176,11 +176,11 @@ test('Previews are exclusive, fade in/out, stop on navigation/background, and ca
  const count=f.players.length;f.controller.preview('storm',.2);assert.equal(f.players.length,count);f.controller.dispose();
 });
 
-test('Bell mute, preference changes and disabled haptics never restart or double-play a sound',()=>{
+test('Bell mute and preference changes never restart or double-play a sound; nothing vibrates',()=>{
  const f=fixture();f.controller.begin(defaults);assert.equal(f.haptics,0);
  f.controller.update({...f.input,preferences:{...defaults,bellVolume:0}});assert.equal(f.players[0].removed,true);
  f.controller.update(f.input);assert.equal(f.players.length,1);
- f.controller.begin({...defaults,openingBellEnabled:false,hapticsEnabled:true});assert.equal(f.players.length,1);assert.equal(f.haptics,1);f.controller.dispose();
+ f.controller.begin({...defaults,openingBellEnabled:false,hapticsEnabled:true});assert.equal(f.players.length,1);assert.equal(f.haptics,0);f.controller.dispose();
 });
 
 test('Pause/resume during a pending native seek serializes alignment and never plays a stale position',async()=>{

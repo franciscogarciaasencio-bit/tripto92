@@ -1,5 +1,4 @@
 import { createAudioPlayer } from 'expo-audio';
-import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { ambienceAsset, bellAsset, endingTimelineAsset, intervalAsset } from './assets';
 import type { ClipPlayer, SessionAudioBackend } from './session-controller';
@@ -28,9 +27,4 @@ export const sessionAudioBackend: SessionAudioBackend = {
   },
   timeline: seconds => create(intervalAsset(seconds)),
   ending: () => create(endingTimelineAsset()),
-  feedback() {
-    const pending = Platform.OS === 'android' ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick)
-      : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    void pending.catch(() => {});
-  },
 };

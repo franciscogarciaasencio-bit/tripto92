@@ -5,6 +5,12 @@ const path = require('node:path');
 const { assert, data } = require('./helpers.cjs');
 const art = require('../../src/ui/forest-entry-artwork.json');
 const { forestEntryMetadata, forestEntryStageComposition } = data('../ui/forest-geometry.js');
+/** Width and height of a lossy WebP (RIFF 'VP8 ' frame header). */
+function webpSize(bytes) {
+  assert.equal(bytes.subarray(0, 4).toString(), 'RIFF'); assert.equal(bytes.subarray(8, 16).toString(), 'WEBPVP8 ');
+  assert.deepEqual([...bytes.subarray(23, 26)], [0x9d, 0x01, 0x2a]);
+  return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+}
 
 test('Dedicated entry artwork has six unique offline stages and preserves the original reference', () => {
   const hashes = new Set();
@@ -13,8 +19,8 @@ test('Dedicated entry artwork has six unique offline stages and preserves the or
     const bytes = readFileSync(path.join(__dirname, '../../assets/ona/forest', metadata.file));
     const hash = createHash('sha256').update(bytes).digest('hex');
     assert.equal(hash, metadata.sha256);
-    assert.equal(bytes.readUInt32BE(16), metadata.width);
-    assert.equal(bytes.readUInt32BE(20), metadata.height);
+    assert.deepEqual(webpSize(bytes), { width: metadata.width, height: metadata.height });
+    assert.match(metadata.sourceSha256, /^[0-9a-f]{64}$/); // the generated PNG, kept in Git history
     assert.equal(metadata.growthStage, stage);
     hashes.add(hash);
   }

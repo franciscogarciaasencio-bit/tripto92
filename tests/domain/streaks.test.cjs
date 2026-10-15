@@ -128,3 +128,46 @@ test('Recent weeks and months end with the current period, oldest first', () => 
   assert.equal(practiceStreaks([], '2027-03-30').recentMonths(1)[0].month, '2027-04');
   assert.throws(() => streaks.recentWeeks(0), RangeError);
 });
+
+test('Streak moment: what one saved practice changed, for the celebration after completion', () => {
+  const { streakMoment } = api;
+  const saved = (id, localDate, minutes = 10, status = 'completed') => ({ id, ...practice(localDate, minutes, status) });
+  // 2026-10-12 is a Monday.
+  const first = saved('a', '2026-10-12');
+  assert.deepEqual({ ...streakMoment([first], first, '2026-10-12') }, { kind: 'day', date: '2026-10-12', daysInRow: 1,
+    weekDaysBefore: 0, weekDays: 1, weekBecameActive: false, weeksInRow: 0, monthBecameActive: false, month: '2026-10', monthsInRow: 0 });
+  const second = saved('b', '2026-10-13');
+  const two = streakMoment([first, second], second, '2026-10-13');
+  assert.equal(two.kind, 'days'); assert.equal(two.daysInRow, 2); assert.equal(two.weekDays, 2);
+  const third = saved('c', '2026-10-14');
+  const week = streakMoment([first, second, third], third, '2026-10-14');
+  assert.equal(week.kind, 'week', 'the third day of the week outranks days in a row');
+  assert.equal(week.daysInRow, 3); assert.equal(week.weekBecameActive, true); assert.equal(week.weeksInRow, 1);
+  const fourth = saved('d', '2026-10-15');
+  const after = streakMoment([first, second, third, fourth], fourth, '2026-10-15');
+  assert.equal(after.kind, 'days', 'a week that already counted is not celebrated twice');
+  assert.equal(after.weekBecameActive, false); assert.equal(after.weeksInRow, 1);
+  // Nothing new: a second practice the same day, a short one, or one ended early.
+  assert.equal(streakMoment([first, saved('e', '2026-10-12')], saved('e', '2026-10-12'), '2026-10-12'), null);
+  assert.equal(streakMoment([saved('s', '2026-10-12', 2)], saved('s', '2026-10-12', 2), '2026-10-12'), null);
+  assert.equal(streakMoment([saved('x', '2026-10-12', 10, 'ended_early')], saved('x', '2026-10-12', 10, 'ended_early'), '2026-10-12'), null);
+  // A gap restarts days in a row, but the week still counts its days.
+  const gap = [saved('m', '2026-10-12'), saved('w', '2026-10-14')];
+  const gapMoment = streakMoment(gap, gap[1], '2026-10-14');
+  assert.equal(gapMoment.kind, 'day'); assert.equal(gapMoment.daysInRow, 1); assert.equal(gapMoment.weekDays, 2);
+});
+
+test('Streak moment: completing every week of a month is the biggest moment; weeks in a row carry over', () => {
+  const { streakMoment } = api;
+  let id = 0;
+  // October 2026 owns the weeks starting Sep 28, Oct 5, 12, 19 and 26 (by their Thursdays).
+  const sessions = activeWeeks('2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19')
+    .map((entry) => ({ id: `p${++id}`, ...entry }));
+  const lastWeek = ['2026-10-26', '2026-10-27'].map((date) => ({ id: `p${++id}`, ...practice(date) }));
+  const closing = { id: 'close', ...practice('2026-10-28') };
+  const moment = streakMoment([...sessions, ...lastWeek, closing], closing, '2026-10-28');
+  assert.equal(moment.kind, 'month'); assert.equal(moment.month, '2026-10');
+  assert.equal(moment.monthBecameActive, true); assert.equal(moment.weekBecameActive, true);
+  assert.equal(moment.weeksInRow, 6); assert.equal(moment.daysInRow, 3);
+  assert.equal(moment.monthsInRow, 1, 'September had a missed week before the 21st');
+});

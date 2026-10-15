@@ -2,10 +2,11 @@ const { test } = require('node:test');
 const { assert, data } = require('./helpers.cjs');
 const { COASTAL_ARTWORK, coastalComposition } = data('../ui/coastal-composition.js');
 
-test('Source landmarks match the actual unchanged PNG dimensions, with texture below the shoreline', () => {
-  const png = require('node:fs').readFileSync(require('node:path').join(__dirname, '../../assets/ona/design3/coastal-background.png'));
-  assert.equal(png.readUInt32BE(16), COASTAL_ARTWORK.width);
-  assert.equal(png.readUInt32BE(20), COASTAL_ARTWORK.height);
+test('Source landmarks match the bundled artwork dimensions, with texture below the shoreline', () => {
+  const webp = require('node:fs').readFileSync(require('node:path').join(__dirname, '../../assets/ona/design3/coastal-background.webp'));
+  assert.equal(webp.subarray(8, 16).toString(), 'WEBPVP8 ');
+  assert.equal(webp.readUInt16LE(26) & 0x3fff, COASTAL_ARTWORK.width);
+  assert.equal(webp.readUInt16LE(28) & 0x3fff, COASTAL_ARTWORK.height);
   assert.ok(COASTAL_ARTWORK.paperTop > COASTAL_ARTWORK.shorelineBottom && COASTAL_ARTWORK.paperTop < COASTAL_ARTWORK.height);
 });
 

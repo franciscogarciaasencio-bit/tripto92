@@ -1,4 +1,4 @@
-/** Landmarks in the supplied, unchanged Forest 2 / 1.png (853 × 1844). */
+/** Landmarks in the supplied Forest 2 / 1.png (853 × 1844), bundled as coastal-background.webp. */
 export const COASTAL_ARTWORK = { width: 853, height: 1844, haloCenterX: 426, haloCenterY: 751,
   innerSunDiameter: 537, shorelineBottom: 1390, paperTop: 1450 } as const;
 

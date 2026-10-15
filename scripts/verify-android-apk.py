@@ -99,8 +99,8 @@ def main():
         audio = json.loads((ROOT / "assets/audio" / folder / report).read_text(encoding="utf-8"))
         for name, entry in audio["assets"].items():
             targets[entry["sha256"]] = f"{folder}/{name}"
-    choir = ROOT / "assets/audio/meditation-choir.wav"
-    targets[digest(choir.read_bytes())] = "meditation-choir.wav"
+    choir = ROOT / "assets/audio/meditation-choir.m4a"
+    targets[digest(choir.read_bytes())] = "meditation-choir.m4a"
     found = {}
     native_alignment = {}
     with zipfile.ZipFile(apk) as archive:

@@ -5,46 +5,52 @@
   "referenceSha256": "dd5605d7589ca39d470b86239507a3c75814e7d8b4dbca2a2acf3e93dfc87b2f",
   "stages": {
     "coast_0": {
-      "file": "entry-0.png",
+      "file": "entry-0.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "f78181a593783ee7499d1955789911ebf568f27e742c0f07e8d7b29e626b4159",
-      "growthStage": 0
+      "sha256": "7d5f520308be4e49ea7f0ff4801f5880be92c3ab566f1d6d79a89788f2dd027c",
+      "growthStage": 0,
+      "sourceSha256": "f78181a593783ee7499d1955789911ebf568f27e742c0f07e8d7b29e626b4159"
     },
     "coast_1": {
-      "file": "entry-1.png",
+      "file": "entry-1.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "2fcd3a2b2b6f382c618a4327f2bfad6d06cc1927a494c85e7319cd1a584605b0",
-      "growthStage": 1
+      "sha256": "d699e9d6e190362b2712e035502345be9f49b41b36be5395011408a477e5871d",
+      "growthStage": 1,
+      "sourceSha256": "2fcd3a2b2b6f382c618a4327f2bfad6d06cc1927a494c85e7319cd1a584605b0"
     },
     "coast_2": {
-      "file": "entry-2.png",
+      "file": "entry-2.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "ab4754c6ee64e00c733afb64c05533862144ae36a747f2230eccbb5bd4f8625e",
-      "growthStage": 2
+      "sha256": "455741d88b4344e03eec526b89be2b5c21b58ac512cef76e6bddf466cb30af86",
+      "growthStage": 2,
+      "sourceSha256": "ab4754c6ee64e00c733afb64c05533862144ae36a747f2230eccbb5bd4f8625e"
     },
     "coast_3": {
-      "file": "entry-3.png",
+      "file": "entry-3.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "a304ad6148233aa789006099b8421062094abe0a26cfa46ece4687c795545d90",
-      "growthStage": 3
+      "sha256": "da2b87e48719040200cdcfc90d39804c0d9ed7f3d96385fa05d5dbd8616844c2",
+      "growthStage": 3,
+      "sourceSha256": "a304ad6148233aa789006099b8421062094abe0a26cfa46ece4687c795545d90"
     },
     "coast_4": {
-      "file": "entry-4.png",
+      "file": "entry-4.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "95d975a0ac9ec617083ac7abb0e28f12f7d70fa55e1a4a41c3ff9e564af79228",
-      "growthStage": 4
+      "sha256": "84b8148e4825a1323d52ce46c46f948818cd8bce8b821ef6e9ead9945d8269d7",
+      "growthStage": 4,
+      "sourceSha256": "95d975a0ac9ec617083ac7abb0e28f12f7d70fa55e1a4a41c3ff9e564af79228"
     },
     "coast_5": {
-      "file": "entry-5.png",
+      "file": "entry-5.webp",
       "width": 853,
       "height": 1844,
-      "sha256": "f2569bfb549cca8cd967c50f4b17d77db9cdd1f23128876258876617334ab590",
-      "growthStage": 5
+      "sha256": "ea777b0ceca9dfc6bc64f8733930b12c9d9023d4f9d88fe0f2b7c78b43c5db71",
+      "growthStage": 5,
+      "sourceSha256": "f2569bfb549cca8cd967c50f4b17d77db9cdd1f23128876258876617334ab590"
     }
   }
 }

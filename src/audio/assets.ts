@@ -9,7 +9,7 @@ export const AMBIENCES = [
   { id: 'ocean_music', name: 'Choir', description: 'The original Ona soundtrack.' },
 ] as const;
 export const ambienceAsset = (source: AmbienceSource): number => ({
-  ocean_music: require('../../assets/audio/meditation-choir.wav'),
+  ocean_music: require('../../assets/audio/meditation-choir.m4a'),
   ocean: require('../../assets/audio/meditation/ocean.m4a'),
   rain: require('../../assets/audio/meditation/rain.m4a'),
   storm: require('../../assets/audio/meditation/storm.m4a'),
