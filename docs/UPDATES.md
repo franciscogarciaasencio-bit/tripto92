@@ -25,8 +25,14 @@ with the same validation, so an update can carry migration 14+ like a new build.
 git pull origin main
 npm ci
 npm run check
-npx eas-cli@latest update --channel preview --platform android --message "<what changed>"
+npx eas-cli@latest update --channel preview --platform android --environment preview --message "<what changed>"
 ```
+
+SDK 57 requires `--environment`. Before publishing, the EAS `preview` environment must contain
+`EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, matching the preview build
+profile. Updates do not read that profile's `env` or local `.env` when an EAS environment is selected.
+Only the project URL and publishable key belong there; never add server credentials.
+See [Expo's environment-variable guidance](https://docs.expo.dev/eas/environment-variables/usage/).
 
 The preview build profile uses channel `preview`. Builds made before 1.2.0 have no update support
 and must be replaced once by the 1.2.0 APK. An update that misbehaves can be undone by republishing
