@@ -133,11 +133,11 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
         {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
       </Type> : !error && <View style={calendarStyles.monthSummary}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Type role="heading">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
+        <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 4 }}>
+          <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Type role="heading">{practiceTimeLabel(summary.activeSeconds)}</Type><Type role="secondary">Time for yourself</Type>
+        <View accessible accessibilityLabel={`${practiceTimeLabel(summary.activeSeconds)} of time for yourself`} style={{ flex: 1, gap: 4 }}>
+          <Type role="heading" accessibilityRole="text">{practiceTimeLabel(summary.activeSeconds)}</Type><Type role="secondary">Time for yourself</Type>
         </View>
         <Type role="secondary" style={{ width: '100%', fontSize: 12, marginTop: 8 }}>
           {`${summary.practices} ${summary.practices === 1 ? 'practice' : 'practices'} this month · Short practices included`}

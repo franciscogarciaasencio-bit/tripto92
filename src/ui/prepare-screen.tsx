@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { BackHandler, ScrollView, View } from 'react-native';
+import { BackHandler, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
 import { AMBIENCES } from '@/audio/assets';
@@ -23,10 +23,10 @@ function Option({ label, accessibilityLabel, selected, onPress, columns }: { lab
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return <View style={{ gap: 6, paddingTop: 20, borderTopWidth: 1, borderColor: colors.line }}>
     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-      <Type role="label">{title}</Type>
+      <Type role="label" accessibilityRole="header">{title}</Type>
       {note && <Type role="secondary" style={{ fontSize: 12 }}>{note}</Type>}
     </View>
-    <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, rowGap: 4 }}>{children}</View>
+    <View accessibilityRole="radiogroup" accessibilityLabel={title} style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, rowGap: 4 }}>{children}</View>
   </View>;
 }
 
@@ -56,20 +56,24 @@ export function PrepareScreen() {
   };
   const summary = `${minutes === null ? 'Open-ended' : `${minutes} minutes`} · ${AMBIENCES.find((entry) => entry.id === sound)?.name ?? ''}`;
   const disabled = app.busy || audio.starting || app.draft !== null;
+  // Large system text: fewer, wider columns so words stay whole instead of shrinking.
+  const { fontScale, width } = useWindowDimensions();
+  const roomy = fontScale * (375 / Math.min(width, 375)) > 1.3;
+  const words = roomy ? 2 : 3, numbers = roomy ? 3 : 4;
 
   return <Screen scroll={false} style={{ paddingBottom: 0 }}>
     <Header title="Your practice" back={back} />
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 20, paddingTop: 20, paddingBottom: 24 }}>
       <Section title="Intention" note="Optional">
-        <Option columns={3} label="None" accessibilityLabel="No intention" selected={intention === null} onPress={() => setIntention(null)} />
-        {INTENTIONS.map((id) => <Option columns={3} key={id} label={intentionLabel(id)} selected={intention === id} onPress={() => setIntention(id)} />)}
+        <Option columns={words} label="None" accessibilityLabel="No intention" selected={intention === null} onPress={() => setIntention(null)} />
+        {INTENTIONS.map((id) => <Option columns={words} key={id} label={intentionLabel(id)} selected={intention === id} onPress={() => setIntention(id)} />)}
       </Section>
       <Section title="Sound">
-        {AMBIENCES.map((entry) => <Option columns={3} key={entry.id} label={entry.name} selected={sound === entry.id} onPress={() => setSound(entry.id)} />)}
+        {AMBIENCES.map((entry) => <Option columns={words} key={entry.id} label={entry.name} selected={sound === entry.id} onPress={() => setSound(entry.id)} />)}
       </Section>
       <Section title="Length" note="minutes">
-        <Option columns={4} label="Open" accessibilityLabel="Open-ended: stop when you choose" selected={minutes === null} onPress={() => setMinutes(null)} />
-        {FIXED_DURATIONS.map((value) => <Option columns={4} key={value} label={`${value}`} accessibilityLabel={`${value} minutes`}
+        <Option columns={numbers} label="Open" accessibilityLabel="Open-ended: stop when you choose" selected={minutes === null} onPress={() => setMinutes(null)} />
+        {FIXED_DURATIONS.map((value) => <Option columns={numbers} key={value} label={`${value}`} accessibilityLabel={`${value} minutes`}
           selected={minutes === value} onPress={() => setMinutes(value)} />)}
       </Section>
       <Type role="secondary">{minutes === null

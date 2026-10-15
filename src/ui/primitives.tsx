@@ -17,7 +17,9 @@ const typography = StyleSheet.create({
   wordmark: { fontSize: 64, lineHeight: 76, letterSpacing: -2, fontFamily: 'ManropeMedium' },
 });
 export function Type({ role = 'body', style, ...props }: Omit<TextProps, 'role'> & { role?: keyof typeof typography }) {
-  return <Text {...props} style={[{ color: colors.ink }, typography[role], style]} />;
+  // Titles and headings are announced as headers so screen-reader users can jump between sections.
+  const header = role === 'title' || role === 'heading' ? { accessibilityRole: 'header' as const } : null;
+  return <Text {...header} {...props} style={[{ color: colors.ink }, typography[role], style]} />;
 }
 export function Action({ children, onPress, quiet = false, disabled = false, label, textRole }: {
   children: string; onPress: () => void; quiet?: boolean; disabled?: boolean; label?: string; textRole?: keyof typeof typography;
