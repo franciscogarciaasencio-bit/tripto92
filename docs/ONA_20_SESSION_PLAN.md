@@ -18,8 +18,9 @@ unverified on a physical phone, blocked or not done by decision. Open items, in 
    See AUTH_DEBUG.md.
 2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
 3. Owner requested the 1.2.0 (3) APK with EAS Update support (2026-10-15). Build and artifact
-   verification are complete with the approved package/key; installation and OTA arrival await
-   owner confirmation. See ANDROID_BUILD.md and UPDATES.md.
+   verification are complete with the approved package/key; owner confirmed installation over
+   the old app. The painted-calendar/bell OTA is published; device arrival remains unverified.
+   See ANDROID_BUILD.md and UPDATES.md.
 4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
 5. ~~Clock skew defect~~ fixed 2026-10-15 (see "Clock skew" in the log).
 
@@ -1056,3 +1057,10 @@ mastered lightly with the new `--roles interval` option so start/end stay byte-i
 former interval loudness (−35.5 LUFS). The three six-hour timelines were rebuilt and verified
 (first/second/final strikes, correlation > 0.9999); the cleanup ceiling is now 9,416 ms. Assets only:
 ships to 1.2.0 over the air. Native locked-screen listening remains a device check.
+
+### Published painted calendar and interval bell — 2026-10-15
+
+Published Android OTA group `b3642b6d-0149-4489-af59-17f244359a2a` from clean commit `703c8f4`
+to runtime `1.2.0` on channel `preview`, after npm ci, TypeScript/lint, 997 tests and all-platform
+export passed. Owner confirmed APK installation over the old app; OTA arrival/listening remains
+a device check. Details and dashboard link: UPDATES.md. No APK was built.

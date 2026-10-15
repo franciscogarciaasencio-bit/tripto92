@@ -37,3 +37,16 @@ See [Expo's environment-variable guidance](https://docs.expo.dev/eas/environment
 The preview build profile uses channel `preview`. Builds made before 1.2.0 have no update support
 and must be replaced once by the 1.2.0 APK. An update that misbehaves can be undone by republishing
 the previous commit (`eas update:republish` or a new update from that commit).
+
+## Published updates
+
+### 2026-10-15 — Painted calendar and new interval bell
+
+- Update group: `b3642b6d-0149-4489-af59-17f244359a2a` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/b3642b6d-0149-4489-af59-17f244359a2a).
+- Source commit: `703c8f44c7dfada9b1f8cb088970004045795f0a` (clean main).
+- Android, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+
+Published after clean npm ci, TypeScript/lint, 997 passing tests and all-platform export.
+EAS confirmed the runtime and active channel mapping. The owner confirmed installing 1.2.0 (3)
+over the old app before publication. Update arrival and native listening remain device checks.
