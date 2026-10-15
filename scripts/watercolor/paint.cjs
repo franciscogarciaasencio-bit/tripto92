@@ -57,7 +57,7 @@ const LIBRARY = `<defs>
   <filter id="shade" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="26"/></filter>
   <filter id="shadeWide" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="46"/></filter>
   <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
-  <filter id="line" x="-10%" y="-10%" width="120%" height="120%">
+  <filter id="line" filterUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
     <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="warp"/>
     <feDisplacementMap in="SourceGraphic" in2="warp" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="shape"/>
     <feGaussianBlur in="shape" stdDeviation="0.9"/>
