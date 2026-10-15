@@ -9,7 +9,7 @@ generator and historical provenance remain available.
 | --- | --- | --- | --- |
 | Start | 2553 | 13.24 s | Softened 65 ms attack; preserve approximately 474 Hz lower mode |
 | End | 1110 | 29.92 s | Lower approximately 305 Hz mode, 120 ms attack, full long decay |
-| Interval | 2554 | 9.06 s | Related approximately 473 Hz mode, 85 ms attack, quieter master |
+| Interval | gong-4 (owner) | 9.42 s | Owner's gong since 2026-10-15: approximately 439 Hz with its octave; 45 ms lead trimmed, 30 ms fade into the strike, −3 dB above 2 kHz, quieter master |
 
 These frequencies describe measured partials, not equal-tempered tuning. No pitch
 shifting, synthesized bell layers, repeated tails, compression or added reverb.
@@ -19,6 +19,14 @@ to lossy encoding. Four original 48 kHz WAVs (8.00 MB total) remain under
 `scripts/audio-sources/bells/`, outside the runtime asset graph.
 
 ## Rights and comparison
+
+**Interval since 2026-10-15:** the owner supplied the gong (`owner-gong-4.mp3`, kept unchanged
+beside the other sources) and asked for it as the interval bell. Its origin and licence were not
+stated, so provenance.json records it under `ownerSupplied` with licence `unconfirmed`; record both
+before a public or commercial release. It was mastered with `--roles interval` (FFmpeg 6.1.1), which
+left start.wav and end.wav byte-identical, at the former interval's opening RMS (0.022): integrated
+loudness −35.5 LUFS against −35.4 before. Bowl #2554 remains as a comparison source. The text below
+describes the original BigSoundBank selection.
 
 Sources are Joseph SARDIN / BigSoundBank recordings individually marked **CC0 1.0**.
 Commercial use, editing and redistribution are permitted; no required credit, fee,

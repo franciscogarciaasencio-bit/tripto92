@@ -1047,3 +1047,12 @@ are ink drops, consecutive days one pale wash with rounded necks; composed side 
 until shapes, sizes and tones matched (necks from bridges plus a re-sharpened blur). The owner's painting
 now sits directly under the month; extra information removed (weeks-active line, legend, trails, week
 washes). Verified on web at 390 and 320 wide, with seeded data in the reference's pattern.
+
+### Interval bell: the owner's gong — Complete (2026-10-15)
+
+The owner supplied a gong ("gong-4") for the interval bell. Kept unchanged under
+scripts/audio-sources/bells with provenance (licence unconfirmed until the owner records its origin);
+mastered lightly with the new `--roles interval` option so start/end stay byte-identical, at the
+former interval loudness (−35.5 LUFS). The three six-hour timelines were rebuilt and verified
+(first/second/final strikes, correlation > 0.9999); the cleanup ceiling is now 9,416 ms. Assets only:
+ships to 1.2.0 over the air. Native locked-screen listening remains a device check.

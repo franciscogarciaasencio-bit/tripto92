@@ -15,7 +15,7 @@ body{background:#f8efdf;color:#272820;font:16px/1.65 system-ui;max-width:720px;m
 <audio id="player" controls preload="none"></audio>
 <output id="status" aria-live="polite">Choose a sound.</output>
 <button id="stop">Stop</button>
-<p><a href="README.md">Mastering notes and verification limits</a> · <a href="../../../scripts/audio-sources/bells/provenance.json">CC0 source evidence</a></p>
+<p><a href="README.md">Mastering notes and verification limits</a> · <a href="../../../scripts/audio-sources/bells/provenance.json">Source evidence</a></p>
 <script>
 const player = document.getElementById('player');
 const status = document.getElementById('status');
@@ -39,7 +39,7 @@ for (const [title, file] of [['Starting', 'start.wav'], ['Ending', 'end.wav'], [
   const group = document.createElement('fieldset');
   const legend = document.createElement('legend'); legend.textContent = title; group.append(legend);
   for (const [label, url, volume] of [
-    ['Master', file, 1], ['Original, matched energy', `../../../scripts/audio-sources/bells/${id}.wav`, adjustment],
+    ['Master', file, 1], ['Original, matched energy', `../../../scripts/audio-sources/bells/${report.sources[id].file ?? `${id}.wav`}`, adjustment],
   ]) { const button = document.createElement('button'); button.textContent = label;
     button.onclick = () => play(url, `${title} · ${label}`, volume); group.append(button); }
   document.getElementById('sounds').append(group);

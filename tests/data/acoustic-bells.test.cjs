@@ -48,11 +48,25 @@ test('Acoustic source evidence covers every retained original with a stable publ
   }
 });
 
-test('Four source recordings remain byte-identical to the downloaded originals', () => {
+test('Four publisher recordings and the owner-supplied gong remain byte-identical to their originals', () => {
   assert.equal(Object.keys(provenance.sources).length, 4);
-  for (const source of Object.values(provenance.sources)) {
+  assert.deepEqual(Object.keys(provenance.ownerSupplied), ['gong-4']);
+  for (const source of [...Object.values(provenance.sources), ...Object.values(provenance.ownerSupplied)]) {
     assert.equal(hash(readFileSync(path.join(sources, source.file))), source.sha256);
   }
+});
+
+test('Owner-supplied sources say who supplied them, when, and that their licence still needs recording', () => {
+  for (const source of Object.values(provenance.ownerSupplied)) {
+    assert.equal(source.suppliedBy, "Ona's owner");
+    assert.match(source.suppliedOn, /^\d{4}-\d{2}-\d{2}$/);
+    // Never claim rights that were not evidenced; update both fields when the owner confirms them.
+    assert.equal(source.license, 'unconfirmed');
+    assert.ok(source.rightsReview.includes('before a public release'));
+    assert.ok(source.selection.length > 20);
+  }
+  assert.equal(analysis.assets['interval.wav'].profile.source, 'gong-4');
+  assert.ok(analysis.sources['gong-4']);
 });
 
 for (const role of ['start', 'end', 'interval']) {

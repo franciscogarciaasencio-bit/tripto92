@@ -3,6 +3,9 @@
 Requires development-only NumPy and FFmpeg; no downloads or runtime dependency.
 Profiles are intentionally gentle: preserve pitch/natural decay, soften the strike,
 reduce upper partials, then apply constant gain (no compressor or reverb).
+
+--roles renders only the named clips and keeps every other entry of analysis.json (and its
+bytes) as it is, so one bell can change without re-rounding the others on a different FFmpeg.
 """
 import argparse
 import hashlib
@@ -24,10 +27,18 @@ PROFILES = {
     "end": {"source": "1110", "trimSeconds": .088, "attackMs": 120,
             "tailSeconds": 2, "shelfHz": 1300, "shelfDb": -10,
             "firstTwoSecondsRms": .034},
-    "interval": {"source": "2554", "trimSeconds": 0, "attackMs": 85,
-                 "tailSeconds": 1.4, "shelfHz": 1500, "shelfDb": -9,
+    # The owner's gong (2026-10-15): keep its strike and colour, only the pre-strike lead trimmed.
+    # Until then: {"source": "2554", "trimSeconds": 0, "attackMs": 85, "tailSeconds": 1.4,
+    # "shelfHz": 1500, "shelfDb": -9, "firstTwoSecondsRms": .022}.
+    "interval": {"source": "gong-4", "trimSeconds": .045, "attackMs": 30,
+                 "tailSeconds": 1.4, "shelfHz": 2000, "shelfDb": -3,
                  "firstTwoSecondsRms": .022},
 }
+
+
+def all_sources(provenance):
+    """Publisher recordings and owner-supplied files, by ID."""
+    return {**provenance["sources"], **provenance.get("ownerSupplied", {})}
 
 
 def sha256(path):
@@ -92,24 +103,45 @@ def main():
     parser.add_argument("--ffmpeg", required=True)
     parser.add_argument("--output", type=Path, default=OUTPUT,
                         help="Optional alternate directory for reproducibility verification")
+    parser.add_argument("--roles", nargs="+", choices=sorted(PROFILES), default=sorted(PROFILES),
+                        help="Render only these clips; other analysis entries and files stay as they are")
     args = parser.parse_args()
     provenance = json.loads((SOURCES / "provenance.json").read_text(encoding="utf-8"))
+    sources = all_sources(provenance)
+    tools = {"numpy": np.__version__, "ffmpeg": subprocess.run(
+        [args.ffmpeg, "-version"], check=True, capture_output=True, text=True
+    ).stdout.splitlines()[0]}
+    previous_path = args.output / "analysis.json"
+    previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.exists() else None
+    partial = set(args.roles) != set(PROFILES)
+    if partial and previous is None:
+        raise ValueError("--roles needs an existing analysis.json in the output directory")
     report = {
         "collection": provenance["collection"], "sampleRate": RATE,
         "format": "mono PCM16 WAV", "status": "integrated; subjective/native listening pending",
-        "tools": {"numpy": np.__version__, "ffmpeg": subprocess.run(
-            [args.ffmpeg, "-version"], check=True, capture_output=True, text=True
-        ).stdout.splitlines()[0]},
-        "sources": {}, "assets": {},
+        "tools": tools, "sources": {}, "assets": {},
     }
-    for source_id, source in provenance["sources"].items():
+    for source_id, source in sources.items():
         path = SOURCES / source["file"]
         if sha256(path) != source["sha256"]:
             raise ValueError(f"Source hash mismatch: {path}")
-        report["sources"][source_id] = measurements(decode(args.ffmpeg, path))
+        if partial and source_id in previous["sources"] and source_id not in {
+                PROFILES[role]["source"] for role in args.roles}:
+            # Measured with the tools that rendered the clips that still use it.
+            report["sources"][source_id] = {"tools": previous["tools"], **previous["sources"][source_id]}
+        else:
+            report["sources"][source_id] = {"tools": tools, "file": source["file"],
+                                            **measurements(decode(args.ffmpeg, path))}
     args.output.mkdir(parents=True, exist_ok=True)
     for role, profile in PROFILES.items():
-        source = SOURCES / provenance["sources"][profile["source"]]["file"]
+        if role not in args.roles:
+            name = f"{role}.wav"
+            kept = previous["assets"][name]
+            if sha256(args.output / name) != kept["sha256"] or kept["profile"] != profile:
+                raise ValueError(f"Kept clip does not match its analysis entry: {name}")
+            report["assets"][name] = {"tools": previous["tools"], **kept}
+            continue
+        source = SOURCES / sources[profile["source"]]["file"]
         pcm, filters, gain = master(args.ffmpeg, source, profile)
         output = args.output / f"{role}.wav"
         with wave.open(str(output), "wb") as file:
@@ -124,7 +156,7 @@ def main():
                 and decoded[0] == decoded[-1] == 0):
             raise ValueError(f"Master failed signal guards: {role}: {metrics}")
         report["assets"][output.name] = {
-            "sha256": sha256(output), "bytes": output.stat().st_size,
+            "tools": tools, "sha256": sha256(output), "bytes": output.stat().st_size,
             "profile": profile, "filters": filters, "constantGain": gain,
             "measurements": metrics,
         }

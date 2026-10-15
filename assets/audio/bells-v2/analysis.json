@@ -4,17 +4,21 @@
   "format": "mono PCM16 WAV",
   "status": "integrated; subjective/native listening pending",
   "tools": {
-    "numpy": "2.3.5",
-    "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+    "numpy": "2.5.3",
+    "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers"
   },
   "sources": {
     "1110": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "seconds": 30.003333333333334,
       "samplePeak": 0.5687081813812256,
       "dc": 0.0002695799058718209,
       "first20msRms": 0.0004490799492557553,
       "firstTwoSecondsRms": 0.05454065997141659,
-      "lastSecondRms": 2.1536288092899815E-05,
+      "lastSecondRms": 2.1536288092899815e-05,
       "energyAbove2000HzFraction": 0.5648780410286673,
       "rmsPerSecond": [
         0.06747499010297041,
@@ -45,15 +49,19 @@
         0.00021591993306646807,
         0.00015370658490744058,
         0.00010222269812677401,
-        5.821068246865475E-05,
-        2.1650333903321717E-05,
+        5.821068246865475e-05,
+        2.1650333903321717e-05,
         0.0
       ]
     },
     "2553": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "seconds": 13.240875,
       "samplePeak": 0.2190060019493103,
-      "dc": -5.6703539724683066E-08,
+      "dc": -5.6703539724683066e-08,
       "first20msRms": 0.03968079115645166,
       "firstTwoSecondsRms": 0.02991409301939066,
       "lastSecondRms": 0.00019586335642838944,
@@ -72,13 +80,17 @@
         0.0013667717323874264,
         0.00074938443657232,
         0.0002845417806825354,
-        3.9706791556536906E-05
+        3.9706791556536906e-05
       ]
     },
     "2554": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "seconds": 9.0635,
       "samplePeak": 0.2886674106121063,
-      "dc": -5.328162124699106E-08,
+      "dc": -5.328162124699106e-08,
       "first20msRms": 0.06376604548307564,
       "firstTwoSecondsRms": 0.02718502939696779,
       "lastSecondRms": 0.00031721522819864556,
@@ -93,16 +105,20 @@
         0.0021237901723812746,
         0.001081767771095931,
         0.000367586054276277,
-        1.194159753509408E-05
+        1.194159753509408e-05
       ]
     },
     "2555": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "seconds": 13.163458333333333,
       "samplePeak": 0.20593586564064026,
-      "dc": -5.112881727701458E-08,
+      "dc": -5.112881727701458e-08,
       "first20msRms": 0.0722195670629145,
       "firstTwoSecondsRms": 0.039280611147338655,
-      "lastSecondRms": 7.07779599012686E-05,
+      "lastSecondRms": 7.07779599012686e-05,
       "energyAbove2000HzFraction": 0.7732842855915938,
       "rmsPerSecond": [
         0.04862041338340974,
@@ -117,13 +133,43 @@
         0.000892631128640113,
         0.0005211518190916736,
         0.0002623688733969191,
-        9.09876240692934E-05,
-        9.732571561553131E-06
+        9.09876240692934e-05,
+        9.732571561553131e-06
+      ]
+    },
+    "gong-4": {
+      "tools": {
+        "numpy": "2.5.3",
+        "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers"
+      },
+      "file": "owner-gong-4.mp3",
+      "seconds": 9.460333333333333,
+      "samplePeak": 0.8816095590591431,
+      "dc": -4.150219846686615e-06,
+      "first20msRms": 2.66137827104886e-06,
+      "firstTwoSecondsRms": 0.2824715507092717,
+      "lastSecondRms": 2.476965614420484e-05,
+      "energyAbove2000HzFraction": 4.717776053296822e-05,
+      "rmsPerSecond": [
+        0.367394446879438,
+        0.1568492088674761,
+        0.0633923137337217,
+        0.02168764222290247,
+        0.006165122860900979,
+        0.0015623601101655705,
+        0.000867683281245874,
+        0.0003114799308191137,
+        0.00010898274974918068,
+        2.563502574409718e-06
       ]
     }
   },
   "assets": {
     "start.wav": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "sha256": "132749edc7f88fc2f54d2b657a0c8f2f7360de201a52c9bee5b722cd7f6269d8",
       "bytes": 635606,
       "profile": {
@@ -140,7 +186,7 @@
       "measurements": {
         "seconds": 13.240875,
         "samplePeak": 0.111907958984375,
-        "dc": -7.778702402362003E-09,
+        "dc": -7.778702402362003e-09,
         "first20msRms": 0.003438614186966515,
         "firstTwoSecondsRms": 0.03599889520072926,
         "lastSecondRms": 0.00018836159815294437,
@@ -164,6 +210,10 @@
       }
     },
     "end.wav": {
+      "tools": {
+        "numpy": "2.3.5",
+        "ffmpeg": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
       "sha256": "f02c4a7a391e20698b1122d31d9d68a5a2a88796ae46f22df09a6a6f9424b6bc",
       "bytes": 1435980,
       "profile": {
@@ -180,10 +230,10 @@
       "measurements": {
         "seconds": 29.915333333333333,
         "samplePeak": 0.16107177734375,
-        "dc": 4.8371242041776235E-08,
+        "dc": 4.8371242041776235e-08,
         "first20msRms": 0.00199842568675634,
         "firstTwoSecondsRms": 0.033998961402216574,
-        "lastSecondRms": 2.7081664046171337E-06,
+        "lastSecondRms": 2.7081664046171337e-06,
         "energyAbove2000HzFraction": 0.13903427453368192,
         "rmsPerSecond": [
           0.03785389479890312,
@@ -213,44 +263,48 @@
           0.00033924083694698,
           0.000236071351879398,
           0.00015101435259509772,
-          8.129775320570133E-05,
-          2.627806849770549E-05,
-          1.9094312707025944E-06
+          8.129775320570133e-05,
+          2.627806849770549e-05,
+          1.9094312707025944e-06
         ]
       }
     },
     "interval.wav": {
-      "sha256": "6d55e00053409d671c64fa09b5abcd4780dfbcbc83ec35f5a4edf7d5df29cf63",
-      "bytes": 435092,
+      "tools": {
+        "numpy": "2.5.3",
+        "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers"
+      },
+      "sha256": "1623cd7d5720bfc683d2933d505edd98375a47961ec07d6f7ec44f7bc3d90115",
+      "bytes": 451980,
       "profile": {
-        "source": "2554",
-        "trimSeconds": 0,
-        "attackMs": 85,
+        "source": "gong-4",
+        "trimSeconds": 0.045,
+        "attackMs": 30,
         "tailSeconds": 1.4,
-        "shelfHz": 1500,
-        "shelfDb": -9,
+        "shelfHz": 2000,
+        "shelfDb": -3,
         "firstTwoSecondsRms": 0.022
       },
-      "filters": "atrim=start=0,highpass=f=65,treble=g=-9:f=1500:t=q:w=0.707,lowpass=f=5500",
-      "constantGain": 1.418335981345182,
+      "filters": "atrim=start=0.045,highpass=f=65,treble=g=-3:f=2000:t=q:w=0.707,lowpass=f=5500",
+      "constantGain": 0.0772290835132041,
       "measurements": {
-        "seconds": 9.0635,
-        "samplePeak": 0.07763671875,
-        "dc": -2.6375501956105992E-08,
-        "first20msRms": 0.0022743757007738356,
-        "firstTwoSecondsRms": 0.02199927598701501,
-        "lastSecondRms": 0.00019222622516139695,
-        "energyAbove2000HzFraction": 0.13033127061505212,
+        "seconds": 9.415333333333333,
+        "samplePeak": 0.067718505859375,
+        "dc": -1.0804212322098704e-08,
+        "first20msRms": 1.1056043049766113e-05,
+        "firstTwoSecondsRms": 0.021999377342883784,
+        "lastSecondRms": 0.0,
+        "energyAbove2000HzFraction": 2.678404329642977e-05,
         "rmsPerSecond": [
-          0.025779387395939574,
-          0.01741721772832223,
-          0.012281720270228003,
-          0.008677782858818234,
-          0.005839713474189957,
-          0.0036668527877612997,
-          0.0021389209879478597,
-          0.0010969866145923042,
-          0.00025105036369107417,
+          0.028820287794690872,
+          0.011719053646961824,
+          0.004726057444338821,
+          0.0015955329635618648,
+          0.00045371781134738757,
+          0.00011016116554033534,
+          4.980968313157954e-05,
+          2.14990146927762e-05,
+          4.564903351334104e-06,
           0.0
         ]
       }

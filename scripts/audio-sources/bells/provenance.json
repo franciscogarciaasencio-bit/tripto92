@@ -40,7 +40,7 @@
       "bits": 24,
       "channels": 1,
       "recording": "Studio; Sound Devices MixPre-3 and Sennheiser ME66",
-      "selection": "Interval: similar approximately 473 Hz mode to the starting bowl, shorter decay. Soften its sharper strike and master below the other roles."
+      "selection": "Interval until 2026-10-15 (replaced by the owner's gong): similar approximately 473 Hz mode to the starting bowl, shorter decay. Retained as a comparison source."
     },
     "2555": {
       "title": "Tibetan bowl struck #4",
@@ -52,6 +52,19 @@
       "channels": 1,
       "recording": "Studio; Sound Devices MixPre-3 and Sennheiser ME66",
       "selection": "Retained comparison, not selected: strongest measured mode near 2.4 kHz, more early energy than #2. Selection is analytical, pending listening."
+    }
+  },
+  "ownerSupplied": {
+    "gong-4": {
+      "title": "Gong (\"gong-4\")",
+      "file": "owner-gong-4.mp3",
+      "sha256": "1b7ec735cface49ad7ad62f5d8b4807a43358a6dc90a1f83cf9032071e75d493",
+      "suppliedBy": "Ona's owner",
+      "suppliedOn": "2026-10-15",
+      "format": "MP3, 320 kbps, 44.1 kHz stereo (near-mono: left/right correlation 0.9996); 9.46 s",
+      "license": "unconfirmed",
+      "rightsReview": "Supplied by the owner in chat as the new interval bell, without its original source or licence. Record both here and confirm commercial redistribution without attribution or fees before a public release.",
+      "selection": "Interval since 2026-10-15 at the owner's request: approximately 439 Hz fundamental with its octave, natural decay of about 8 dB per second to silence within 9 s. Mastered lightly: a short pre-strike trim, a 30 ms fade into the strike and a gentle -3 dB shelf above 2 kHz; same quiet interval level as before."
     }
   }
 }

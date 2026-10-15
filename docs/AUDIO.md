@@ -2,12 +2,15 @@
 
 ## Sounds, rights and reproduction
 
-The active bells are real acoustic bowl recordings by Joseph SARDIN / BigSoundBank,
-released under CC0 with no mandatory attribution, fee or permission. assets/audio/bells-v2
+The starting and ending bells are real acoustic bowl recordings by Joseph SARDIN / BigSoundBank,
+released under CC0 with no mandatory attribution, fee or permission. Since 2026-10-15 the interval
+bell is a gong the owner supplied ("gong-4"); its origin and licence are not yet recorded
+(provenance.json, `ownerSupplied`), so confirm them before a public release. assets/audio/bells-v2
 contains the mastered clips and matching sparse interval tracks. Its README describes
 comparison, mastering and remaining subjective/native listening checks. Original 48 kHz
 recordings, source URLs, rights evidence and hashes remain in scripts/audio-sources/bells.
-master-acoustic-bells.py reproduces the PCM bank; build-bell-timelines.py builds/verifies
+master-acoustic-bells.py reproduces the PCM bank (`--roles interval` re-renders one clip and keeps
+the others byte-for-byte); build-bell-timelines.py builds/verifies
 timelines from that exact interval master. Regenerate timelines whenever Interval changes.
 bell-timing.ts holds sample-verified cleanup ceilings; native end events release normally.
 
@@ -21,7 +24,7 @@ are external CC0 material, not original Ona synthesis. Everything is bundled off
 | --- | --- |
 | Starting bell | Soft acoustic strike, approximately 474 Hz lower mode; 13.24 seconds |
 | Ending bell | Deeper approximately 305 Hz mode, 29.92-second natural resonance |
-| Interval bell | Related approximately 473 Hz mode, quieter 9.06-second strike |
+| Interval bell | The owner's gong: approximately 439 Hz with its octave, 9.42-second natural decay, same quiet level as before (−35.5 LUFS) |
 | Ocean, Rain, Storm | Layered evolving circular synthesis, three-minute stereo AAC loops |
 | Brown Noise | Warm circular spectral synthesis, three-minute lossless FLAC loop |
 | Silence | No ambience; optional bells remain independent |
