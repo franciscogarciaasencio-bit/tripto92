@@ -6,7 +6,8 @@ export { getConsistencyIndicator, CONSISTENCY_INDICATOR_V1 } from './consistency
 export { HABIT_RULES, createHabitCheckpoint, validateHabit, advanceHabit, habitJourney, recordHabitReward, protectedHabitLevel } from './habit';
 export type { HabitCheckpoint, HabitRewardReceipt } from './habit';
 export { isRewardEligible } from './earnings';
-export { createProgressionState, recordSession, advanceProgression, changeProgressionRules } from './state';
+export { createProgressionState, recordSession, advanceProgression, changeProgressionRules, appendability } from './state';
+export type { Appendability } from './state';
 export { getProgressSnapshot } from './snapshot';
 export { CENTI_XP_PER_XP } from './numeric';
 export type { CalendarContext, LocalDate } from './calendar';

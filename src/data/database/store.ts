@@ -9,7 +9,7 @@ import { createTransactions, type SqlConnection } from './connection';
 import { createRulesRegistry, decodeContext } from './decoders';
 import { migrate } from './migrations';
 import { appendTransition, loadState, writeCheckpoint } from './records';
-import { completedPracticeCount, pendingCompletion, persistCompletion, validateCompletions } from './completions';
+import { completedPracticeCount, isSetAside, pendingCompletion, persistCompletion, validateCompletions } from './completions';
 import { loadJourney } from './journey';
 import { createApplicationRepository, loadExplanationDismissal } from '../repositories/application-repository';
 import { loadHabit } from './habit';
@@ -35,12 +35,13 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       await loadJourney(sql, state, migration.previousVersion < 4);
       const storedDraft = await loadTimer(sql);
       const draft = storedDraft ? settleTimer(storedDraft, asOf.timestamp) : null;
-      let recoveredSession = null;
+      let recoveredSession = null, recoveredSetAside = false;
       const previousRank = getProgressSnapshot(state, state.asOf).currentRank;
       // Recover a pending completion BEFORE advancing the chronological progression cursor.
       if (draft?.phase === 'finished') {
         recoveredSession = timerSession(draft);
         state = await persistCompletion(sql, state, recoveredSession, asOf.timestamp);
+        recoveredSetAside = await isSetAside(sql, recoveredSession.id);
       }
       // A device clock behind the stored settlement opens at that settlement; it never rewinds.
       const at = readingContext(state.asOf, asOf);
@@ -64,7 +65,7 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       const sync = await loadSyncState(sql);
       return { initialSnapshot: getProgressSnapshot(state, at), initialTimer: draft?.phase === 'finished' ? null : draft,
         initialJourney: habit?.journey ?? await loadJourney(sql, state), initialHabit: habit?.checkpoint ?? null, initialExplanationDismissed: dismissed !== null,
-        recoveredSession, previousRank, initialCompletion: await pendingCompletion(sql),
+        recoveredSession, recoveredSetAside, previousRank, initialCompletion: await pendingCompletion(sql),
         initialCompletedPractices: await completedPracticeCount(sql), initialSync: sync };
     });
     return {

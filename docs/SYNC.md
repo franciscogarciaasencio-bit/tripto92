@@ -129,7 +129,11 @@ this phone's ledger. Events since S are practices present on only one side and r
   onto the empty ledger.
 - **Overlap**: two practices whose times overlap (only possible across phones) cannot
   both enter the ledger. The earlier start is kept; the other is stored in
-  `sync_set_aside_sessions` with its full data, so nothing is lost silently.
+  `sync_set_aside_sessions` with its full data, so nothing is lost silently. The same record
+  keeps a practice finished on this phone that can no longer join history (it overlaps one
+  already pulled from another phone, or cannot be placed in time): the save and startup recovery
+  set it aside (reason `overlap`) instead of failing on every retry and launch, and Home says so
+  once. Practice begun before a confirmed reset is still refused: deletion wins.
 
 Merges run in one local transaction, are validated like imports, and are abandoned (and
 planned again) if the phone saved anything after planning. The merged result is pushed

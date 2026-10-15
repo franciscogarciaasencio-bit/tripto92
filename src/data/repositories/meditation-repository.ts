@@ -4,7 +4,7 @@ import type { Transactions } from '../database/connection';
 import { checkpointMetadata, decodeAwardRow, decodeContext, decodeSession, decodeSessionRow, type RulesRegistry, type StoredMeditationSession } from '../database/decoders';
 import { appendTransition, loadState, writeCheckpoint } from '../database/records';
 import { canonical, integer, requireData, text, timestamp } from '../database/validation';
-import { completedPracticeCount, loadCompletion, pendingCompletion, persistCompletion } from '../database/completions';
+import { completedPracticeCount, isSetAside, loadCompletion, pendingCompletion, persistCompletion } from '../database/completions';
 import { loadJourney } from '../database/journey';
 import { currentGeneration } from '../database/generations';
 import { loadTimer } from './timer-repository';
@@ -53,10 +53,13 @@ export function createMeditationRepository(database: Transactions, registry: Rul
       requireData(created >= session.endedAt, 'Creation timestamp precedes completion');
       return database.transaction(async (sql) => {
         const after = await persistCompletion(sql, await loadState(sql, registry), session, created);
+        const habit = await loadHabit(sql, after);
+        const progress = { snapshot: getProgressSnapshot(after, after.asOf), journey: habit?.journey ?? await loadJourney(sql, after), habit: habit?.checkpoint ?? null };
+        // Unplaceable practice is kept aside: there is no completion summary, and nothing was earned.
+        if (await isSetAside(sql, session.id)) return { ...progress, completion: null, setAside: true as const };
         const completion = await loadCompletion(sql, session.id);
         requireData(completion, 'Legacy history cannot fabricate a completion summary');
-        const habit = await loadHabit(sql, after);
-        return { snapshot: getProgressSnapshot(after, after.asOf), journey: habit?.journey ?? await loadJourney(sql, after), habit: habit?.checkpoint ?? null, completion };
+        return { ...progress, completion, setAside: false as const };
       });
     },
 

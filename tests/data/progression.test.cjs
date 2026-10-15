@@ -150,12 +150,15 @@ test('Historical qualification and highest labels survive a future rules change'
   assert.equal(after.sessions[3].qualified, false);
 });
 
-test('Backdated completion fails atomically; a duplicate remains a no-op after later decay', async (t) => {
-  const { meditations } = await fixture(t);
+test('A backdated completion is kept aside atomically without changing progression; a duplicate stays a no-op', async (t) => {
+  const { conn, meditations } = await fixture(t);
   await save(meditations, session());
   await meditations.getCurrentProgressionSnapshot(context(20));
   const before = await meditations.loadProgressionState();
-  await assert.rejects(save(meditations, session({ day: 2 })), /rewind/);
+  await save(meditations, session({ id: 'backdated', day: 2 }));
+  assert.deepEqual(await meditations.loadProgressionState(), before, 'no award, no history, no settlement change');
+  assert.deepEqual(conn.raw.prepare('SELECT session_id, reason FROM sync_set_aside_sessions').all().map((row) => ({ ...row })),
+    [{ session_id: 'backdated', reason: 'overlap' }]);
   await save(meditations, session());
   assert.deepEqual(await meditations.loadProgressionState(), before);
 });

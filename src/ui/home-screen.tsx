@@ -65,7 +65,8 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
         </View>
       </QuietPressable>
       <View style={{ position: 'absolute', top: labelTop + 126 * scale, left: 30 * scale, right: 30 * scale }}>
-        <Notice>{app.error ? 'Practice could not start. Please try again.' : null}</Notice>
+        <Notice>{app.error ? 'Practice could not start. Please try again.'
+          : app.practiceSetAside ? 'Your last practice overlapped one already saved, perhaps on another phone. It was kept safely aside.' : null}</Notice>
       </View>
       {journey && consistency && <View style={{ position: 'absolute', top: progressionTop, left: 34 * scale, right: 29 * scale, flexDirection: 'row', minHeight: 115 * scale }}>
         <QuietPressable accessibilityRole="button" accessibilityLabel={`View Journey. Level ${journey.level.number}, ${categoryName}, ${atPrelude ? 'starting point before your first qualifying practice' : `${journey.level.categoryStep} of 5`}`}

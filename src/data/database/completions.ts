@@ -1,4 +1,4 @@
-import { advanceProgression, getConsistencyIndicator, getLifetimeJourney, getJourneyProgressTransition, LEGACY_JOURNEY_VERSION, JOURNEY_VERSION, practiceCreditOutcome, practiceCredits, recordSession } from '../../domain/progression';
+import { advanceProgression, appendability, getConsistencyIndicator, getLifetimeJourney, getJourneyProgressTransition, LEGACY_JOURNEY_VERSION, JOURNEY_VERSION, practiceCreditOutcome, practiceCredits, recordSession } from '../../domain/progression';
 import type { MeditationSession, ProgressionState, JourneyProgressTransition, HabitRewardReceipt } from '../../domain/progression';
 import type { SqlConnection } from './connection';
 import { decodeSessionRow } from './decoders';
@@ -35,6 +35,15 @@ export async function completedPracticeCount(sql: SqlConnection): Promise<number
 }
 
 /** Shared by live completion and startup recovery inside their caller-owned transaction. */
+/** Keep an unplaceable practice, whole and immutable, in the synced set-aside record. */
+export async function setAsidePractice(sql: SqlConnection, session: MeditationSession, createdAt: number) {
+  await sql.run(`INSERT OR IGNORE INTO sync_set_aside_sessions(session_id, session_json, created_at, set_aside_at, reason)
+    VALUES (?, ?, ?, ?, 'overlap')`, [session.id, JSON.stringify(session), createdAt, createdAt]);
+}
+export async function isSetAside(sql: SqlConnection, id: string) {
+  return (await sql.all('SELECT 1 FROM sync_set_aside_sessions WHERE session_id = ?', [id])).length > 0;
+}
+
 export async function persistCompletion(sql: SqlConnection, before: ProgressionState, session: MeditationSession, createdAt: number) {
   // IDs stay unique across resets: old session retries preserve their original receipts, never earn again.
   const existing = (await sql.all('SELECT * FROM meditation_sessions WHERE id = ?', [session.id]))[0];
@@ -44,7 +53,16 @@ export async function persistCompletion(sql: SqlConnection, before: ProgressionS
     return before;
   }
   const generation = await currentGeneration(sql);
+  // Deletion wins: practice begun before a confirmed reset never returns, not even set aside.
   requireData(permitsPracticeStart(generation, session.startedAt), 'Meditation begins before the current progression reset boundary');
+  // A finished practice that can never join history (it overlaps a practice already recorded, e.g. one
+  // synced from another phone, or cannot be placed in time) is kept whole in the set-aside record
+  // instead of failing on every retry and every launch.
+  if (['overlap', 'rewind'].includes(appendability(before, session))) {
+    await setAsidePractice(sql, session, createdAt);
+    await sql.run("DELETE FROM meditation_timer WHERE id = 1 AND json_extract(draft_json, '$.id') = ?", [session.id]);
+    return before;
+  }
   const habit = await loadHabit(sql, before);
   const after = recordSession(before, session); // Also verifies exact duplicate content, before any writes.
   if (after !== before) {

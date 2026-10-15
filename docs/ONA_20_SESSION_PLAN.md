@@ -945,3 +945,15 @@ data tests (two phones 2 minutes apart through real Supabase SQL: pull, read, sa
 cross-midnight save and revalidated reopen; clock set back two days; reset refused), and a seeded
 60-day stress test with random backward steps up to an hour and six reopenings: 83 practices saved,
 0 refused, every reopen validated. 988 tests in total.
+
+### Unplaceable practice is set aside — Complete (2026-10-15)
+
+Follow-up found while fixing clock skew: a finished practice that could never join history (overlapping
+a practice pulled from another phone, or impossible to place in time) failed on every save retry, and
+at the next launch startup recovery failed too, so the app could not open. Now one domain check
+(`appendability`: duplicate / overlap / rewind / ok) drives both `recordSession` and the save path;
+unplaceable practice is stored whole in the existing synced set-aside record (reason `overlap`, no
+schema change), the timer is cleared, nothing is earned, and Home shows one calm line. A practice begun
+before a confirmed reset is still refused (deletion wins). Tests: placement outcomes; two phones through
+real Supabase SQL (overlap set aside, survives restart, syncs to the other phone); startup recovery of an
+unplaceable finished timer; backdated save kept aside atomically. 992 tests.

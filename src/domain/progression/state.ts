@@ -73,6 +73,21 @@ function acceptsLateEnding(state: ProgressionState, session: MeditationSession) 
     state.highestRankAchieved.achievedAt <= session.endedAt;
 }
 
+/**
+ * Whether a finished practice can join history: 'duplicate' (same ID already recorded), 'overlap'
+ * (it starts before the last recorded practice ends), 'rewind' (it ends before the settled moment and
+ * cannot be placed truthfully) or 'ok'. Callers that must never lose a practice set aside the
+ * unplaceable ones instead of failing.
+ */
+export type Appendability = 'ok' | 'duplicate' | 'overlap' | 'rewind';
+export function appendability(state: ProgressionState, session: MeditationSession): Appendability {
+  if (state.sessions.some((entry) => entry.session.id === session.id)) return 'duplicate';
+  const previous = state.sessions[state.sessions.length - 1];
+  if (previous && session.startedAt < previous.session.endedAt) return 'overlap';
+  if (session.endedAt < state.asOf.timestamp && !acceptsLateEnding(state, session)) return 'rewind';
+  return 'ok';
+}
+
 /** Append in timestamp order. Replays are no-ops; conflicting IDs and backdated edits fail loudly. */
 export function recordSession(state: ProgressionState, session: MeditationSession): ProgressionState {
   validateSession(session);
@@ -81,11 +96,9 @@ export function recordSession(state: ProgressionState, session: MeditationSessio
     if (!sameSession(duplicate.session, session)) throw new Error(`Conflicting session ID: ${session.id}`);
     return freeze(state);
   }
-  const previous = state.sessions[state.sessions.length - 1];
-  if (previous && session.startedAt < previous.session.endedAt) {
-    throw new RangeError('Sessions must be appended in order without overlaps');
-  }
-  if (session.endedAt < state.asOf.timestamp && !acceptsLateEnding(state, session)) throw new RangeError('Cannot rewind progression time');
+  const placement = appendability(state, session);
+  if (placement === 'overlap') throw new RangeError('Sessions must be appended in order without overlaps');
+  if (placement === 'rewind') throw new RangeError('Cannot rewind progression time');
   const settled = advanceProgression(state, {
     timestamp: session.endedAt, localDate: session.localDate, timeZone: session.timeZone,
   });

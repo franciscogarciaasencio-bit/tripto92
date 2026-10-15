@@ -40,6 +40,8 @@ function useApplication() {
   const [attempt, setAttempt] = useState(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The last finished practice could not join history (it overlapped one already saved) and was kept aside. */
+  const [practiceSetAside, setPracticeSetAside] = useState(false);
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState(false);
   const signingIn = useRef(false);
@@ -143,6 +145,7 @@ function useApplication() {
         setAudioPreferences(savedAudioPreferences);
         setHasHistory(history.length > 0);
         setCompletion(opened.initialCompletion);
+        setPracticeSetAside(opened.recoveredSetAside);
         setCompletedPractices(opened.initialCompletedPractices);
         setSyncStatus({ phase: 'idle', lastSyncedAt: opened.initialSync.lastSyncedAt });
         setPracticeRevision((revision) => revision + 1);
@@ -182,6 +185,7 @@ function useApplication() {
         setHabit(reopened.initialHabit);
         setExplanationDismissed(reopened.initialExplanationDismissed);
         setCompletion(reopened.initialCompletion);
+        if (reopened.recoveredSetAside) setPracticeSetAside(true);
         setCompletedPractices(reopened.initialCompletedPractices);
         setHasHistory(savedHistory.length > 0);
         setPreferences(savedPreferences);
@@ -207,8 +211,11 @@ function useApplication() {
     setJourney(saved.journey);
     setHabit(saved.habit);
     setCompletion(saved.completion);
-    setCompletedPractices(saved.completion.completedPractices);
-    setHasHistory(true);
+    setPracticeSetAside(saved.setAside);
+    if (saved.completion) {
+      setCompletedPractices(saved.completion.completedPractices);
+      setHasHistory(true);
+    }
     acceptDraft(null);
   }), [operation, acceptDraft]);
 
@@ -345,7 +352,7 @@ function useApplication() {
   }, [completion]);
 
   return {
-    ready, busy: busy || switching || authPending, error, draft, snapshot,
+    ready, busy: busy || switching || authPending, error, draft, snapshot, practiceSetAside,
     cloudAvailable: cloudAuth !== null,
     /** Development builds only: the return address sent to Supabase, to compare with its Redirect URLs. */
     signInReturnAddress: __DEV__ && cloudAuth ? cloudAuth.redirectUri() : null,
@@ -422,6 +429,7 @@ function useApplication() {
           : startOpenEndedTimer(randomUUID(), context.timestamp, context.timeZone);
         await database.timer.save(next);
         setCompletion(null);
+        setPracticeSetAside(false);
         acceptDraft(next);
       });
     },
