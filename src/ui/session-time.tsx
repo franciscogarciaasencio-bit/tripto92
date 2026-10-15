@@ -29,8 +29,8 @@ export const SessionTime = memo(function SessionTime({ draft, scale, active }: {
   return <QuietPressable accessibilityRole="button" accessibilityLabel={hidden ? `Show ${what} meditation time` : `Hide ${what} meditation time`}
     accessibilityValue={{ text: hidden ? 'Time hidden' : `${formatTime(shown)} ${draft.targetSeconds === null ? 'active meditation time' : 'remaining'}` }}
     accessibilityHint="Meditation continues while the time is hidden" onPress={() => setHidden(value => !value)}
-    style={{ alignItems: 'center', minHeight: 90 * scale, justifyContent: 'center', minWidth: 184 }}>
+    style={{ alignItems: 'center', minHeight: 80 * scale, justifyContent: 'center', minWidth: 184 }}>
     <Text style={{ fontFamily: hidden ? 'ManropeRegular' : coastalSerif, fontVariant: ['tabular-nums'], fontSize: (hidden ? 16 : 64) * scale,
-      lineHeight: 82 * scale, color: coastalInk }}>{hidden ? 'Show time' : formatTime(shown).padStart(5, '0')}</Text>
+      lineHeight: 76 * scale, color: coastalInk }}>{hidden ? 'Show time' : formatTime(shown).padStart(5, '0')}</Text>
   </QuietPressable>;
 });

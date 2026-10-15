@@ -6,7 +6,17 @@ import { DEFAULT_AUDIO_PREFERENCES } from '@/data';
 import { HomeNavigation } from '@/ui/home-navigation';
 import { Action, ChoiceRow, colors, Header, Notice, Screen, Type } from '@/ui/primitives';
 import { VolumeControl } from '@/ui/session-sound';
-import { MeditationSounds } from '@/ui/meditation-sounds';
+import { BellSettings } from '@/ui/bell-settings';
+import type { AudioPreferences } from '@/data';
+
+/**
+ * What Settings edits. Ambience choice and volume belong to the practice screens, Home's mute to its
+ * speaker, so saving here never overwrites a choice made there in the meantime.
+ */
+const OWNED = ['homeVolume', 'openingBellEnabled', 'closingBellEnabled', 'bellVolume', 'intervalSeconds', 'hapticsEnabled'] as const;
+function owned(preferences: AudioPreferences) {
+  return Object.fromEntries(OWNED.map((key) => [key, preferences[key]])) as Pick<AudioPreferences, typeof OWNED[number]>;
+}
 
 export default function Preferences() {
   const app = useOna();
@@ -15,7 +25,7 @@ export default function Preferences() {
   const [resetComplete, setResetComplete] = useState(false);
   const [lastAction, setLastAction] = useState<'preferences' | 'reset'>('preferences');
   const canReset = !app.busy && !app.draft && !app.completion;
-  const unsaved = Object.entries(edited).some(([key, value]) => app.audioPreferences?.[key as keyof typeof edited] !== value);
+  const unsaved = OWNED.some((key) => app.audioPreferences?.[key] !== edited[key]);
   const back = useCallback(() => {
     if (app.busy) return;
     if (confirmReset) setConfirmReset(false);
@@ -29,14 +39,15 @@ export default function Preferences() {
     <Header title="Preferences" back={back} />
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
     {!confirmReset && <View pointerEvents={app.busy ? 'none' : 'auto'} style={{ marginTop: 24 }}>
-      <ChoiceRow label="Home ambience" value={edited.homeEnabled ? 'On' : 'Off'} onPress={() => setEdited({ ...edited, homeEnabled: !edited.homeEnabled })} />
-      <Type style={{ marginTop: 18 }}>Home volume</Type>
-      <VolumeControl value={edited.homeVolume} label="Home volume" onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
-      <MeditationSounds preferences={edited} onChange={setEdited} />
-      <Action quiet textRole="label" onPress={() => router.push('/credits')}>About Ona sound</Action>
-      {app.cloudAvailable && <View style={{ marginTop: 16, borderTopWidth: 1, borderColor: colors.line }}>
-        <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} divider={false} onPress={() => router.push('/account')} />
-      </View>}
+      <BellSettings preferences={edited} onChange={setEdited} />
+      <Type role="heading" style={{ marginTop: 36 }}>Home</Type>
+      <Type style={{ marginTop: 14 }}>Ambience volume</Type>
+      <VolumeControl value={edited.homeVolume} label="Home ambience volume" onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
+      <View style={{ marginTop: 28, borderTopWidth: 1, borderColor: colors.line }}>
+        <ChoiceRow label="Gentle haptics" value={edited.hapticsEnabled ? 'On' : 'Off'} onPress={() => setEdited({ ...edited, hapticsEnabled: !edited.hapticsEnabled })} />
+        {app.cloudAvailable && <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} onPress={() => router.push('/account')} />}
+        <ChoiceRow label="About Ona sound" value="" divider={false} onPress={() => router.push('/credits')} />
+      </View>
     </View>}
     <View style={{ marginTop: confirmReset ? 40 : 32, gap: 12, paddingTop: confirmReset ? 0 : 24, borderTopWidth: confirmReset ? 0 : 1, borderTopColor: colors.line }}>
       {confirmReset ? <>
@@ -58,10 +69,11 @@ export default function Preferences() {
     <Notice>{app.error ? lastAction === 'reset' ? 'Practice data could not be deleted. Please try again.' : 'Preferences could not be saved. Please try again.' : null}</Notice>
     </ScrollView>
     {!confirmReset && <View style={{ gap: 4, paddingTop: 10, paddingBottom: 10, alignItems: 'center', borderTopWidth: 1, borderColor: colors.line }}>
-      {unsaved && <Type role="secondary" accessibilityLiveRegion="polite" style={{ fontSize: 13, textAlign: 'center' }}>Unsaved sound changes</Type>}
+      {unsaved && <Type role="secondary" accessibilityLiveRegion="polite" style={{ fontSize: 13, textAlign: 'center' }}>Unsaved changes</Type>}
       <Action disabled={app.busy} onPress={() => {
       setLastAction('preferences');
-      void app.saveAudioPreferences(edited).then((saved) => { if (saved) router.dismissTo('/'); });
+      const current = app.audioPreferences ?? DEFAULT_AUDIO_PREFERENCES;
+      void app.saveAudioPreferences({ ...current, ...owned(edited) }).then((saved) => { if (saved) router.dismissTo('/'); });
     }}>{app.busy ? 'Saving…' : app.error ? 'Retry save' : unsaved ? 'Save changes' : 'Done'}</Action></View>}
   </Screen><HomeNavigation active="settings" /></View>;
 }

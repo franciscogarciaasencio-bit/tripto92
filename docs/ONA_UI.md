@@ -176,13 +176,23 @@ through existing sound controls, with no floating Resume sound/Play sound button
 Owner request: better font sizes, letter positioning, smooth and beautiful. Screen titles and section
 headings are serif (Newsreader); body, labels and controls stay Manrope. Sentence text is at least 12 pt
 (letter-spaced capitals at least 11). Secondary screens open with a quiet back arrow (48 pt target,
-the forest's arrow) instead of the word Back, then the title. Home: "Level n" and "Consistency" share a
-46 pt title row and the two bars start at the same height. Calendar: month title left in serif with
+the forest's arrow) instead of the word Back, then the title. Calendar: month title left in serif with
 chevrons and Today on the same row (one row less before the grid); streak numbers share a baseline.
 History and the calendar day share one practice row: duration, then start time (with the zone only when
 it differs from this phone's) and any pause, inside one divider. Volume is a − / + step control (5 %)
 with a thin animated level line and the percentage. Switching Journey between calendar and levels
 crossfades the content while title and tabs stay still. Reduced Motion turns the new fades off.
+
+Follow-up (owner review, same day): the wordmark no longer rests on the sun's rim. On Home "Ona"
+(34 pt), MEDITATE and the arrow are one stack centred in the sun, slightly above centre where the
+horizon leaves the disc most open; the meditation screen puts a 30 pt "Ona" at the top of its own
+stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match: serif title row
+("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
+captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
+Settings holds only what lives nowhere else: Bells (starting/ending on/off with a small play button
+each, interval Off/5/10/15 with play, bell volume), Home ambience volume, Gentle haptics, Account,
+About Ona sound and Reset. Ambience choice is made on Prepare and its volume from the speaker during
+a practice; Home's speaker mutes Home. Saving writes only those fields onto the current preferences.
 
 ### Journey calendar and level path (2026-10-15)
 
@@ -220,7 +230,7 @@ Stage paintings (owner direction 2026-10-15): stage symbols are small watercolou
 line icons. Monkey Mind (Level 0 and Levels 1–5) is the owner's own painting, cut out of its paper
 by scripts/watercolor/cutout.py; every other stage is painted in code to match it
 (scripts/watercolor: SVG washes with wet-in-wet shading, mottling, pooled rims, paper grain, rendered
-in Chromium; STYLE.md). 384 px RGBA, shown at 46 pt beside the level on Home, 112 pt in the Journey
+in Chromium; STYLE.md). 384 px RGBA, shown small (30 pt, 92 % opacity) beside the level on Home, 96 pt in the Journey
 medallion and 84 pt in the new-stage reveal. Visible stages are bundled PNGs (stage-art.ts); sealed
 stages are XOR-veiled inside the sealed data and unveiled in memory to a data URI (core RN Image);
 no sealed painting exists as an image file. The old line symbols remain only as a fallback.

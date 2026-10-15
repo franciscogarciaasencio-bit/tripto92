@@ -26,7 +26,9 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
   const composition = useMemo(() => coastalComposition(width, height, fontScale, insets.bottom), [width, height, fontScale, insets.bottom]);
   const { canvasWidth, scale, contentHeight, progressionTop, sunDiameter, sunLeft, sunTop, haloCenterY } = composition;
   const headerTop = Math.max(insets.top + 8 * scale, height * .084);
-  const labelTop = haloCenterY - 32 * scale;
+  // The wordmark, MEDITATE and the arrow form one stack centred in the sun (slightly above centre,
+  // where the horizon leaves the disc most open), instead of the wordmark resting on its rim.
+  const wordmarkTop = haloCenterY - 72 * scale, labelTop = haloCenterY - 12 * scale;
 
   const journey = app.journey, consistency = app.snapshot?.consistency;
   const categoryName = journey ? getLevelCategoryPresentation(journey.level).name : 'Monkey Mind';
@@ -47,13 +49,14 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
           }} style={{ width: 46 * scale, height: 48 * scale, alignItems: 'center', justifyContent: 'center' }}>
           <HomeIcon name="speaker" selected={app.audioPreferences?.homeEnabled} size={18 * scale} color="#8D897A" />
         </QuietPressable>
-        <Text accessibilityRole="header" style={{ position: 'absolute', left: 63 * scale, right: 60 * scale, textAlign: 'center', fontFamily: serif, fontSize: 40 * scale, lineHeight: 52 * scale, color: '#121813' }}>Ona</Text>
         <QuietPressable accessibilityRole="button" accessibilityLabel="Open your forest" accessibilityHint="You can also swipe left from Home"
           accessibilityState={{ disabled: app.busy || audio.starting }} disabled={app.busy || audio.starting} onPress={openForest}
           style={{ width: 46 * scale, height: 48 * scale, alignItems: 'center', justifyContent: 'center' }}>
           <HomeIcon name="sprout" size={20 * scale} color="#8D897A" />
         </QuietPressable>
       </View>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={1.3} style={{ position: 'absolute', top: wordmarkTop, left: sunLeft, width: sunDiameter, textAlign: 'center',
+        fontFamily: serif, fontSize: 34 * scale, lineHeight: 40 * scale, color: '#121813' }}>Ona</Text>
       <QuietPressable accessibilityRole="button" accessibilityLabel={audio.starting ? 'Beginning meditation' : 'Meditate'} accessibilityHint="Choose an intention, sound and length, then begin" accessibilityState={{ disabled: app.busy || audio.starting }}
         disabled={app.busy || audio.starting} disabledOpacity={.62} onPress={() => router.push('/prepare')}
         style={{ position: 'absolute', left: sunLeft, top: sunTop, width: sunDiameter, height: sunDiameter, borderRadius: sunDiameter / 2, alignItems: 'center' }}>
@@ -64,32 +67,31 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
         <View style={{ marginTop: 22 * scale }}><HomeIcon name="arrow" size={31 * scale} color="#343C37" /></View>
         </View>
       </QuietPressable>
-      <View style={{ position: 'absolute', top: labelTop + 126 * scale, left: 30 * scale, right: 30 * scale }}>
+      <View style={{ position: 'absolute', top: haloCenterY + 94 * scale, left: 30 * scale, right: 30 * scale }}>
         <Notice>{app.error ? 'Practice could not start. Please try again.'
           : app.practiceSetAside ? 'Your last practice overlapped one already saved, perhaps on another phone. It was kept safely aside.' : null}</Notice>
       </View>
       {journey && consistency && <View style={{ position: 'absolute', top: progressionTop, left: 34 * scale, right: 29 * scale, flexDirection: 'row', minHeight: 115 * scale }}>
+        {/* Two matching columns: a serif title row, its bar directly beneath, then quiet captions. */}
         <QuietPressable accessibilityRole="button" accessibilityLabel={`View Journey. Level ${journey.level.number}, ${categoryName}, ${atPrelude ? 'starting point before your first qualifying practice' : `${journey.level.categoryStep} of 5`}`}
           onPress={() => router.push({ pathname: '/practice', params: { view: 'levels' } })} style={{ width: '49%', paddingRight: 24 * scale }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 * scale, marginLeft: -6 * scale, marginTop: 2 * scale }}>
-            <CategoryIcon category={journey.level.category} level={journey.level.number} size={46 * scale} />
+          <View style={[styles.titleRow, { height: 32 * scale, gap: 7 * scale }]}>
+            <View style={{ opacity: 0.92 }}><CategoryIcon category={journey.level.category} level={journey.level.number} size={30 * scale} /></View>
             <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>{`Level ${journey.level.number}`}</Text>
           </View>
-          <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 2 * scale }]}>{categoryName}</Text>
           <View accessibilityRole="progressbar" accessibilityLabel={journey.next ? `Progress toward Level ${journey.next.number}` : 'Journey complete'}
             accessibilityValue={{ min: 0, max: 100, now: Math.floor(journey.fraction * 100) }}
-            style={{ height: 6 * scale, width: 114 * scale, maxWidth: '100%', borderRadius: 6, backgroundColor: '#DCD0BC', marginTop: 9 * scale, overflow: 'hidden' }}>
-            <View style={{ height: '100%', width: `${journey.fraction * 100}%`, borderRadius: 6, backgroundColor: '#1A211B' }} />
+            style={{ height: 6 * scale, borderRadius: 3 * scale, backgroundColor: '#DDD1BD', marginTop: 10 * scale, overflow: 'hidden' }}>
+            <View style={{ height: '100%', width: `${journey.fraction * 100}%`, borderRadius: 3 * scale, backgroundColor: '#1C231B' }} />
           </View>
-          <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 19 * scale, marginTop: 10 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
+          <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 9 * scale }]}>{categoryName}</Text>
+          <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
         </QuietPressable>
         <View style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale }}>
-          {/* Same rhythm as the level column: a 46 pt title row, one caption line, then the bar. */}
-          <View style={{ height: 46 * scale, marginTop: 2 * scale, justifyContent: 'center' }}>
+          <View style={[styles.titleRow, { height: 32 * scale }]}>
             <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>Consistency</Text>
           </View>
-          <View style={{ height: 20 * scale }} />
-          <View style={{ marginTop: 9 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
+          <View style={{ marginTop: 10 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
         </View>
       </View>}
     </View>
@@ -100,4 +102,5 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
     <HomeNavigation active="home" scale={scale} />
   </View></View>;
 }
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: '#F4EBDD' }, caption: { fontFamily: 'ManropeRegular', letterSpacing: .6, color: quiet } });
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: '#F4EBDD' }, caption: { fontFamily: 'ManropeRegular', letterSpacing: .6, color: quiet },
+  titleRow: { flexDirection: 'row', alignItems: 'center' } });

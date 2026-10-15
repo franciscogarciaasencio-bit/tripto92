@@ -49,11 +49,12 @@ export default function Session() {
         currentLevel: app.journey?.level.number ?? 0 }).id} />
       <View pointerEvents="box-none" style={{ position: 'absolute', top: Math.max(insets.top + 8 * scale, height * .084), left: 25 * scale, right: 25 * scale,
         height: 280 * scale, flexDirection: 'row', alignItems: 'flex-start', zIndex: 10 }}>
-        <Text accessibilityRole="header" style={{ position: 'absolute', top: 4 * scale, left: 63 * scale, right: 60 * scale, textAlign: 'center',
-          fontFamily: coastalSerif, fontSize: 40 * scale, lineHeight: 52 * scale, color: coastalInk }}>Ona</Text>
         <View pointerEvents="box-none" style={{ marginTop: 6 * scale }}><SessionSound compact /></View>
       </View>
-      <View style={{ position: 'absolute', top: haloCenterY - 65 * scale, left: 24 * scale, right: 24 * scale, alignItems: 'center' }}>
+      {/* As on Home, the wordmark sits inside the sun at the top of one centred stack. */}
+      <View style={{ position: 'absolute', top: haloCenterY - 96 * scale, left: 24 * scale, right: 24 * scale, alignItems: 'center' }}>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={1.3} style={{ fontFamily: coastalSerif, fontSize: 30 * scale, lineHeight: 36 * scale,
+          color: coastalInk, marginBottom: 6 * scale, opacity: confirming ? 0 : 1 }}>Ona</Text>
         {confirming ? <><Type role="heading" style={{ textAlign: 'center' }}>Discard this practice?</Type>
           <Type role="secondary" style={{ textAlign: 'center', maxWidth: 280, marginTop: 16 }}>This practice will not be saved or earn Ripples.</Type></> : <>
           <Text style={{ fontFamily: 'ManropeRegular', color: coastalQuiet, fontSize: 12 * scale, lineHeight: 20 * scale, letterSpacing: 4 * scale }}>{paused ? 'PAUSED' : 'MEDITATING'}</Text>

@@ -971,3 +971,13 @@ No rules, migrations or stored data changed. Verified: web screenshots at 390 an
 check (534 domain + 458 data tests), export for all platforms (fonts present in both native bundles).
 Not verified on a phone: Android line-box rendering of Newsreader and native fade timing.
 
+### Owner review of the typography pass — Complete (2026-10-15)
+
+Owner feedback: wordmark sat on the sun's rim; "Consistency" too far from its bar; Settings repeated
+the ambience choice already on Prepare; the monkey felt intrusive. Done: "Ona" moved inside the sun
+(smaller, centred stack) on Home and the meditation screen; Home's columns rebuilt as title → bar →
+captions so each title sits on its bar; stage symbol smaller on Home (30 pt, softened) and Journey
+(96 pt); Settings reduced to bells, Home ambience volume, haptics, Account, About and Reset, saving
+only its own fields (no overwrite of a Prepare choice). Verified on web at 320, 390 and 430 wide; npm
+run check; export for all platforms.
+

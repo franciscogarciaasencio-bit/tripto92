@@ -40,11 +40,12 @@ and fake-clock-testable controllers live in src/audio; backend(.web).ts and
 session-backend(.web).ts implement platform playback. assets.ts is the local catalogue.
 No screen owns a player; sound never changes timer, rewards, persistence or wave phase.
 
-Settings → Meditation Sounds offers ambience selection/previews, independent ambience
-and bell volumes, starting/ending toggles, Off/5/10/15-minute intervals and optional
-gentle haptics. Done persists typed preferences; Back cancels edits. Previews use edited
-volumes, are exclusive/bounded, and stop on navigation/background; they cannot overlap
-a running meditation. Session controls change ambience live. Home retains simple mute.
+Ambience is chosen on Prepare before each practice; its volume (and a change of ambience) is
+adjusted live from the meditation speaker. Settings keeps only what lives nowhere else: starting/
+ending bell toggles with previews, Off/5/10/15-minute intervals with a preview, bell volume, Home
+ambience volume and optional gentle haptics. Done persists only those fields onto the current
+preferences; Back cancels edits. Previews use edited volumes, are exclusive/bounded, and stop on
+navigation/background; they cannot overlap a running meditation. Home's speaker is its mute.
 There is no floating Resume sound/Play sound action on Home or meditation. After a
 failure, Home mute→unmute explicitly retries; opening the meditation speaker controls
 also retries interrupted playback. Resume still restores paused session sound normally.
