@@ -8,14 +8,18 @@ commit `e5c3b17` is the first complete snapshot of Sessions 1–11. Claude works
 cloud Linux checkout and pushes after every session; the owner pulls on Windows.
 Only one agent edits at a time: pull before starting, push before handing over.
 
-Sessions **1–8 and 11 are complete**; 9–10 are implemented with subjective listening
-still owner-reported only. **Session 12 is complete**: the owner installed and uses the
-APK on a physical Android phone. On 2026-10-14 the owner explicitly authorized Claude to
-continue through Sessions 13–20 in one program, with Supabase as the backend, guided
-owner-created Google/Supabase accounts, and a **pre-meditation screen** (intention,
-sound, open-ended or fixed duration) inserted after Session 18 and before 19–20 so the
-final polish/audit/APK cover it. Read AGENTS.md and the session log below on `continue`.
-Never claim device/listening results the owner has not reported.
+**All 20 sessions and the pre-meditation screen are complete (2026-10-15).** The final
+acceptance matrix is in the Session 20 log entry: what is done, verified only by the owner,
+unverified on a physical phone, blocked or not done by decision. Open items, in order:
+
+1. Google sign-in returns to Supabase's Site URL (`localhost`) instead of Ona (blocked on the
+   owner's returned URL / Supabase Auth logs; redirect URLs are configured).
+2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
+3. No new APK by owner decision; the installed one contains Sessions 1–12. The next build must
+   raise `android.versionCode` and keeps the approved package and signing key.
+4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
+
+Read AGENTS.md first. Never claim device/listening results the owner has not reported.
 
 ## Mission and acceptance contract
 
@@ -796,3 +800,55 @@ memo exactness), TypeScript, lint, all-platform export; web flow screenshots at 
 280×640 (two-column layout), no page errors. Not verified: TalkBack/VoiceOver reading order and
 large-font rendering on a physical phone; Hermes timing (estimated from jitless V8).
 
+
+### 20 — Complete (2026-10-15): final acceptance audit (no APK, by owner decision)
+
+The owner asked for no further APK in this program, so the "APK build" half of Session 20 is
+**not done by decision**, not blocked. Critical-fix scope: the audit found none requiring code
+changes beyond Session 19. Checks run for this audit: full `npm run check` (957 tests), all-platform
+export, both progression simulations (rerun below), tracked-file secret/artifact scan (no secrets,
+no APK/keystore files), web flow screenshots.
+
+Simulations rerun (`scripts/simulate-progression-v5.cjs`, `scripts/simulate-habit.cjs`): ten minutes
+daily reaches full Consistency on day **60**, twice daily on day **30**, one-minute practice never
+qualifies; ten minutes daily reaches Level 100 on day **265** (≈8.7 months) and Level 125 on day
+**368**; after a year away a daily practitioner keeps level 63 of 125 protected.
+
+#### Acceptance matrix
+
+Status key: **Done** = implemented and verified here; **Done (owner)** = owner reported on a device;
+**Partial**; **Unverified** = implemented, needs a physical phone; **Blocked** = cannot finish as is;
+**Not done** = by decision.
+
+| Area | Status | Evidence / what is missing |
+| --- | --- | --- |
+| 125 levels, 25 categories, Level 0 start, Level 100 "Habit Established" | Done | domain tests; simulation day 265/368 |
+| Level 125 needs 365 dates **and** 365 days | Done | domain tests |
+| 180 s qualification, pauses excluded, six-hour second session, max two/date | Done | domain + data tests |
+| Consistency: bar + five dots, 60/30 days, decay/return, ~40% bonus, no multiplier shown | Done | simulation; V5 tests |
+| Permanent highest level, protected current level, versioned history V1–V5 | Done | migration/progression tests |
+| 25 original category icons; Journey, calendar, history, Guide | Done | Session 5 tests; web screenshots |
+| Forest: six stages from highest level, swipe Home ⇄ Forest, no planting UI | Done / Unverified | native gesture feel and frame pacing need a phone |
+| Wave: 12 s organic cycle, settles on pause, Reduced Motion | Done / Unverified | native frame pacing |
+| Completion: Ripples → Consistency → bonus, level crossings, no duplicate rewards | Done | completion/receipt tests |
+| Pre-meditation: intention, sound, open or 5–60 min, remembered | Done | tests + screenshots |
+| Fixed length ends by itself; End bell on a locked phone | Unverified | needs a native build; Expo Go ignores background audio config |
+| Acoustic CC0 bells (Start/End/Interval), provenance kept | Done / Unverified | rights + signal tests; subjective listening owner-only |
+| Ambiences, volumes, intervals, session sound switching | Done (owner) | owner reports the Session 11 APK works on their phone |
+| Android APK (Session 11), signing, identifiers | Done (owner) | installed on owner's phone; contains Sessions 1–12 only |
+| New APK with Sessions 13–20 | Not done | owner decision 2026-10-15; next build must raise `versionCode` |
+| Accessibility: headers, labels, large text, Reduced Motion | Done / Unverified | TalkBack/VoiceOver and real large-font rendering |
+| Sync engine: outbox, retries, merge, resets, deletion, account isolation | Done | sync data tests against the real Supabase SQL (PGlite) |
+| Supabase project, RLS, functions | Done (owner) | owner ran the SQL; configured project `zmebgjgcmptmivwqumxg` |
+| Google sign-in end to end | **Blocked** | sign-in returns to Supabase Site URL (`localhost`); needs the returned URL / Auth logs from the owner |
+| Real multi-phone sync with real accounts | Unverified | depends on sign-in |
+| Cloud storage growth (~25 MB/person-year) | Partial | fine for owner; compaction needed before wider release (SYNC.md) |
+| Dependency advisories | Partial | build-time only except `decode-uri-component` (low impact, accepted; see Session 19) |
+| Google app publishing (privacy policy, homepage) | Not done | needed only to let other people sign in |
+
+#### What the owner can check on a phone (no new build needed, Expo Go)
+
+1. Prepare screen: choose a length, let it finish, confirm the End bell and the completion screen.
+2. Listen once to Start/End/Interval bells over two ambiences.
+3. Large system text and TalkBack/VoiceOver on Home, Prepare, Session, Journey.
+4. Sign-in retry: report the full `localhost…` address and the grey development line.

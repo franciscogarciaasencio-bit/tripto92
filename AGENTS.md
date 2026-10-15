@@ -3,10 +3,8 @@
 This is a mobile-first Expo SDK 57 / React Native / TypeScript application.
 Preserve current visuals, user data, historical awards and cross-platform behavior.
 
-- Active 20-session program: read docs/ONA_20_SESSION_PLAN.md on `continue`; implement
-  the requested number of substantial sessions, verify, update its log and stop.
-  Default to one per continue; Sessions 2–5 were explicitly authorized as one completed batch.
-  Preserve existing dirty work.
+- The 20-session program (docs/ONA_20_SESSION_PLAN.md) is complete. On `continue`, read its
+  Resume here for open items; keep logging finished work there. Preserve existing dirty work.
 
 - Inspect Git status first; preserve unrelated changes. Trace imports, Router routes,
   configuration and dynamic assets before declaring a file unused.
@@ -33,9 +31,9 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   development build when native configuration changes; Expo Go cannot apply plugins.
 - Read docs/ANDROID_BUILD.md for APK builds, signing and artifact verification. Preserve
   the approved application ID and signing key; never commit credentials or APK artifacts.
-- Claude handoff: docs/CLAUDE_HANDOFF.md contains external setup/chat decisions. Session 12
-  is complete (owner tests the APK on a physical Android phone). The owner authorized
-  Sessions 13–20 plus the pre-meditation screen (before 19–20); see the plan's Resume here.
+- Claude handoff: docs/CLAUDE_HANDOFF.md contains external setup/chat decisions. The 20-session
+  program and the pre-meditation screen are complete; open items and the acceptance matrix are
+  in the plan's Resume here and Session 20. No new APK unless the owner asks.
 - The repository is on GitHub (origin/main). Pull before starting, commit and push after
   each session; only one agent (Codex or Claude) edits at a time.
 - Node 24+ is required. Run npm run check before finishing; npm test covers domain,
