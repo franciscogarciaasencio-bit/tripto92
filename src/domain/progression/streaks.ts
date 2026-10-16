@@ -169,7 +169,8 @@ export function practiceStreaks(sessions: Iterable<Pick<MeditationSession, 'stat
 }
 
 /** What a just-saved practice changed in the calendar, for the celebration after completion. */
-export type StreakMomentKind = 'month' | 'week' | 'return' | 'days' | 'first' | 'day';
+/** 'again': another counted practice on a day that already counted (the calendar still shows it). */
+export type StreakMomentKind = 'month' | 'week' | 'return' | 'days' | 'first' | 'day' | 'again';
 /** Days without practice before a return that is welcomed back (three or more). */
 export const WELCOME_BACK_DAYS = 3;
 export interface StreakMoment {
@@ -205,7 +206,9 @@ export function streakMoment(sessions: Iterable<Pick<MeditationSession, 'id' | '
   const others = [...sessions].filter((session) => session.id !== practice.id);
   const reference = dayNumber(today) >= dayNumber(practice.localDate) ? today : practice.localDate;
   const before = practiceStreaks(others, reference);
-  if (before.isActiveDay(practice.localDate)) return null;
+  // A further practice on a day that already counted changes no streak, but the owner wants the calendar
+  // after every counted practice (2026-10-17): it may have made the day a twice-a-day one.
+  const again = before.isActiveDay(practice.localDate);
   const after = practiceStreaks([...others, practice], reference);
   const date = practice.localDate, day = dayNumber(date);
   let daysInRow = 0;
@@ -227,7 +230,7 @@ export function streakMoment(sessions: Iterable<Pick<MeditationSession, 'id' | '
     if (other < day && (previous === null || other > previous)) previous = other;
   }
   const daysAway = previous === null ? null : day - previous - 1;
-  const kind: StreakMomentKind = monthBecameActive ? 'month' : weekBecameActive ? 'week'
+  const kind: StreakMomentKind = again ? 'again' : monthBecameActive ? 'month' : weekBecameActive ? 'week'
     : daysAway !== null && daysAway >= WELCOME_BACK_DAYS ? 'return' : daysInRow >= 2 ? 'days' : previous === null ? 'first' : 'day';
   return Object.freeze({ kind, date, daysInRow, weekDaysBefore: weekBefore.activeDays, weekDays: week.activeDays,
     weekBecameActive, weeksInRow, monthBecameActive, month, monthsInRow, daysAway });

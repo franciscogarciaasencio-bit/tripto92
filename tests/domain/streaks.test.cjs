@@ -148,8 +148,9 @@ test('Streak moment: what one saved practice changed, for the celebration after 
   const after = streakMoment([first, second, third, fourth], fourth, '2026-10-15');
   assert.equal(after.kind, 'days', 'a week that already counted is not celebrated twice');
   assert.equal(after.weekBecameActive, false); assert.equal(after.weeksInRow, 1);
-  // Nothing new: a second practice the same day, a short one, or one ended early.
-  assert.equal(streakMoment([first, saved('e', '2026-10-12')], saved('e', '2026-10-12'), '2026-10-12'), null);
+  // A second practice the same day still shows the calendar, as 'again'; short or ended early: nothing.
+  const again = streakMoment([first, saved('e', '2026-10-12')], saved('e', '2026-10-12'), '2026-10-12');
+  assert.equal(again.kind, 'again'); assert.equal(again.weekBecameActive, false); assert.equal(again.monthBecameActive, false);
   assert.equal(streakMoment([saved('s', '2026-10-12', 2)], saved('s', '2026-10-12', 2), '2026-10-12'), null);
   assert.equal(streakMoment([saved('x', '2026-10-12', 10, 'ended_early')], saved('x', '2026-10-12', 10, 'ended_early'), '2026-10-12'), null);
   // A gap restarts days in a row, but the week still counts its days.

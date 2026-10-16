@@ -1131,3 +1131,10 @@ smooth animation; practices under three minutes should not count at all. Rules V
 quiet note; copy updated in Guide and its answers. Pull-up/pull-down page turns between Home and
 Journey; Journey's route slides from the bottom. Verified on web (short completion, pull up to Journey,
 pull down to Home); native gesture feel and frame pacing still need the phone.
+
+### Calendar after every counted practice; no day line (2026-10-17)
+
+Owner: remove the date line under the calendar and bring the painting closer; show the calendar after
+completing a session, so a day or a twice-a-day day is visible right away. streakMoment returns 'again'
+for a further counted practice on a day that already counted (tested); the celebration says so, or
+"A day practised twice." when the six-hour rule is met. Day taps open the practice directly.

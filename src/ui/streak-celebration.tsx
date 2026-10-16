@@ -21,12 +21,18 @@ const pop = Easing.out(Easing.back(2.2));
 export const CELEBRATION_MOTION = { enter: 320, headlineAt: 820, number: 420, pebbleAt: 1250, pebble: 380, continueAt: 1100 } as const;
 
 /** Copy for the moment; weeks lead, days follow (the owner's rhythm: three days a week). */
-export function celebrationCopy(moment: StreakMoment) {
+export function celebrationCopy(moment: StreakMoment, twice: 'became' | 'already' | null = null) {
   const monthName = practiceDateLabel(`${moment.month}-01`, { month: 'long' });
   const needed = STREAK_RULES.activeDaysPerWeek;
   const remaining = Math.max(0, needed - moment.weekDays);
   const weekLine = moment.weekDays >= needed ? 'This week already counts.'
     : `${remaining === 1 ? 'One more day' : 'Two more days'} for a consistent week.`;
+  // Two counted practices six hours apart make a twice-a-day day (indigo in the calendar).
+  if (twice === 'became') return { kicker: 'Twice today', headline: 'A day practised twice.',
+    lines: ['Six hours apart, so today counts double.', 'Your calendar marks it in indigo.'] };
+  if (moment.kind === 'again') return { kicker: 'Your rhythm', headline: 'Another quiet moment.',
+    lines: twice === 'already' ? ['Today already counts twice.', 'See you tomorrow.']
+      : ['Today already counts.', 'Six hours after your first, a second practice counts double.'] };
   switch (moment.kind) {
     case 'month': return { kicker: 'Congratulations', headline: 'A full month.',
       lines: [`Every week of ${monthName} was consistent.`, moment.monthsInRow > 1 ? `${moment.monthsInRow} full months in a row.` : 'See you tomorrow.'] };
@@ -90,7 +96,8 @@ export function StreakCelebration({ moment, sessions, practiceId, scale, busy, o
 }) {
   const still = useReducedMotion();
   const [streaks] = useState<PracticeStreaks>(() => practiceStreaks(sessions, moment.date));
-  const copy = celebrationCopy(moment);
+  const [twice] = useState(() => ({ after: doubleDays(sessions), before: doubleDaysBefore(sessions, practiceId) }));
+  const copy = celebrationCopy(moment, twice.after.has(moment.date) ? twice.before.has(moment.date) ? 'already' : 'became' : null);
   const enter = useStep(0, CELEBRATION_MOTION.enter, still);
   const words = useStep(CELEBRATION_MOTION.headlineAt - 120, 420, still);
   const action = useStep(CELEBRATION_MOTION.continueAt, 360, still);
@@ -100,7 +107,6 @@ export function StreakCelebration({ moment, sessions, practiceId, scale, busy, o
 
   const month = moment.date.slice(0, 7);
   const [practiced] = useState(() => new Set(sessions.map((session) => session.localDate)));
-  const [twice] = useState(() => ({ after: doubleDays(sessions), before: doubleDaysBefore(sessions, practiceId) }));
   const headline = { fontFamily: coastalSerif, fontSize: 32 * scale, lineHeight: 40 * scale, color: coastalInk };
 
   return <Animated.View style={[{ width: '100%' }, enterStyle]}>

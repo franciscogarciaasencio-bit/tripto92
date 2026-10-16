@@ -14,18 +14,13 @@ import { CALENDAR_VIGNETTE, CalendarLegend, PaintedMonth, VIGNETTE_RATIO } from 
 import { doubleDays } from './double-days';
 import { PaperBackdrop } from './coastal-scene';
 import { HomeNavigation } from './home-navigation';
-import { Action, colors, formatDuration, Notice, Screen, serifFont, Type } from './primitives';
+import { Action, colors, Notice, Screen, serifFont, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
 import { UI_MOTION } from './motion';
 import { useReducedMotion } from './reduced-motion';
 import { groupPracticeHistory, monthPracticeSummary, practiceDateLabel, practiceTimeLabel } from './practice-history';
 
 const HISTORY_PAGE_SIZE = 50;
-
-/** UTC is only used to lay out Gregorian calendar cells, never to reassign saved practice dates. */
-function calendarDate(month: string, day: number) {
-  return `${month}-${String(day).padStart(2, '0')}`;
-}
 
 function monthInstant(month: string, offset = 0) {
   const date = new Date(`${month}-01T00:00:00.000Z`);
@@ -44,7 +39,6 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const { history, ready, completedPractices, practiceRevision } = useOna();
   const [today, setToday] = useState(() => currentContext().localDate);
   const [month, setMonth] = useState(() => today.slice(0, 7));
-  const [selected, setSelected] = useState(today);
   const [direction, setDirection] = useState<-1 | 0 | 1>(0);
   const [records, setRecords] = useState<readonly StoredMeditationSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,16 +93,20 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const streaks = useMemo(() => practiceStreaks((current ? records : []).map(({ session }) => session), today), [current, records, today]);
   const doubles = useMemo(() => doubleDays((current ? records : []).map(({ session }) => session)), [current, records]);
   const shown = !loading && current && !error;
-  const practiceDates = useMemo(() => new Set(byDate.keys()), [byDate]);
 
-  const selectedRecords = byDate.get(selected) ?? [];
-  const activeSeconds = selectedRecords.reduce((total, record) => total + record.session.activeDurationSeconds, 0);
+  // A tap on a day opens its practice (several: the history). Days without practice do nothing.
+  const openDay = useCallback((date: string) => {
+    const records = byDate.get(date) ?? [];
+    if (openingDetails.current || !records.length) return;
+    openingDetails.current = true;
+    if (records.length === 1) router.push({ pathname: '/practice-detail', params: { id: records[0]!.session.id } });
+    else router.push('/history');
+  }, [byDate]);
 
   function changeMonth(offset: number) {
     const destination = monthInstant(month, offset).toISOString().slice(0, 7);
     setDirection(offset > 0 ? 1 : -1);
     setMonth(destination);
-    setSelected(destination === today.slice(0, 7) ? today : calendarDate(destination, 1));
   }
 
   return <PaperBackdrop><Screen scroll={false} style={{ paddingBottom: 0, backgroundColor: 'transparent' }}>
@@ -143,35 +141,22 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </View>
       {/* A fixed line under the year, so Today appearing never moves the calendar. */}
       <View style={calendarStyles.todayLine}>
-        {(month !== today.slice(0, 7) || selected !== today) && <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.reveal)} exiting={reduced ? undefined : FadeOut.duration(UI_MOTION.reveal)}>
+        {month !== today.slice(0, 7) && <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.reveal)} exiting={reduced ? undefined : FadeOut.duration(UI_MOTION.reveal)}>
           <QuietPressable accessibilityRole="button" accessibilityLabel="Return to today in the practice calendar"
             onPress={() => {
               const date = currentContext().localDate;
               setDirection(date.slice(0, 7) === month ? 0 : date.slice(0, 7) > month ? 1 : -1);
-              setToday(date); setMonth(date.slice(0, 7)); setSelected(date);
+              setToday(date); setMonth(date.slice(0, 7));
             }} style={calendarStyles.todayAction}>
             <Type role="secondary" style={{ fontSize: 13 }}>Today</Type>
           </QuietPressable>
         </Animated.View>}
       </View>
       <MonthSlide key={month} direction={direction}>
-        <PaintedMonth month={month} streaks={streaks} practiced={practiceDates} today={today} selected={selected}
-          onSelect={setSelected} live={shown} doubles={doubles} />
+        {/* No line under the month (owner, 2026-10-17): tapping a day opens its practice directly. */}
+        <PaintedMonth month={month} streaks={streaks} today={today} selected={null} onSelect={openDay} live={shown} doubles={doubles} />
       </MonthSlide>
       <CalendarLegend />
-      {/* The chosen day in one quiet line; its practice opens with a tap. */}
-      {shown && <QuietPressable accessibilityRole={selectedRecords.length ? 'button' : 'text'} disabled={!selectedRecords.length}
-        accessibilityHint={selectedRecords.length ? 'Opens this practice' : undefined} onPress={() => {
-          if (openingDetails.current || !selectedRecords.length) return;
-          openingDetails.current = true;
-          if (selectedRecords.length === 1) router.push({ pathname: '/practice-detail', params: { id: selectedRecords[0]!.session.id } });
-          else router.push('/history');
-        }} style={calendarStyles.dayLine}>
-        <Type role="secondary" style={calendarStyles.dayLineText}>
-          {`${practiceDateLabel(selected, { weekday: 'long', month: 'long', day: 'numeric' })} · ${selectedRecords.length
-            ? `${formatDuration(activeSeconds)}${selectedRecords.length > 1 ? ` · ${selectedRecords.length} practices` : ''}  ›` : 'no practice'}`}
-        </Type>
-      </QuietPressable>}
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
         {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
       </Type> : null}
@@ -180,7 +165,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       {/* The owner's painting rests under the month: its misty sky reaches up into the calendar. */}
       {/* A little wider than the screen: its softly faded sides fall past the edges, only ink on paper remains. */}
       <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth / VIGNETTE_RATIO,
-        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.13, alignSelf: 'center' }} />
+        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.16, alignSelf: 'center' }} />
       {shown && <View style={calendarStyles.monthSummary}>
         <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 2 }}>
           <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
@@ -206,9 +191,6 @@ const calendarStyles = StyleSheet.create({
   monthArrow: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
   todayLine: { height: 30, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 },
   todayAction: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 4 },
-  // Above the painting's misty sky, which reaches up under it.
-  dayLine: { minHeight: 44, justifyContent: 'center', alignItems: 'center', marginTop: 4, zIndex: 2 },
-  dayLineText: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
   // No rule above: the painting's reflection fades into the month's numbers on the same paper.
   monthSummary: { flexDirection: 'row', columnGap: 20, marginTop: -6, paddingTop: 8 },
 });

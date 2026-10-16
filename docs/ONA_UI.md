@@ -247,6 +247,11 @@ Motion keeps the page still and uses no route animation. Short practices leave n
 dot and its legend entry are gone). The painting is 1.12 × the screen width and the calendar's scroll
 view runs edge to edge, so its faded sides fall past the screen instead of being clipped by margins.
 
+2026-10-17: no line under the month; tapping a day with practice opens it (several: the history), so
+the painting sits closer to the calendar. The after-session calendar now follows every counted practice:
+a second one the same day is 'again' ("Another quiet moment."), and one that makes the day twice-a-day
+says "A day practised twice." while its drop turns indigo.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water
