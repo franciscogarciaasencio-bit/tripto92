@@ -16,16 +16,16 @@ export default function Guide() {
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Why Ona?</Text>
         <Type>Ona helps you build a lasting meditation habit through simple practice and gentle progression.</Type>
         <Type style={{ color: coastalQuiet }}>Thoughts come and go like waves. Meditation is regularly returning to the present, patiently and without needing a perfect practice.</Type>
-        <QuietPressable accessibilityRole="button" accessibilityLabel="Replay the Ona introduction" onPress={() => router.push('/introduction')}
+        <QuietPressable accessibilityRole="button" accessibilityLabel="Open the short guide to meditating" onPress={() => router.push('/introduction')}
           style={{ minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' }}>
-          <Type role="label">A quiet introduction →</Type>
-          <Type role="secondary" style={{ fontSize: 13 }}>Four short chapters, at your own pace.</Type>
+          <Type role="label">A short guide to meditating →</Type>
+          <Type role="secondary" style={{ fontSize: 13 }}>Five short pages, with a minute of counting breaths.</Type>
         </QuietPressable>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>How to Meditate</Text>
         <Type>Find a comfortable seat. Let your back be naturally upright and your shoulders soften. Close your eyes or lower your gaze.</Type>
         <Type style={{ color: coastalQuiet }}>Notice your breath as it is. Feel the air moving, or your chest and belly gently rising and falling. You do not need to change it.</Type>
-        <Type>When your attention wanders, notice without judgment and gently return to the breath. That return is the practice.</Type>
+        <Type>Count each out-breath, from one to ten, then begin again at one. When you lose count, your mind has wandered: notice it without judgment and start again at one. That return is the practice.</Type>
         <Type role="secondary">Thoughts are normal. You do not need to empty your mind. Begin with what feels manageable.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your rhythm</Text>

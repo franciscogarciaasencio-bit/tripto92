@@ -5,38 +5,22 @@ import { AccessibilityInfo, BackHandler, Platform, ScrollView, StyleSheet, Text,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { LINEAR_CONSISTENCY_V1 } from '@/domain/progression';
+import { useOna } from '@/application/ona-provider';
 import { CoastalTexture, coastalArtwork, coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
 import { COASTAL_ARTWORK } from './coastal-composition';
 import { OceanWave } from './ocean-wave';
 import { QuietPressable } from './quiet-pressable';
 import { Type } from './primitives';
 import { useReducedMotion } from './reduced-motion';
-import { ConsistencyBar } from './consistency-bar';
+import { BreathGuide } from './breath-guide';
 
-const CHAPTERS = ['Welcome to Ona', 'How to meditate', 'Every moment matters', 'Your journey'] as const;
-const timing = { out: 100, in: 240, illustration: 800 };
-const EXAMPLE_DAYS = LINEAR_CONSISTENCY_V1.targetContributions;
-
-/** A deliberately illustrative teaching aid: no domain calculations, awards or persistence. */
-function ConsistencyIllustration() {
-  const reduced = useReducedMotion(), [returns, setReturns] = useState(0);
-  const consistency = useSharedValue(0);
-  useEffect(() => {
-    const config = { duration: reduced ? 0 : timing.illustration, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never };
-    consistency.set(withTiming(returns / EXAMPLE_DAYS, config));
-    return () => cancelAnimation(consistency);
-  }, [returns, reduced, consistency]);
-  return <View style={{ width: '100%', maxWidth: 286, alignSelf: 'center', marginVertical: 18 }}>
-    <Type role="secondary">Consistency</Type>
-    <View style={{ marginTop: 10 }}><ConsistencyBar fraction={returns / EXAMPLE_DAYS} progress={consistency} label="Illustrative Consistency" /></View>
-    <QuietPressable accessibilityRole="button" accessibilityLabel={returns === EXAMPLE_DAYS ? 'Replay the Consistency illustration' : 'Illustrate the next Consistency milestone'}
-      onPress={() => setReturns(value => value === EXAMPLE_DAYS ? 0 : Math.min(EXAMPLE_DAYS, value + 12))} style={{ minHeight: 44, alignSelf: 'center', justifyContent: 'center', marginTop: 8 }}>
-      <Text style={styles.demoAction}>{returns === EXAMPLE_DAYS ? 'Begin again ↺' : 'A little further →'}</Text>
-    </QuietPressable>
-    <Text style={styles.demoCaption}>Each step illustrates a milestone over many practices.</Text>
-  </View>;
-}
+/**
+ * A short first guide (owner, 2026-10-16): what Ona is for, how to sit, counting breaths, a minute
+ * to try it with a breathing guide, and coming back. Shown once on first launch, then from Guide.
+ */
+export const CHAPTERS = ['Welcome to Ona', 'Settle in', 'Count your breaths', 'Try it', 'Come back'] as const;
+const timing = { out: 100, in: 240 };
+const LAST = CHAPTERS.length - 1;
 
 function IntroductionScenery({ width, welcome, available, headingRef }: {
   width: number; welcome: boolean; available: number; headingRef: RefObject<View | null>;
@@ -63,7 +47,11 @@ function IntroductionScenery({ width, welcome, available, headingRef }: {
 }
 
 export function IntroductionScreen() {
+  const app = useOna();
   const { width, height } = useWindowDimensions(), insets = useSafeAreaInsets();
+  // Seen once is enough: the first-launch guide never opens by itself again (Guide replays it).
+  const { explanationDismissed, dismissExplanation } = app;
+  useEffect(() => { if (!explanationDismissed) void dismissExplanation(); }, [explanationDismissed, dismissExplanation]);
   const canvasWidth = Math.min(width, 480), scale = canvasWidth / 390;
   const reduced = useReducedMotion(), scroll = useRef<ScrollView>(null);
   const headingRef = useRef<View>(null);
@@ -79,6 +67,7 @@ export function IntroductionScreen() {
     return () => { closed.current = true; cancelAnimation(opacity); };
   }, [opacity]);
   const goHome = () => { closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); };
+  const meditate = () => { closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); router.push('/prepare'); };
   const reveal = useCallback((next: number, token: number) => {
     if (closed.current || generation.current !== token || pending.current !== next) return;
     pending.current = null;
@@ -135,8 +124,8 @@ export function IntroductionScreen() {
         <QuietPressable accessibilityRole="button" accessibilityLabel="Back" disabled={transitioning} onPress={() => change(chapter - 1)} style={styles.headerAction}>
           <Type role="secondary">Back</Type>
         </QuietPressable>
-        <View accessible accessibilityRole="progressbar" accessibilityLabel="Introduction progress" accessibilityValue={{ min: 1, max: 4, now: chapter + 1, text: `${chapter + 1} of 4` }}
-          aria-valuemin={1} aria-valuemax={4} aria-valuenow={chapter + 1} aria-valuetext={`${chapter + 1} of 4`} style={{ flexDirection: 'row', gap: 7 }}>
+        <View accessible accessibilityRole="progressbar" accessibilityLabel="Introduction progress" accessibilityValue={{ min: 1, max: CHAPTERS.length, now: chapter + 1, text: `${chapter + 1} of ${CHAPTERS.length}` }}
+          aria-valuemin={1} aria-valuemax={CHAPTERS.length} aria-valuenow={chapter + 1} aria-valuetext={`${chapter + 1} of ${CHAPTERS.length}`} style={{ flexDirection: 'row', gap: 7 }}>
           {CHAPTERS.map((name, index) => <View key={name} style={{ width: 15, height: 2, borderRadius: 2, backgroundColor: index <= chapter ? coastalInk : '#D5C7B1' }} />)}
         </View>
         <QuietPressable accessibilityRole="button" accessibilityLabel="Skip introduction" onPress={goHome} style={[styles.headerAction, { alignItems: 'flex-end' }]}>
@@ -149,38 +138,49 @@ export function IntroductionScreen() {
         <IntroductionScenery width={canvasWidth} welcome={chapter === 0} available={available} headingRef={headingRef} />
         <View style={{ paddingHorizontal: 28, paddingTop: chapter === 0 ? 6 : 20, alignItems: 'center' }}>
           {chapter === 0 ? <>
-            <Text style={styles.eyebrow}>ONE QUIET RETURN AT A TIME</Text>
-            <Text style={styles.copy}>Meditation is simple. A lasting habit grows by coming back, day by day.</Text>
-            <Text style={[styles.note, { marginTop: 18 }]}>Your practice, part of everyday life.</Text>
+            <Text style={styles.eyebrow}>A FEW MINUTES, MOST DAYS</Text>
+            <Text style={styles.copy}>Meditation is simple: sit, breathe, and come back when the mind wanders. Ona helps you return, day after day.</Text>
+            <Text style={[styles.note, { marginTop: 18 }]}>A short guide, about two minutes.</Text>
           </> : chapter === 1 ? <>
-            <Text style={styles.eyebrow}>THE PRACTICE</Text>
-            {heading('Come back\nto your breath.')}
-            <View style={{ gap: 12, alignItems: 'center', marginTop: 24 }}>
-              {['Sit comfortably.', 'Feel your natural breath.', 'Notice when your mind wanders.', 'Return gently, without judgment.'].map(line => <Text key={line} style={styles.practice}>{line}</Text>)}
+            <Text style={styles.eyebrow}>BEFORE YOU BEGIN</Text>
+            {heading('Find a quiet\nplace to sit.')}
+            <View style={{ gap: 14, alignItems: 'center', marginTop: 24 }}>
+              {['On a chair or a cushion,\nyour back upright but not stiff.', 'Shoulders soft, hands resting.', 'Close your eyes,\nor let your gaze rest low.', 'Take three slow breaths. Then let\nyour breathing find its own pace.']
+                .map(line => <Text key={line} style={styles.practice}>{line}</Text>)}
             </View>
-            <Text style={[styles.note, { marginTop: 24 }]}>Thoughts are normal.{`\n`}You don’t need an empty mind or a perfect practice.</Text>
+            <Text style={[styles.note, { marginTop: 24 }]}>Three minutes is a good beginning.</Text>
           </> : chapter === 2 ? <>
-            <Text style={styles.eyebrow}>EVERY MOMENT MATTERS</Text>
-            {heading('Every moment\nleaves a ripple.')}
-            <Text style={[styles.copy, { marginTop: 16 }]}>Every completed meditation matters.{`\n`}Even a short practice can earn Ripples.</Text>
-            <ConsistencyIllustration />
-            <Text style={styles.note}>At least 3 active minutes build Consistency.{`\n`}Five milestones grow with regular practice.{`\n`}Time away gently softens your rhythm.</Text>
+            <Text style={styles.eyebrow}>THE PRACTICE</Text>
+            {heading('Count your\nbreaths.')}
+            <View style={{ gap: 10, alignItems: 'center', marginTop: 24 }}>
+              <Text style={styles.practice}>Breathe in, breathe out: <Text style={styles.counted}>one</Text>.</Text>
+              <Text style={styles.practice}>In, out: <Text style={styles.counted}>two</Text>.</Text>
+              <Text style={styles.practice}>Up to <Text style={styles.counted}>ten</Text>, then begin again at one.</Text>
+            </View>
+            <Text style={[styles.note, { marginTop: 14 }]}>Don’t change the breath. Only count it.</Text>
+            <View style={styles.lost}>
+              <Text style={[styles.copy, { fontFamily: coastalSerif, fontSize: 20, lineHeight: 28 }]}>Lost count?</Text>
+              <Text style={[styles.copy, { marginTop: 6 }]}>Your mind wandered. That is normal, and noticing it is the practice. Gently begin again at one.</Text>
+            </View>
+          </> : chapter === 3 ? <>
+            <Text style={styles.eyebrow}>TRY IT FOR A MINUTE</Text>
+            {heading('Breathe with\nthe circle.')}
+            <View style={{ marginTop: 26 }}><BreathGuide size={Math.round(176 * scale)} /></View>
+            <Text style={[styles.note, { marginTop: 18 }]}>The circle only suggests a pace.{`\n`}Your own breath is always fine.</Text>
           </> : <>
-            <Text style={styles.eyebrow}>YOUR JOURNEY</Text>
-            {heading('A habit to\ncome home to.')}
-            <Text style={[styles.level, { marginTop: 24 }]}>Level 100</Text>
-            <Text style={styles.note}>Completing Ona’s designed{`\n`}habit-building journey.</Text>
-            <Text style={[styles.copy, { marginTop: 18 }]}>Levels 101–125 invite you to{`\n`}sustain and deepen your habit.</Text>
-            <Text style={[styles.note, { marginTop: 18 }]}>Regular practice, not meditation skill.</Text>
-            <Text style={[styles.note, { marginTop: 18 }]}>After a long pause, your level can ease back.{`\n`}Part of your achievements stays protected.</Text>
+            <Text style={styles.eyebrow}>YOUR HABIT</Text>
+            {heading('Come back,\na little at a time.')}
+            <Text style={[styles.copy, { marginTop: 22 }]}>A practice of three minutes or more counts. Three days in a week make a consistent week.</Text>
+            <Text style={[styles.copy, { marginTop: 14 }]}>Your calendar remembers every return. Levels and your forest grow with regular practice.</Text>
+            <Text style={[styles.note, { marginTop: 18 }]}>Missed a day? Nothing is lost.{`\n`}Just come back.</Text>
           </>}
         </View>
       </Animated.View>
     </ScrollView>
     <View style={{ width: canvasWidth, alignSelf: 'center', paddingHorizontal: 28, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) }}>
-      <QuietPressable accessibilityRole="button" accessibilityLabel={chapter === 3 ? 'Begin your practice' : 'Next'} disabled={transitioning}
-        pressedOpacity={.82} disabledOpacity={.8} onPress={() => chapter === 3 ? goHome() : change(chapter + 1)} style={styles.next}>
-        <Text style={styles.nextLabel}>{chapter === 3 ? 'Begin your practice' : 'Next'}</Text>
+      <QuietPressable accessibilityRole="button" accessibilityLabel={chapter === LAST ? 'Meditate now' : 'Next'} disabled={transitioning}
+        pressedOpacity={.82} disabledOpacity={.8} onPress={() => chapter === LAST ? meditate() : change(chapter + 1)} style={styles.next}>
+        <Text style={styles.nextLabel}>{chapter === LAST ? 'Meditate now' : 'Next'}</Text>
       </QuietPressable>
     </View>
   </View>;
@@ -195,9 +195,8 @@ const styles = StyleSheet.create({
   copy: { fontFamily: 'ManropeRegular', fontSize: 15, lineHeight: 24, color: coastalInk, textAlign: 'center', maxWidth: 340 },
   note: { fontFamily: 'ManropeRegular', fontSize: 13, lineHeight: 22, color: '#777264', textAlign: 'center', maxWidth: 320 },
   practice: { fontFamily: 'ManropeRegular', fontSize: 15, lineHeight: 24, textAlign: 'center', color: coastalInk },
-  level: { fontFamily: coastalSerif, fontSize: 35, lineHeight: 44, color: coastalInk },
-  demoAction: { fontFamily: 'ManropeMedium', fontSize: 12, lineHeight: 20, color: '#565D51' },
-  demoCaption: { fontFamily: 'ManropeRegular', fontSize: 12, lineHeight: 18, color: '#777264', textAlign: 'center' },
+  counted: { fontFamily: coastalSerif, fontSize: 18 },
+  lost: { marginTop: 26, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#BDB19C', alignItems: 'center', maxWidth: 320 },
   next: { minHeight: 56, backgroundColor: '#1C211A', borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   nextLabel: { fontFamily: 'ManropeMedium', fontSize: 16, lineHeight: 24, color: '#F7F0E3' },
 });

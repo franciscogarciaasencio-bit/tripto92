@@ -36,13 +36,13 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | /session | Active timer (counts up when open, down when fixed), pause/resume/finish/discard, sound controls |
 | /completion | Saved duration, earned Ripples, staged reward progress, Continue |
 | /practice | Journey calendar with saved dates/detail and level overview |
-| /info | Guide: Why Ona? and How to Meditate |
+| /info | Guide: Why Ona?, How to Meditate (counting breaths) and the rules in detail |
 | /preferences | Settings, sounds, Account entry (when configured) and confirmed Reset All Practice Data |
 | /account | Optional Google account: sign in/out, sync status, guest copy, remove/delete |
 | /history | Paginated saved meditation history |
 | /practice-detail?id=… | Read-only saved duration, pauses, historical local time and Ripples |
 | /how-progress-works | Secondary explanation of practice/progression |
-| /introduction | Manually opened four-chapter coastal introduction |
+| /introduction | Five-page guide to meditating (counting breaths, breathing guide); first launch and Guide |
 
 Home/Journey/Guide/Settings form the quiet bottom navigation; route filenames above
 are historical URLs, not unused legacy screens. Main flow: Home → Prepare → Session →
@@ -73,14 +73,16 @@ assets/ona/forest/entry-generation.json records editing prompts/source provenanc
 forest-entry-artwork.json separates entry geometry from the Home halo landmarks.
 Every scene is uniformly scaled; headers/back/dots are native controls, with no baked UI.
 Opening shows the Ona wordmark/tagline, supports tap-to-skip, and keeps meaningful
-reading time with Reduced Motion/VoiceOver. The four-screen introduction is manual:
-Guide's contextual A quiet introduction link opens it after Why Ona. Home has no
-introduction button. No first-use gate is
-currently active; the old stored dismissal preference remains for compatibility.
-Welcome, meditation basics, Ripples/Consistency and the long-term journey use one
-replayable route. Back moves to the previous chapter (or the originating screen at
-the first chapter); Skip and Begin your practice return Home without starting a timer.
-The optional Consistency illustration is presentation-only and never saves rewards.
+reading time with Reduced Motion/VoiceOver. The introduction (reworked 2026-10-16 at the owner's
+request) is a short guide to meditating in five pages: welcome; how to sit; counting breaths (one to
+ten on each out-breath, back to one when the count is lost); a minute to try it with a breathing guide
+(breath-guide.tsx: a disc that swells for four seconds and settles for six, counting each out-breath,
+Begin/Stop, still with Reduced Motion; a teaching aid, not a session, never saved); and coming back
+(three minutes count, three days make a consistent week, the calendar, levels and forest). It opens
+once on first launch over Home, never over a practice in progress, and marks the stored
+explanation dismissal (synced one-way) as soon as it opens; Guide's "A short guide to meditating"
+replays it. Back moves to the previous page (or Home at the first); Skip returns Home; Meditate now
+opens Prepare without starting a timer.
 Transitions are cancellation-guarded, respect live Reduced Motion and announce/focus
 chapter headings for screen readers. Body content scrolls on short phones/large type;
 the decorative welcome wordmark/tagline limit scaling to preserve the halo composition.

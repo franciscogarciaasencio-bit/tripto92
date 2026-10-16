@@ -1080,3 +1080,13 @@ bundled Hermes, background audio and preview runtime 1.2.0 passed. Local checks:
 998 tests and all-platform export passed. No build fixes, Apple credentials or generated native
 files were committed. Free-ID signing/installation and device behavior remain unverified.
 Run link, checksum and details: IOS_SIDELOAD.md.
+
+### Onboarding reworked as a guide to meditating — Complete (2026-10-16)
+
+Owner asked to rework onboarding completely, with a brief guide to meditation and counting breaths.
+Owner's choices: shown on first launch then from Guide; an interactive guided breath; very little
+about rules. Five pages (welcome, sit, count your breaths, try it with a 4 s / 6 s breathing guide
+counting out-breaths 1–10, come back), ending with Meditate now → Prepare. The first-launch gate
+reuses the stored explanation dismissal (no migration). Guide's How to Meditate and the
+wandering-mind answer now teach counting. Verified on web at 390/320 from a fresh profile (opens
+once, not again after reload). JavaScript only: ships over the air.

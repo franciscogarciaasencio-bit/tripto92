@@ -26,7 +26,8 @@
     "src/application/sync-engine.ts",
     "src/application/sync-status.ts",
     "src/ui/intentions.ts",
-    "src/ui/streak-geometry.ts"
+    "src/ui/streak-geometry.ts",
+    "src/ui/breath-rhythm.ts"
   ],
   "exclude": [
     "src/data/index.ts",

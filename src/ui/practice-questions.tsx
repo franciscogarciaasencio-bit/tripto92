@@ -7,7 +7,7 @@ import { useReducedMotion } from './reduced-motion';
 import { UI_MOTION } from './motion';
 
 const QUESTIONS = [
-  { id: 'thoughts', question: 'What if my mind won’t settle?', answer: 'Having thoughts is normal. Notice that your attention wandered, then gently return to your natural breath. You can return as many times as you need.' },
+  { id: 'thoughts', question: 'What if my mind won’t settle?', answer: 'Having thoughts is normal. Notice that your attention wandered, then gently return to your natural breath. Counting out-breaths from one to ten can help; when you lose count, begin again at one. You can return as many times as you need.' },
   { id: 'short', question: 'Is a short practice worthwhile?', answer: 'Yes. Begin with a quiet moment you can make time for. Even a short practice can earn Ripples; at least three active minutes count toward Consistency. There is no need to rush.' },
   { id: 'return', question: 'What if I miss a day?', answer: 'Come back when you can. One missed day does not reset your journey. Time away gently softens Consistency; after a longer pause, current level progress can ease back while part of your achievement stays protected.' },
   { id: 'time', question: 'Can I meditate without watching time?', answer: 'Tap the time during meditation to hide it. Tap “Show time” to bring it back. Your practice keeps running, and Pause and Finish stay available. If you choose a length before you begin, the practice ends by itself when that time is reached.' },

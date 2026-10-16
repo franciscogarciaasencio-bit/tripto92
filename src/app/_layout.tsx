@@ -2,7 +2,7 @@ import { useFonts } from 'expo-font';
 import { router, Stack, usePathname, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OnaProvider, useOna } from '@/application/ona-provider';
 import { AudioProvider } from '@/application/audio-provider';
@@ -27,6 +27,14 @@ function Application() {
     if (!app.ready || !navigation?.key) return;
     if (!routeReady && required) router.replace(required);
   }, [app.ready, navigation?.key, required, routeReady]);
+  // First launch: the short guide opens once over Home (never over a practice in progress).
+  const introduced = useRef(false);
+  useEffect(() => {
+    if (!app.ready || !navigation?.key || introduced.current || app.explanationDismissed) return;
+    if (required !== null || app.draft || app.completion || pathname !== '/') return;
+    introduced.current = true;
+    router.push('/introduction');
+  }, [app.ready, navigation?.key, app.explanationDismissed, app.draft, app.completion, required, pathname]);
   return <Opening reveal={SplashScreen.hideAsync} ready={app.ready && routeReady || app.error !== null}>
     {app.ready ? <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: reduced ? 'none' : 'fade', animationDuration: reduced ? 0 : UI_MOTION.navigation }}>
       <Stack.Screen name="forest" options={{ animation: 'none', gestureEnabled: false }} />
