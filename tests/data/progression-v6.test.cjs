@@ -1,0 +1,38 @@
+const { test } = require('node:test');
+const { assert, api, connection, disk, openStore, context, session } = require('./helpers.cjs');
+
+async function practice(store, record) {
+  const result = await store.meditations.completePractice(record, record.endedAt);
+  await store.meditations.acknowledgeCompletion(record.id, record.endedAt);
+  return result;
+}
+const awards = (conn) => conn.raw.prepare('SELECT * FROM progression_awards ORDER BY sequence').all();
+
+test('V6: under three active minutes earns nothing; three minutes and more earn as before', () => {
+  assert.equal(api.PROGRESSION_V6.minimumEarningSeconds, 180);
+  for (const seconds of [1, 60, 179]) {
+    assert.equal(api.isRewardEligible(session({ activeSeconds: seconds }), api.PROGRESSION_V6), false);
+    assert.equal(api.isRewardEligible(session({ activeSeconds: seconds }), api.PROGRESSION_V5), true, 'V5 receipts stay as released');
+  }
+  assert.equal(api.isRewardEligible(session({ activeSeconds: 180 }), api.PROGRESSION_V6), true);
+});
+
+test('Opening a V5 practice activates V6 once; earlier short-run receipts stay, later short runs add none', async t => {
+  const file = disk(t);
+  let conn = connection(file), store = await openStore(conn, context(1), undefined, 'progression_v5');
+  await practice(store, session({ day: 1, hour: 9, activeSeconds: 90 }));
+  const released = awards(conn);
+  assert.equal(released.length, 1, 'V5 paid the short run');
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(2), undefined, 'progression_v6');
+  assert.equal(store.initialSnapshot.rulesVersion, 'progression_v6');
+  await practice(store, session({ day: 2, hour: 9, activeSeconds: 120 }));
+  assert.equal(awards(conn).length, 1, 'the two-minute practice under V6 earns nothing');
+  assert.deepEqual(awards(conn), released, 'historical receipts are never recomputed');
+  await practice(store, session({ day: 2, hour: 12, activeSeconds: 300 }));
+  assert.equal(awards(conn).length, 2);
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(3), undefined, 'progression_v6');
+  assert.equal(awards(conn).length, 2, 'reopening revalidates the mixed V5/V6 ledger');
+  await store.close();
+});

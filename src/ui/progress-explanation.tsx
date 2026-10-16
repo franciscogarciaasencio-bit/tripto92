@@ -11,7 +11,7 @@ export function ProgressExplanation() {
   return <Screen><Header title="How progress works" back={() => router.back()} />
     <View style={{ gap: 32, paddingTop: 48, paddingBottom: 32, maxWidth: 380 }}>
       <Type role="heading">Build your meditation habit, one practice at a time.</Type>
-      <Type role="secondary">Even a short practice can earn Ripples.</Type>
+      <Type role="secondary">A practice counts from three active minutes.</Type>
       <Type>Return to your breath, whenever you can.</Type>
       <Type role="secondary">Ona rewards consistency.</Type>
       <HowItWorks />

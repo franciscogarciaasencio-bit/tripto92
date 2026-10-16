@@ -39,6 +39,12 @@ export const PROGRESSION_V5: ProgressionRules = freeze({
   ...PROGRESSION_V4, version: 'progression_v5', continuousConsistency: LINEAR_CONSISTENCY_V1,
 });
 
+/** Owner, 2026-10-16: "below three minutes just doesn't count". Prospective only: V3–V5 short-run
+ * receipts stay exactly as earned; from V6 a practice under three active minutes earns no Ripples. */
+export const PROGRESSION_V6: ProgressionRules = freeze({
+  ...PROGRESSION_V5, version: 'progression_v6', minimumEarningSeconds: 180,
+});
+
 /** Validate and detach caller-owned configuration. A version identifies an entire frozen ruleset. */
 export function captureRules(rules: ProgressionRules): ProgressionRules {
   if (!rules.version.trim()) throw new RangeError('rules version is required');
@@ -67,6 +73,10 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     throw new RangeError('Duration cap/reward must support qualification minimum');
   }
   if (rules.practiceDayEligibility !== undefined && rules.practiceDayEligibility !== 'completed_minimum') throw new RangeError('Unsupported practice-day policy');
+  if (rules.minimumEarningSeconds !== undefined) {
+    assertNonnegativeInteger(rules.minimumEarningSeconds, 'minimumEarningSeconds');
+    if (rules.minimumEarningSeconds === 0 || rules.minimumEarningSeconds > rules.minimumActiveSeconds) throw new RangeError('Invalid earning minimum');
+  }
   if (rules.continuousConsistency) {
     const c = rules.continuousConsistency;
     for (const [key, value] of Object.entries(c)) if (key !== 'algorithm') assertNonnegativeInteger(value, 'continuous consistency');
@@ -103,6 +113,7 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     earningsAlgorithm: rules.earningsAlgorithm,
     decayAlgorithm: rules.decayAlgorithm,
     minimumActiveSeconds: rules.minimumActiveSeconds,
+    ...(rules.minimumEarningSeconds !== undefined ? { minimumEarningSeconds: rules.minimumEarningSeconds } : {}),
     ...(rules.practiceDayEligibility ? { practiceDayEligibility: rules.practiceDayEligibility } : {}),
     duration: {
       baseCentiXp: rules.duration.baseCentiXp,

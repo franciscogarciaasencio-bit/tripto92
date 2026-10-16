@@ -42,6 +42,8 @@ function Application() {
       <Stack.Screen name="session" options={{ gestureEnabled: false }} />
       <Stack.Screen name="completion" options={{ gestureEnabled: false }} />
       <Stack.Screen name="introduction" options={{ gestureEnabled: false }} />
+      {/* Journey rises from below Home and settles back down (pull up on Home, down on Journey, or the tab). */}
+      <Stack.Screen name="practice" options={{ animation: reduced ? 'none' : 'slide_from_bottom', animationDuration: reduced ? 0 : 380 }} />
     </Stack> : <Screen style={{ justifyContent: 'center', alignItems: 'center', gap: 24 }}>
       <Type role="heading" style={{ textAlign: 'center' }}>{app.error ? 'Your practice could not be opened' : 'Opening your practice…'}</Type>
       {app.error && <><Action onPress={app.retryInitialization}>Try again</Action>

@@ -4,7 +4,7 @@ Ona supports a lasting meditation habit. Ripples and levels are game metaphors,
 not measurements of mental health, brain adaptation, meditation skill or proven habit
 formation. UI shows whole Ripples, never internal XP, credit requirements or multipliers.
 
-## Current rules: progression_v5 / ona_habit_levels_v1
+## Current rules: progression_v6 / ona_habit_levels_v1
 
 All rules use plain TypeScript, explicit absolute timestamps and captured calendar
 contexts. Import the public API from src/domain/progression/index.ts.
@@ -12,7 +12,7 @@ contexts. Import the public API from src/domain/progression/index.ts.
 | Code | Authority |
 | --- | --- |
 | meditation/session.ts, timer.ts | Validated sessions and pure running/paused/finished cursors |
-| progression/rules.ts | Frozen earning configurations V1–V5 |
+| progression/rules.ts | Frozen earning configurations V1–V6 |
 | earnings.ts, occasions.ts | Duration, weighting and incremental awards |
 | consistency.ts | Continuous Consistency and immutable calendar anchors |
 | habit.ts | Current effective progress, protected levels and reward plans |
@@ -26,8 +26,11 @@ ends by itself; finishing earlier is still `completed`) and legacy timed cursors
 before the target was `ended_early`). Only the timer differs; earning rules are unchanged.
 
 Completed practice with **180 active seconds** qualifies for Consistency and qualifying
-dates. Pauses never count. Positive shorter completions remain valid history and earn
-modest Ripples, but never reset inactivity or combine to bypass qualification.
+dates. Pauses never count. **V6 (2026-10-16, owner: "below three minutes just doesn't count"):**
+shorter practices stay in history but earn nothing (`minimumEarningSeconds: 180`); everything else
+is V5. It is activated prospectively when the database opens (store.ts release path; default
+`progression_v6` in database.ts). Short-run receipts earned under V3–V5 stay exactly as released;
+the calendar no longer marks short practices, and completion shows a quiet note instead of panels.
 
 For qualifying active minutes m:
 

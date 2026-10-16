@@ -146,12 +146,14 @@ function DayNumber({ day, inMonth, onInk, wasOnInk, cell, turnsAt, fade = 260, s
 /**
  * One month, painted like ink and wash on paper (owner reference): a single counted day is an ink drop,
  * consecutive counted days one pale wash; hairlines between weeks; the week in progress outlined; a
- * chosen day other than today ringed; shorter practices a small dot. With `moment`, the newest practice day is painted
+ * chosen day other than today ringed. Practices under three minutes leave no mark. With `moment`, the newest practice day is painted
  * in (its drop settles, or its run grows from the days it joins, and ripples spread). Otherwise the
  * month draws in gently, row by row.
  */
-export function PaintedMonth({ month, streaks, practiced, today, selected, onSelect, moment, live = true, doubles = NO_DOUBLES, doublesBefore }: {
-  month: string; streaks: PracticeStreaks; practiced: ReadonlySet<string>; today: string;
+export function PaintedMonth({ month, streaks, today, selected, onSelect, moment, live = true, doubles = NO_DOUBLES, doublesBefore }: {
+  month: string; streaks: PracticeStreaks; today: string;
+  /** Practices under three minutes are not shown (owner, 2026-10-16); kept for callers. */
+  practiced?: ReadonlySet<string>;
   selected?: string | null; onSelect?: (date: string) => void;
   moment?: { date: string } | null; live?: boolean;
   /** Days practised twice (two practices at least six hours apart); before the moment's practice, too. */
@@ -160,7 +162,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
   const twice = live ? doubles : NO_DOUBLES, twiceBefore = live ? doublesBefore ?? doubles : NO_DOUBLES;
   const still = useMotionPreference() !== false;
   const [width, setWidth] = useState(0);
-  const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2, dot = Math.max(4, Math.round(cell * 0.115));
+  const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2;
   const rows = monthRows(month);
   return <View>
     <View style={styles.weekdays}>
@@ -196,11 +198,10 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
             const isCounted = counted[column]!;
             const single = after.some(([start, end]) => start === column && end === column);
             const wasSingle = before.some(([start, end]) => start === column && end === column);
-            const short = live && !isCounted && practiced.has(date);
             const chosen = !!onSelect && selected === date && inMonth;
             const isMoment = column === momentColumn;
             const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}`
-              + `${isCounted ? ', counts toward streaks' : short ? ', a shorter practice' : ''}${twice.has(date) ? ', practised twice' : ''}${date === today ? ', today' : ''}`;
+              + `${isCounted ? ', counts toward streaks' : ''}${twice.has(date) ? ', practised twice' : ''}${date === today ? ', today' : ''}`;
             const content = <>
               {isMoment && <View style={{ position: 'absolute', left: cell / 2, top: rowHeight / 2 }}>
                 <Ripple size={cell * 0.74} delay={780} still={still} /><Ripple size={cell * 0.74} delay={1060} still={still} />
@@ -212,7 +213,6 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
               <DayNumber day={Number(date.slice(8))} inMonth={inMonth} onInk={single} wasOnInk={!!moment && !isMoment && wasSingle} cell={cell} still={still}
                 fade={moment ? 260 : 160}
                 turnsAt={moment ? (isMoment || wasSingle !== single ? 620 : null) : single ? drawDelay(row, column) + 30 : null} />
-              {short && <View style={[styles.dot, { width: dot, height: dot, borderRadius: dot / 2, top: rowHeight * 0.76 - dot / 2, left: (cell - dot) / 2 }]} />}
             </>;
             const frame = { position: 'absolute' as const, left: column * cell, top: 0, width: cell, height: rowHeight };
             return inMonth && onSelect
@@ -230,7 +230,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
 export function CalendarLegend() {
   const size = 18;
   const item = (mark: React.ReactNode, label: string) => <View key={label} style={styles.legendItem}>{mark}<Text style={styles.legendText}>{label}</Text></View>;
-  return <View accessible accessibilityLabel="Legend: a dark drop is a day of practice; a pale wash joins days in a row; indigo is a day practised twice, six hours apart; a small dot is a shorter practice."
+  return <View accessible accessibilityLabel="Legend: a dark drop is a day of practice; a pale wash joins days in a row; indigo is a day practised twice, six hours apart."
     style={styles.legend}>
     <View style={styles.legendLine}>
       {item(<Image source={INK[0]} style={{ width: size, height: size }} />, 'A day of practice')}
@@ -239,8 +239,6 @@ export function CalendarLegend() {
     <View style={styles.legendLine}>
       {item(<View style={{ flexDirection: 'row' }}><Image source={INDIGO[0]} style={{ width: size, height: size }} />
         <Image source={INDIGO_BEAD} style={{ width: size, height: size, marginLeft: -2 }} /></View>, 'Twice in a day')}
-      {item(<View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.ink }} /></View>, 'Shorter practice')}
     </View>
   </View>;
 }
@@ -255,6 +253,5 @@ const styles = StyleSheet.create({
   line: { position: 'absolute', top: 0, left: 2, right: 2, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },
   week: { position: 'absolute', left: -4, right: -4, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.3)' },
   ring: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(20,20,20,0.55)' },
-  dot: { position: 'absolute', backgroundColor: colors.ink },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
 });

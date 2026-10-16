@@ -50,6 +50,7 @@ export async function openStore(connection: SqlConnection, input: CalendarContex
       const releasedUpgrade = (state.activeRulesVersion === 'progression_v1' && activateRulesVersion !== 'progression_v1') ||
         (['progression_v1', 'progression_v2', 'progression_v3'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v4') ||
         (['progression_v1', 'progression_v2', 'progression_v3', 'progression_v4'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v5') ||
+        (['progression_v1', 'progression_v2', 'progression_v3', 'progression_v4', 'progression_v5'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v6') ||
         (['progression_v1', 'progression_v2'].includes(state.activeRulesVersion) && activateRulesVersion === 'progression_v3');
       if (activateRulesVersion && releasedUpgrade) {
         const changed = changeProgressionRules(state, registry.get(activateRulesVersion), at);

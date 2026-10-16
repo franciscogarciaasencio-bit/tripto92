@@ -48,6 +48,8 @@ export interface ProgressionRules {
   readonly earningsAlgorithm: 'logarithmic_v1' | 'linear_short_logarithmic_v1';
   readonly decayAlgorithm: 'capped_daily_v1';
   readonly minimumActiveSeconds: number;
+  /** V6+: practices shorter than this earn nothing at all (V3–V5 paid short runs linearly). */
+  readonly minimumEarningSeconds?: number;
   /** Omitted in released V1: its historical qualification flags define practice days. */
   readonly practiceDayEligibility?: 'completed_minimum';
   readonly duration: {

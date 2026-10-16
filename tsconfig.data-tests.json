@@ -28,7 +28,8 @@
     "src/ui/intentions.ts",
     "src/ui/streak-geometry.ts",
     "src/ui/breath-rhythm.ts",
-    "src/ui/double-days.ts"
+    "src/ui/double-days.ts",
+    "src/ui/vertical-page-geometry.ts"
   ],
   "exclude": [
     "src/data/index.ts",

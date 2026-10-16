@@ -4,7 +4,7 @@ import type { AwardBreakdown, PracticeOccasion, ProgressionRules } from './types
 
 export function durationRewardCentiXp(activeSeconds: number, rules: ProgressionRules): number {
   assertNonnegativeInteger(activeSeconds, 'activeSeconds');
-  if (activeSeconds === 0) return 0;
+  if (activeSeconds === 0 || activeSeconds < (rules.minimumEarningSeconds ?? 0)) return 0;
   if (activeSeconds < rules.minimumActiveSeconds) {
     if (rules.earningsAlgorithm !== 'linear_short_logarithmic_v1') return 0;
     // Round the existing threshold reward once, then scale with exact integer arithmetic.
@@ -21,7 +21,7 @@ export function durationRewardCentiXp(activeSeconds: number, rules: ProgressionR
 /** Earning eligibility is separate from qualification for consistency, credits and inactivity. */
 export function isRewardEligible(session: MeditationSession, rules: ProgressionRules): boolean {
   validateSession(session);
-  if (rules.earningsAlgorithm === 'linear_short_logarithmic_v1') return session.activeDurationSeconds > 0;
+  if (rules.earningsAlgorithm === 'linear_short_logarithmic_v1') return session.activeDurationSeconds >= Math.max(1, rules.minimumEarningSeconds ?? 1);
   return session.activeDurationSeconds >= rules.minimumActiveSeconds &&
     (rules.practiceDayEligibility !== 'completed_minimum' || session.status === 'completed');
 }

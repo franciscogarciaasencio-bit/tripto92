@@ -1122,3 +1122,12 @@ device checks. Details: UPDATES.md. No APK was built.
 - Owner received all forest artwork as the original lossless PNGs.
 Verified with npm run check, all-platform export and web captures; native looping, loudness and the
 locked-screen interval still need listening on the phone.
+
+### Less clutter, three-minute rule, Home ⇅ Journey (2026-10-17)
+
+Owner: remove short-practice dots; painting cropped at the sides; scroll from Home into Journey with a
+smooth animation; practices under three minutes should not count at all. Rules V6 (earning minimum
+180 s, prospective, tested with a mixed V5/V6 ledger); completion for an uncounted practice shows one
+quiet note; copy updated in Guide and its answers. Pull-up/pull-down page turns between Home and
+Journey; Journey's route slides from the bottom. Verified on web (short completion, pull up to Journey,
+pull down to Home); native gesture feel and frame pacing still need the phone.

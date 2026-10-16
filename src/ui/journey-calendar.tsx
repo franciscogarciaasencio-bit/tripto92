@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useVerticalPage } from './vertical-page';
 import Svg, { Path } from 'react-native-svg';
 
 import { currentContext, useOna } from '@/application/ona-provider';
@@ -52,7 +54,14 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const [loadedCount, setLoadedCount] = useState(-1);
   const openingDetails = useRef(false);
   const reduced = useReducedMotion();
-  const windowWidth = useWindowDimensions().width, vignetteWidth = Math.min(windowWidth, 540);
+  // Pull down from the top of Journey to settle back into Home (the route slides back down).
+  const atTop = useSharedValue(true), scrollNative = useMemo(() => Gesture.Native(), []);
+  const leaving = useRef(false);
+  const backHome = useCallback(() => { if (!leaving.current) { leaving.current = true; router.dismissTo('/'); } }, []);
+  useFocusEffect(useCallback(() => { leaving.current = false; }, []));
+  const page = useVerticalPage({ direction: 'down', atEdge: atTop, onTurn: backHome, simultaneous: scrollNative, enabled: true });
+  const windowWidth = useWindowDimensions().width, vignetteWidth = Math.min(windowWidth, 540) * 1.12;
+  const gutter = windowWidth <= 375 ? 20 : 24; // Screen's horizontal padding
   // "September" must fit beside the year on a 320 pt phone without shrinking or truncating.
   const monthNameSize = Math.round(Math.min(44, Math.max(32, (windowWidth - 48) * 0.13)));
   useFocusEffect(useCallback(() => { openingDetails.current = false; setToday(currentContext().localDate); }, []));
@@ -112,7 +121,10 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
     </View>
     {/* Switching from the level view crossfades only the content; the title and tabs stay still. */}
     <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1 }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+    {/* Edge to edge, so the painting can reach past the screen's margins instead of being clipped by them. */}
+    <GestureDetector gesture={page.gesture}><Animated.View style={[{ flex: 1 }, page.style]}><GestureDetector gesture={scrollNative}>
+    <ScrollView style={{ flex: 1, marginHorizontal: -gutter }} contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: gutter }}
+      scrollEventThrottle={32} onScroll={(event) => atTop.set(event.nativeEvent.contentOffset.y <= 1)}>
       {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
       <View style={calendarStyles.monthHeading}>
         <Text accessibilityRole="header" accessibilityLiveRegion="polite" numberOfLines={1} adjustsFontSizeToFit
@@ -166,9 +178,9 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       <Notice>{error ? 'Your practice could not be loaded. Your saved records are unchanged.' : null}</Notice>
       {error && <Action quiet onPress={() => setAttempt((value) => value + 1)}>Try again</Action>}
       {/* The owner's painting rests under the month: its misty sky reaches up into the calendar. */}
+      {/* A little wider than the screen: its softly faded sides fall past the edges, only ink on paper remains. */}
       <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth / VIGNETTE_RATIO,
-        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.13,
-        ...(windowWidth <= 540 ? { marginLeft: windowWidth <= 375 ? -20 : -24 } : { alignSelf: 'center' }) }} />
+        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.13, alignSelf: 'center' }} />
       {shown && <View style={calendarStyles.monthSummary}>
         <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 2 }}>
           <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
@@ -179,6 +191,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </View>}
       <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
     </ScrollView>
+    </GestureDetector></Animated.View></GestureDetector>
     </Animated.View>
   </Screen><HomeNavigation active="journey" /></PaperBackdrop>;
 }

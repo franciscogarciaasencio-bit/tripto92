@@ -1,5 +1,5 @@
 /** The intended entry point for app and persistence code. No framework or device dependencies. */
-export { PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5 } from './rules';
+export { PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, PROGRESSION_V6 } from './rules';
 export { continuousConsistency, progressionConsistency, sessionConsistency, CONTINUOUS_CONSISTENCY,
   LINEAR_CONSISTENCY_V1, isLinearConsistency, validateConsistencyActivation } from './consistency';
 export { getConsistencyIndicator, CONSISTENCY_INDICATOR_V1 } from './consistency-indicator';

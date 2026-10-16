@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
+import Animated, { useSharedValue } from 'react-native-reanimated';
+import { useVerticalPage } from './vertical-page';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
@@ -30,13 +32,29 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
   // where the horizon leaves the disc most open), instead of the wordmark resting on its rim.
   const wordmarkTop = haloCenterY - 72 * scale, labelTop = haloCenterY - 12 * scale;
 
+  // Pull up past the end of Home to rise into Journey (its route slides in from below).
+  const atBottom = useSharedValue(true), measure = useRef({ offset: 0, layout: 0, content: 0 });
+  const updateEdge = () => { const m = measure.current; atBottom.set(m.offset + m.layout >= m.content - 2); };
+  const opening = useRef(false);
+  const openJourney = useCallback(() => {
+    if (opening.current) return;
+    opening.current = true;
+    router.push({ pathname: '/practice', params: { view: 'calendar' } });
+    setTimeout(() => { opening.current = false; }, 800);
+  }, []);
+  const page = useVerticalPage({ direction: 'up', atEdge: atBottom, onTurn: openJourney, simultaneous: scrollGesture,
+    enabled: !!scrollGesture && !app.busy && !app.draft && !app.completion && !audio.starting });
+
   const journey = app.journey, consistency = app.snapshot?.consistency;
   const categoryName = journey ? getLevelCategoryPresentation(journey.level).name : 'Monkey Mind';
   const forest = getForestStage({ highestLevel: app.habit?.highestLevel ?? 0, currentLevel: journey?.level.number ?? 0 });
   const atPrelude = journey?.level.number === 0;
   const content = <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} bounces={false}
-    onLayout={() => { if (scrollOffsetRef) scroll.current?.scrollTo({ y: scrollOffsetRef.current, animated: false }); }}
-    onScroll={rememberScroll ? event => { if (scrollOffsetRef) scrollOffsetRef.current = event.nativeEvent.contentOffset.y; } : undefined}
+    onLayout={(event) => { measure.current.layout = event.nativeEvent.layout.height; updateEdge();
+      if (scrollOffsetRef) scroll.current?.scrollTo({ y: scrollOffsetRef.current, animated: false }); }}
+    onContentSizeChange={(_, contentHeight) => { measure.current.content = contentHeight; updateEdge(); }}
+    onScroll={event => { measure.current.offset = event.nativeEvent.contentOffset.y; updateEdge();
+      if (rememberScroll && scrollOffsetRef) scrollOffsetRef.current = event.nativeEvent.contentOffset.y; }}
     scrollEventThrottle={32}>
     <View style={{ height: contentHeight, width: canvasWidth, alignSelf: 'center', overflow: 'hidden' }}>
       <CoastalScene composition={composition} stageId={forest.id} animateWave={animateWave} />
@@ -97,7 +115,9 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
     </View>
   </ScrollView>;
   return <View style={styles.screen}><CoastalTexture width={width} height={height} />
-    {scrollGesture ? <GestureDetector gesture={scrollGesture}>{content}</GestureDetector> : content}
+    {scrollGesture ? <GestureDetector gesture={page.gesture}><Animated.View style={[{ flex: 1 }, page.style]}>
+      <GestureDetector gesture={scrollGesture}>{content}</GestureDetector>
+    </Animated.View></GestureDetector> : content}
     <View style={{ width: canvasWidth, alignSelf: 'center' }}>
     <HomeNavigation active="home" scale={scale} />
   </View></View>;

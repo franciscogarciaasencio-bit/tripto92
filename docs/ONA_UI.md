@@ -240,6 +240,13 @@ A two-line legend under the month names the four marks with the same sprites.
 Since 2026-10-16 Journey sits on Home's paper (PaperBackdrop: #F4EBDD and the coastal texture) and the
 stones painting is ink on transparency (paper-to-alpha.py), so it reads as painted on the same page.
 
+Home ⇅ Journey (2026-10-16): pulling up past the end of Home moves it with the finger (resisted,
+fading slightly) and opens Journey, whose route slides in from below (also from the tab); pulling down
+at the top of Journey settles back to Home. vertical-page.tsx / vertical-page-geometry.ts; Reduced
+Motion keeps the page still and uses no route animation. Short practices leave no calendar mark (the
+dot and its legend entry are gone). The painting is 1.12 × the screen width and the calendar's scroll
+view runs edge to edge, so its faded sides fall past the screen instead of being clipped by margins.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

@@ -17,10 +17,10 @@ test('Day grouping preserves captured travel dates and repository order within a
   assert.deepEqual(input, original);
 });
 
-test('Monthly summary includes short and early-ended practice, excludes paused time and other months', () => {
+test('Monthly summary counts practices of three minutes or more (early-ended too), excludes shorter ones, paused time and other months', () => {
   const records = [stored({ day: 1, minutes: 2, pausedSeconds: 600 }), stored({ day: 1, hour: 14, minutes: 10 }),
     stored({ day: 2, minutes: 5, status: 'ended_early' }), stored({ day: 30, minutes: 20 })];
-  assert.deepEqual(monthPracticeSummary(records, '2026-01'), { practiceDays: 2, practices: 3, activeSeconds: 1020 });
+  assert.deepEqual(monthPracticeSummary(records, '2026-01'), { practiceDays: 2, practices: 2, activeSeconds: 900 });
   assert.deepEqual(monthPracticeSummary(records, '2026-02'), { practiceDays: 1, practices: 1, activeSeconds: 1200 });
   assert.deepEqual(monthPracticeSummary(records, '2026-03'), { practiceDays: 0, practices: 0, activeSeconds: 0 });
 });

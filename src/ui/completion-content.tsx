@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { PracticeCompletion } from '@/data';
-import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
+import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
 import { HomeIcon } from './home-icons';
 import { formatRipples } from './format-ripples';
@@ -43,6 +43,8 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
   // A stage never reached before is revealed only after the level animation has settled.
   const newStage = reachesNewStage(beforeLevel, afterLevel, receipt?.beforeCheckpoint.highestLevel ?? 0);
   const veiled = newStage && motion.stage !== 'done' && stageOf(displayLevel.number) > stageOf(beforeLevel ?? 0);
+  // Under three active minutes nothing counts (rules V6): a quiet note instead of empty reward panels.
+  const uncounted = completion.session.activeDurationSeconds < PRACTICE_CREDIT_RULES.minimumActiveSeconds && total === 0;
   const panel = { backgroundColor: 'rgba(228,210,182,0.22)', borderRadius: 17 * scale };
   const earningsText = { fontFamily: coastalSerif, fontSize: 31 * scale, lineHeight: 42 * scale, color: coastalInk };
   const explanation = receipt?.explanation === 'short' ? 'Consistency grows with practices of at least 3 minutes.'
@@ -53,6 +55,12 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
     <Text accessibilityLabel={'Active meditation duration: ' + duration} style={{ fontFamily: coastalSerif, fontVariant: ['tabular-nums'], fontSize: 40 * scale,
       lineHeight: 50 * scale, textAlign: 'center', color: coastalInk, marginTop: 12 * scale }}>{duration}</Text>
     <Text style={{ fontFamily: 'ManropeRegular', fontSize: 14 * scale, lineHeight: 21 * scale, textAlign: 'center', color: coastalQuiet }}>{completion.session.status === 'completed' ? 'Meditation completed' : 'Meditation saved'}</Text>
+    {uncounted ? <View style={[panel, { marginTop: 17 * scale, padding: 18 * scale, alignItems: 'center', gap: 4 * scale }]}>
+      <Text style={{ fontFamily: coastalSerif, fontSize: 21 * scale, lineHeight: 28 * scale, color: coastalInk, textAlign: 'center' }}>Saved in your history.</Text>
+      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 14 * scale, lineHeight: 21 * scale, color: coastalQuiet, textAlign: 'center' }}>
+        Practices of three minutes or more count toward your journey.
+      </Text>
+    </View> : <>
     <View style={[panel, { marginTop: 17 * scale, padding: 14 * scale }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 * scale }}>
         <HomeIcon name="wave" size={36 * scale} color={coastalInk} />
@@ -106,6 +114,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
         {explanation ?? 'A gentle rhythm of returning.'}
       </Text>
     </View>
+    </>}
     <Notice>{error ? 'Your practice is saved. Returning could not be confirmed. Please retry.' : null}</Notice>
     <QuietPressable accessibilityRole="button" accessibilityLabel={busy ? 'Returning' : 'Continue'} accessibilityState={{ disabled: busy }} disabled={busy}
       disabledOpacity={.65} pressedOpacity={.8} onPress={onContinue} style={{ minHeight: Math.max(56 * scale, 48), backgroundColor: '#1C211A', borderRadius: 28 * scale,

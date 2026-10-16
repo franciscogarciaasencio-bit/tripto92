@@ -26,7 +26,8 @@ export function monthPracticeSummary(records: readonly PracticeRecord[], month: 
   const days = new Set<string>();
   let practices = 0, activeSeconds = 0;
   for (const { session } of records) {
-    if (!session.localDate.startsWith(`${month}-`)) continue;
+    // Practices under three active minutes stay in history but do not count (rules V6, 2026-10-16).
+    if (!session.localDate.startsWith(`${month}-`) || session.activeDurationSeconds < 180) continue;
     days.add(session.localDate);
     ++practices;
     activeSeconds += session.activeDurationSeconds;
