@@ -55,7 +55,7 @@ export function Notice({ children }: { children: string | null }) {
   return children ? <Type role="secondary" accessibilityRole="alert" style={{ textAlign: 'center', marginVertical: 16 }}>{children}</Type> : null;
 }
 export function ChoiceRow({ label, value, onPress, divider = true }: { label: string; value: string; onPress?: () => void; divider?: boolean }) {
-  const content = <><Type style={{ flex: 1 }}>{label}</Type><Type style={{ color: colors.secondary }}>{value}</Type></>;
+  const content = <><Type style={{ flex: 1 }}>{label}</Type><Type numberOfLines={1} style={{ color: colors.secondary, flexShrink: 1, maxWidth: '70%', textAlign: 'right' }}>{value}</Type></>;
   const rowStyle = [styles.row, !divider && { borderBottomWidth: 0 }];
   return onPress ? <QuietPressable accessibilityRole="button" onPress={onPress} style={rowStyle}>{content}</QuietPressable> : <View style={rowStyle}>{content}</View>;
 }

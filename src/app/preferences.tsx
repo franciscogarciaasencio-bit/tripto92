@@ -45,7 +45,7 @@ export default function Preferences() {
       <Type style={{ marginTop: 14 }}>Ambience volume</Type>
       <VolumeControl value={edited.homeVolume} label="Home ambience volume" onChange={(homeVolume) => setEdited({ ...edited, homeVolume })} />
       {app.cloudAvailable && <View style={{ marginTop: 28, borderTopWidth: 1, borderColor: colors.line }}>
-        <ChoiceRow label="Account" value={app.account ? 'Signed in' : 'Not signed in'} divider={false} onPress={() => router.push('/account')} />
+        <ChoiceRow label="Account" value={app.account ? app.account.email ?? 'Signed in' : 'Not signed in'} divider={false} onPress={() => router.push('/account')} />
       </View>}
     </View>}
     <View style={{ marginTop: confirmReset ? 40 : 32, gap: 12, paddingTop: confirmReset ? 0 : 24, borderTopWidth: confirmReset ? 0 : 1, borderTopColor: colors.line }}>

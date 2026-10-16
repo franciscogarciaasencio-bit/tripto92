@@ -4,7 +4,7 @@ export type { SyncState } from './repositories/sync-repository';
 export { PersistenceError } from './database/errors';
 export { DEFAULT_PREFERENCES, FIXED_DURATIONS, INTENTIONS } from './preferences';
 export type { Intention } from './preferences';
-export { DEFAULT_AUDIO_PREFERENCES } from './audio-preferences';
+export { DEFAULT_AUDIO_PREFERENCES, INTERVAL_MINUTES } from './audio-preferences';
 export type { AudioPreferences } from './audio-preferences';
 export type { DatabaseOptions } from './database/database';
 export type { MeditationStore } from './database/store';

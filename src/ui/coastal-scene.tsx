@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { memo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { OceanWave } from './ocean-wave';
 import { COASTAL_ARTWORK, coastalComposition } from './coastal-composition';
 import { forestSource } from './forest-assets';
@@ -26,6 +26,12 @@ export const CoastalTexture = memo(function CoastalTexture({ width, height }: { 
       left: (width - imageWidth) / 2, top: height - imageHeight }} />
   </View>;
 });
+
+/** Home's paper (#F4EBDD and the same texture) behind a whole screen, so every tab shares one surface. */
+export function PaperBackdrop({ children }: { children: React.ReactNode }) {
+  const { width, height } = useWindowDimensions();
+  return <View style={{ flex: 1, backgroundColor: '#F4EBDD' }}><CoastalTexture width={width} height={height} />{children}</View>;
+}
 
 export const CoastalScene = memo(function CoastalScene({ composition: c, completion = false, stageId = 'coast_1', animateWave = true }: {
   composition: CoastalComposition; completion?: boolean; stageId?: string; animateWave?: boolean;

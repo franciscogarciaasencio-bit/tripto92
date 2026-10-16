@@ -10,6 +10,7 @@ import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
 import { MonthSlide, StreakOverview } from './calendar-streaks';
 import { CALENDAR_VIGNETTE, CalendarLegend, PaintedMonth, VIGNETTE_RATIO } from './painted-month';
 import { doubleDays } from './double-days';
+import { PaperBackdrop } from './coastal-scene';
 import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, Notice, Screen, serifFont, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
@@ -101,7 +102,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
     setSelected(destination === today.slice(0, 7) ? today : calendarDate(destination, 1));
   }
 
-  return <View style={{ flex: 1 }}><Screen scroll={false} style={{ paddingBottom: 0 }}>
+  return <PaperBackdrop><Screen scroll={false} style={{ paddingBottom: 0, backgroundColor: 'transparent' }}>
     <View style={calendarStyles.heading}>
       <Type role="title">Journey</Type>
       <QuietPressable accessibilityRole="button" accessibilityLabel="View progression details" onPress={onShowProgress}
@@ -166,7 +167,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       {error && <Action quiet onPress={() => setAttempt((value) => value + 1)}>Try again</Action>}
       {/* The owner's painting rests under the month: its misty sky reaches up into the calendar. */}
       <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth / VIGNETTE_RATIO,
-        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.2,
+        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.13,
         ...(windowWidth <= 540 ? { marginLeft: windowWidth <= 375 ? -20 : -24 } : { alignSelf: 'center' }) }} />
       {shown && <View style={calendarStyles.monthSummary}>
         <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 2 }}>
@@ -179,7 +180,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
     </ScrollView>
     </Animated.View>
-  </Screen><HomeNavigation active="journey" /></View>;
+  </Screen><HomeNavigation active="journey" /></PaperBackdrop>;
 }
 
 const calendarStyles = StyleSheet.create({
@@ -195,5 +196,6 @@ const calendarStyles = StyleSheet.create({
   // Above the painting's misty sky, which reaches up under it.
   dayLine: { minHeight: 44, justifyContent: 'center', alignItems: 'center', marginTop: 4, zIndex: 2 },
   dayLineText: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
-  monthSummary: { flexDirection: 'row', columnGap: 20, marginTop: 8, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
+  // No rule above: the painting's reflection fades into the month's numbers on the same paper.
+  monthSummary: { flexDirection: 'row', columnGap: 20, marginTop: -6, paddingTop: 8 },
 });

@@ -237,6 +237,9 @@ earns two practice credits; ui/double-days.ts) is indigo: an indigo ink drop on 
 wash drop laid over its place in a run (indigo-*.webp, painted by the same script with ONLY=indigo).
 A two-line legend under the month names the four marks with the same sprites.
 
+Since 2026-10-16 Journey sits on Home's paper (PaperBackdrop: #F4EBDD and the coastal texture) and the
+stones painting is ink on transparency (paper-to-alpha.py), so it reads as painted on the same page.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

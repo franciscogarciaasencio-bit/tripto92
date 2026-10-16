@@ -13,7 +13,8 @@ export interface ClipPlayer {
 }
 export interface SessionAudioBackend {
   clip(sound: PreviewSound, loop: boolean): ClipPlayer;
-  timeline(seconds: 300 | 600 | 900): ClipPlayer;
+  /** The interval master then silence, `seconds` long, looping: a bell every `seconds` of playback. */
+  timeline(seconds: number): ClipPlayer;
   /** One hour of silence, then the End bell: rings at a fixed practice's end while JavaScript sleeps. */
   ending(): ClipPlayer;
 }
@@ -21,7 +22,17 @@ export interface SessionSoundInput {
   ready: boolean; foreground: boolean; now: number; draft: TimerDraft | null;
   completionId: string | null; preferences: AudioPreferences | null;
 }
-export const INTERVAL_TIMELINE_SECONDS = 21_600;
+/** Where the looped interval track should be after `active` seconds of practice. */
+export function intervalPosition(active: number, period: number) {
+  return ((active % period) + period) % period;
+}
+/** Distance between two positions on a loop. */
+export function loopDistance(a: number, b: number, period: number) {
+  const d = Math.abs(a - b) % period;
+  return Math.min(d, period - d);
+}
+/** The loop starts with a strike; at 0 active seconds it stays silent until that strike is over. */
+export const FIRST_STRIKE_SECONDS = BELL_DURATION_MS.interval / 1000;
 export const ENDING_LEAD_SECONDS = 3_600;
 export function activeAudioSeconds(draft: TimerDraft, now: number): number {
   return (draft.activeMilliseconds + (draft.phase === 'running' ? Math.max(0, now-draft.changedAt) : 0))/1000;
@@ -33,7 +44,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
   let disposed = false, blocked = false, clipRevision = 0, timelineRevision = 0;
   let clip: ClipPlayer | null = null, preview: PreviewSound | null = null, clipSound: PreviewSound | null = null;
   let timeline: ClipPlayer | null = null, timelineKey: string | null = null, timelineRunning = false, timelinePlayed = false;
-  let timelineSeeks = Promise.resolve();
+  let timelineSeeks = Promise.resolve(), cancelAudible: (() => void) | null = null;
   let removeTimelineListener: (() => void) | null = null, removeClipListener: (() => void) | null = null;
   let cancelPreview: (() => void) | null = null, cancelFade: (() => void) | null = null, cancelLoad: (() => void) | null = null;
   const ended = new Set<string>();
@@ -64,6 +75,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
     if (preview !== null) { preview = null; previewChanged(null); }
   }
   function releaseTimeline() {
+    cancelAudible?.(); cancelAudible = null;
     ++timelineRevision; timelineRunning = timelinePlayed = false; timelineKey = null; timelineSeeks = Promise.resolve();
     try { removeTimelineListener?.(); } catch { /* A released media service can lose its listener. */ } removeTimelineListener = null;
     const old = timeline; timeline = null;
@@ -114,8 +126,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
     const prefs = input?.preferences, draft = input?.draft;
     if (!input?.ready || !prefs || !draft || draft.phase === 'finished' || !prefs.intervalSeconds || prefs.bellVolume === 0 || blocked) { releaseTimeline(); return; }
     const key = `${draft.id}/${prefs.intervalSeconds}`, running = draft.phase === 'running';
-    const seconds = activeAudioSeconds(draft,input.now);
-    if (seconds > INTERVAL_TIMELINE_SECONDS + 12) { releaseTimeline(); return; }
+    const period = prefs.intervalSeconds, seconds = activeAudioSeconds(draft,input.now), position = intervalPosition(seconds, period);
     try {
       if (timelineKey !== key) {
         releaseTimeline(); timeline = backend.timeline(prefs.intervalSeconds); timelineKey = key;
@@ -123,23 +134,30 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
         removeTimelineListener = owned.subscribe(status => {
           if (owned !== timeline || !timelineRunning) return;
           if (status.playing) timelinePlayed = true;
-          if (!status.playing && owned.currentTime >= INTERVAL_TIMELINE_SECONDS) { releaseTimeline(); return; }
           if (status.error || timelinePlayed && !status.playing && status.loaded && !status.buffering) {
             blocked = true; releaseTimeline(); releaseClip(); notify(status.error ? 'unavailable' : 'interrupted');
           }
         });
       }
-      const owned = timeline!;
-      owned.volume = prefs.bellVolume*MASTER_PLAYBACK_GAIN;
+      const owned = timeline!, audible = prefs.bellVolume*MASTER_PLAYBACK_GAIN;
+      // The loop begins with a strike: never at the very start of a practice, only after each full interval.
+      cancelAudible?.(); cancelAudible = null;
+      owned.volume = seconds < FIRST_STRIKE_SECONDS ? 0 : audible;
+      if (running && seconds < FIRST_STRIKE_SECONDS) {
+        cancelAudible = clock.schedule(() => {
+          cancelAudible = null;
+          if (timeline === owned && timelineRunning) try { owned.volume = audible; } catch { /* Released meanwhile. */ }
+        }, (FIRST_STRIKE_SECONDS - seconds) * 1000 + 50);
+      }
       // In Silence, the native interval track owns Android's foreground service.
       owned.background(running && (prefs.sessionSound === 'silence' || prefs.sessionVolume === 0));
       if (!running) { ++timelineRevision; timelineRunning = false; owned.pause(); return; }
-      if (!timelineRunning || input.foreground && Math.abs(owned.currentTime-seconds)>1.5) {
+      if (!timelineRunning || input.foreground && loopDistance(owned.currentTime, position, period)>1.5) {
         timelineRunning = true; timelinePlayed = false;
         const token = ++timelineRevision;
         timelineSeeks = timelineSeeks.then(async () => {
           if (disposed || timeline !== owned || token !== timelineRevision || !timelineRunning) return;
-          await owned.seek(seconds);
+          await owned.seek(position);
           if (!disposed && timeline === owned && token === timelineRevision && timelineRunning) return owned.play();
         }).catch(() => { if (token === timelineRevision) { blocked = true; releaseTimeline(); notify('unavailable'); } });
       }

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import type { AudioPreferences } from '@/data';
+import { INTERVAL_MINUTES, type AudioPreferences } from '@/data';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
 import type { Bell } from '@/audio/session-controller';
@@ -10,7 +10,9 @@ import { colors, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
 import { VolumeControl } from './session-sound';
 
-const INTERVALS = [null, 300, 600, 900] as const;
+/** Off, then every offered length (1–60 minutes), stepped with − and +. */
+const INTERVALS: readonly (number | null)[] = [null, ...INTERVAL_MINUTES.map((minutes) => minutes * 60)];
+const intervalLabel = (seconds: number | null) => seconds === null ? 'Off' : `Every ${seconds / 60} min`;
 
 /**
  * Settings owns only what lives nowhere else: the bells (ambience is chosen before each practice and
@@ -45,14 +47,22 @@ export function BellSettings({ preferences: prefs, onChange }: { preferences: Au
       <Type style={{ flex: 1 }}>Interval bell</Type>
       {play('interval', 'interval bell')}
     </View>
-    <View style={styles.intervals}>
-      {INTERVALS.map((seconds) => <QuietPressable key={seconds ?? 'off'} accessibilityRole="radio"
-        accessibilityLabel={seconds === null ? 'Interval bell off' : `Interval bell every ${seconds / 60} minutes`}
-        accessibilityState={{ checked: prefs.intervalSeconds === seconds }} aria-checked={prefs.intervalSeconds === seconds}
-        onPress={() => onChange({ ...prefs, intervalSeconds: seconds })}
-        style={[styles.interval, prefs.intervalSeconds === seconds && styles.intervalChosen]}>
-        <Type role={prefs.intervalSeconds === seconds ? 'label' : 'secondary'}>{seconds === null ? 'Off' : `${seconds / 60} min`}</Type>
-      </QuietPressable>)}
+    <View style={styles.stepper}>
+      {(() => {
+        const at = Math.max(0, INTERVALS.indexOf(prefs.intervalSeconds));
+        const step = (by: number) => onChange({ ...prefs, intervalSeconds: INTERVALS[Math.min(INTERVALS.length - 1, Math.max(0, at + by))] ?? null });
+        return <>
+          <QuietPressable accessibilityRole="button" accessibilityLabel="Shorter interval" disabled={at === 0} disabledOpacity={.3}
+            onPress={() => step(-1)} style={styles.stepButton}><Type style={styles.stepSign}>−</Type></QuietPressable>
+          <View accessible accessibilityRole="adjustable" accessibilityLabel="Interval bell" accessibilityValue={{ text: intervalLabel(prefs.intervalSeconds) }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(event) => step(event.nativeEvent.actionName === 'increment' ? 1 : -1)} style={styles.stepValue}>
+            <Type role={prefs.intervalSeconds === null ? 'secondary' : 'label'}>{intervalLabel(prefs.intervalSeconds)}</Type>
+          </View>
+          <QuietPressable accessibilityRole="button" accessibilityLabel="Longer interval" disabled={at === INTERVALS.length - 1} disabledOpacity={.3}
+            onPress={() => step(1)} style={styles.stepButton}><Type style={styles.stepSign}>+</Type></QuietPressable>
+        </>;
+      })()}
     </View>
     <Type role="secondary" style={styles.note}>Intervals follow meditation time. Pauses don’t count.</Type>
     <Type style={styles.volumeLabel}>Bell volume</Type>
@@ -69,9 +79,10 @@ const styles = StyleSheet.create({
   toggle: { flex: 1, flexDirection: 'row', alignItems: 'center', minHeight: 60 },
   play: { width: 48, height: 48, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
   playDisc: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', paddingLeft: 1 },
-  intervals: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: -10 },
-  interval: { minWidth: 64, minHeight: 44, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderColor: 'transparent' },
-  intervalChosen: { borderColor: colors.ink },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stepButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  stepSign: { fontSize: 22, lineHeight: 26 },
+  stepValue: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48 },
   note: { fontSize: 13, lineHeight: 18, marginTop: 6, paddingBottom: 16, borderBottomWidth: 1, borderColor: colors.line },
   volumeLabel: { marginTop: 18 },
 });

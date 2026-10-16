@@ -1108,3 +1108,17 @@ Published Android/iOS OTA group `328a10bc-2757-4dca-abd3-6a2668e8d199` from clea
 Node 24.21.0, npm ci, TypeScript/lint, 1,003 tests and all-platform export passed; EAS confirmed
 both platforms and the channel mapping. Update arrival and Android crash resolution remain
 device checks. Details: UPDATES.md. No APK was built.
+
+### Owner feedback batch: interval bell, interval lengths, account email, Journey paper (2026-10-16)
+
+- Interval bell re-rendered about 6 dB louder (opening RMS .045, −29.4 LUFS) with `--roles interval`.
+- Intervals: Off or every 1–10, 12, 15, 20, 25, 30, 40, 45 or 60 minutes, stepped with − / + in
+  Settings. One looped FLAC per length replaces the six-hour AAC timelines (19.33 → 3.57 MB); intervals
+  no longer stop after six hours. Stored 300/600/900 keep working. A phone on an older update would
+  reject a new length arriving through account sync, so both phones should take this update.
+- Settings shows the signed-in Google email on the Account row.
+- Journey (calendar and levels) uses Home's paper colour and texture; the stones painting is now ink on
+  transparency (scripts/calendar/paper-to-alpha.py), flowing into the month summary without a rule.
+- Owner received all forest artwork as the original lossless PNGs.
+Verified with npm run check, all-platform export and web captures; native looping, loudness and the
+locked-screen interval still need listening on the phone.

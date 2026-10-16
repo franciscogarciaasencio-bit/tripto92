@@ -30,9 +30,11 @@ PROFILES = {
     # The owner's gong (2026-10-15): keep its strike and colour, only the pre-strike lead trimmed.
     # Until then: {"source": "2554", "trimSeconds": 0, "attackMs": 85, "tailSeconds": 1.4,
     # "shelfHz": 1500, "shelfDb": -9, "firstTwoSecondsRms": .022}.
+    # 2026-10-16: the owner found it too quiet to hear mid-practice (opening RMS .022, about
+    # -35.5 LUFS); now a little above the starting bell so it carries over ambience.
     "interval": {"source": "gong-4", "trimSeconds": .045, "attackMs": 30,
                  "tailSeconds": 1.4, "shelfHz": 2000, "shelfDb": -3,
-                 "firstTwoSecondsRms": .022},
+                 "firstTwoSecondsRms": .045},
 }
 
 

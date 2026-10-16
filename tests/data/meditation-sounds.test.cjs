@@ -20,7 +20,7 @@ function fixture(){
    subscribe(fn){listener=fn;return()=>{listener=null;};},emit(update){listener?.({playing:this.playing,loaded:true,buffering:false,error:null,...update});}};
   players.push(player);return player;
  };
- const backend={clip:create,timeline:seconds=>create(seconds),feedback:()=>haptics++};
+ const backend={clip:create,timeline:seconds=>create(seconds,true),feedback:()=>haptics++};
  const controller=createSessionSoundController(backend,clock,n=>notices.push(n),s=>previews.push(s));
  const start=context(1,9).timestamp;
  const input={ready:true,foreground:true,now:start,draft:null,completionId:null,preferences:defaults};
@@ -97,7 +97,7 @@ test('V9 migrates legacy choices/mutes/volumes transactionally, preserving sessi
  assert.deepEqual(await store.settings.loadAudioPreferences(),{...old,version:2,bellVolume:.18,intervalSeconds:null,hapticsEnabled:false});
  assert.deepEqual(await store.meditations.loadProgressionState(),state);await store.close();
 });
-for(const invalid of [{bellVolume:-.1},{bellVolume:Infinity},{intervalSeconds:60},{intervalSeconds:'300'},{hapticsEnabled:1},{openingBellEnabled:null},{sessionSound:['ocean']}])
+for(const invalid of [{bellVolume:-.1},{bellVolume:Infinity},{intervalSeconds:90},{intervalSeconds:3660},{intervalSeconds:'300'},{hapticsEnabled:1},{openingBellEnabled:null},{sessionSound:['ocean']}])
  test(`Malformed sound settings fail explicitly: ${JSON.stringify(invalid)}`,()=>assert.throws(()=>decodeAudioPreferences({...defaults,...invalid}),e=>e.code==='INVALID_DATA'));
 
 test('Silence keeps interval bells/background ownership independent of ambience volume',()=>{
@@ -106,7 +106,8 @@ test('Silence keeps interval bells/background ownership independent of ambience 
  assert.deepEqual(intent,{kind:'silent',immediate:true,background:true});
  const f=fixture(),draft=startOpenEndedTimer('quiet',f.start,'UTC');
  f.controller.update({...f.input,draft,preferences:{...defaults,sessionSound:'silence',intervalSeconds:300}});
- assert.equal(f.players[0].locked,true);assert.equal(f.players[0].volume,.09);f.controller.dispose();
+ assert.equal(f.players[0].locked,true);assert.equal(f.players[0].volume,0,'the loop opens with a strike that stays silent at 0 s');
+ f.clock.advance(BELL_DURATION_MS.interval+60);assert.equal(f.players[0].volume,.09);f.controller.dispose();
 });
 
 test('Live starting bell is single; finish resonance survives the completion/Home transition; no rewards are touched',async()=>{
@@ -148,7 +149,8 @@ test('Intervals align to actual active time, exclude pauses, continue without a 
 test('Recovery seeks past missed intervals rather than catching up with a burst of bells',async()=>{
  const f=fixture(),draft=startOpenEndedTimer('session',f.start,'UTC');
  f.controller.update({...f.input,draft,now:f.start+1825000,preferences:{...defaults,intervalSeconds:600}});await flush();
- assert.deepEqual(f.players[0].seeks,[1825]);assert.equal(f.players[0].sound,600);assert.equal(f.players.length,1);f.controller.dispose();
+ assert.deepEqual(f.players[0].seeks,[25],'1825 s into a 600 s loop');assert.equal(f.players[0].sound,600);assert.equal(f.players[0].loop,true);
+ assert.equal(f.players[0].volume,.09,'past the first strike, every later strike is audible');assert.equal(f.players.length,1);f.controller.dispose();
 });
 
 test('Changing interval preference releases the old timeline; a late seek cannot revive it',async()=>{
@@ -164,7 +166,7 @@ test('Media interruption fails closed, never silently resumes, and explicit retr
  f.controller.update(input);await flush();f.players[0].emit({playing:false});
  assert.equal(f.notices.at(-1),'interrupted');assert.equal(f.players[0].removed,true);
  f.controller.update({...input,now:f.start+700000});assert.equal(f.players.length,1);
- f.controller.retry();await flush();assert.deepEqual(f.players[1].seeks,[700]);f.controller.dispose();
+ f.controller.retry();await flush();assert.deepEqual(f.players[1].seeks,[100]);f.controller.dispose();
 });
 
 test('Previews are exclusive, fade in/out, stop on navigation/background, and cannot play over an active practice',()=>{
@@ -209,7 +211,7 @@ test('Every retained ambience matches its original output; encoded loops retain 
   if(entry.decoded){assert.equal(entry.decoded.seconds,180);assert.ok(entry.decoded.peak<.5);assert.ok(Math.abs(entry.decoded.dc)<1e-4);
    assert.ok(entry.decoded.seamStep<entry.decoded.ordinaryStep99);assert.ok(entry.decoded.correlationWithMaster>.99);}
  }assert.ok(bytes<20_000_000,'Unchanged ambience bank remains below 20 MB');
- for(const manifest of ['analysis.json','timelines.json']){
+ for(const manifest of ['analysis.json','loops.json']){
   const bells=JSON.parse(fs.readFileSync(path.join(root,'../bells-v2',manifest)));
   for(const name of Object.keys(bells.assets)) bytes+=fs.statSync(path.join(root,'../bells-v2',name)).size;
  }
@@ -267,13 +269,22 @@ test('End previews preserve the complete resonance and switching previews cancel
  assert.equal(interval.removed,true);assert.equal(f.jobs.size,0);f.controller.dispose();
 });
 
-test('The final six-hour interval tail remains available; beyond the released tail window no track restarts',async()=>{
+test('Interval loops keep ringing past six hours; every offered length decodes, others fail explicitly',async()=>{
  const f=fixture(),draft=startOpenEndedTimer('long-practice',f.start,'UTC'),prefs={...defaults,intervalSeconds:300};
  f.controller.update({...f.input,draft,now:f.start+21601000,preferences:prefs});await flush();
- const track=f.players[0];assert.deepEqual(track.seeks,[21601]);assert.equal(track.removed,false);
- track.emit({playing:false});assert.equal(track.removed,true);
- f.controller.update({...f.input,draft,now:f.start+21613000,preferences:prefs});await flush();
- assert.equal(f.players.length,1);f.controller.dispose();
+ const track=f.players[0];assert.deepEqual(track.seeks,[1]);assert.equal(track.removed,false);assert.equal(track.loop,true);
+ const {INTERVAL_MINUTES}=data('audio-preferences.js');
+ assert.ok(INTERVAL_MINUTES.includes(1)&&INTERVAL_MINUTES.includes(60)&&INTERVAL_MINUTES.length>=15);
+ for(const minutes of INTERVAL_MINUTES) assert.equal(decodeAudioPreferences({...defaults,intervalSeconds:minutes*60}).intervalSeconds,minutes*60);
+ f.controller.dispose();
+});
+
+test('A one-minute loop realigns by loop distance, never by absolute time',async()=>{
+ const f=fixture(),draft=startOpenEndedTimer('minute',f.start,'UTC'),prefs={...defaults,intervalSeconds:60};
+ f.controller.update({...f.input,draft,now:f.start+130000,preferences:prefs});await flush();
+ const track=f.players[0];assert.deepEqual(track.seeks,[10]);
+ f.controller.update({...f.input,draft,now:f.start+190000,preferences:prefs});await flush();
+ assert.deepEqual(track.seeks,[10],'60 s later the loop is back at 10 s: no reseek');f.controller.dispose();
 });
 
 test('Ending off means no closing clip; entry-only Silence still configures native background resonance',()=>{

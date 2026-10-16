@@ -25,6 +25,6 @@ export const sessionAudioBackend: SessionAudioBackend = {
   clip(sound, loop) {
     return create(sound === 'start' || sound === 'end' || sound === 'interval' ? bellAsset(sound) : ambienceAsset(sound), loop);
   },
-  timeline: seconds => create(intervalAsset(seconds)),
+  timeline: seconds => create(intervalAsset(seconds), true),
   ending: () => create(endingTimelineAsset()),
 };

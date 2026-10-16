@@ -1,4 +1,7 @@
-"""Build and verify sparse six-hour AAC timelines from the acoustic interval master.
+"""RETIRED 2026-10-16: interval bells now use looped tracks (build-bell-loops.py). Kept as the generator
+of the former six-hour timelines (in Git history before 2026-10-16).
+
+Build and verify sparse six-hour AAC timelines from the acoustic interval master.
 
 Requires development-only NumPy/FFmpeg. Native playback advances the silence and
 strikes while JavaScript sleeps. No source downloads or ambience regeneration.

@@ -24,7 +24,7 @@ are external CC0 material, not original Ona synthesis. Everything is bundled off
 | --- | --- |
 | Starting bell | Soft acoustic strike, approximately 474 Hz lower mode; 13.24 seconds |
 | Ending bell | Deeper approximately 305 Hz mode, 29.92-second natural resonance |
-| Interval bell | The owner's gong: approximately 439 Hz with its octave, 9.42-second natural decay, same quiet level as before (−35.5 LUFS) |
+| Interval bell | The owner's gong: approximately 439 Hz with its octave, 9.42-second natural decay; since 2026-10-16 about −29.4 LUFS, a little above the starting bell (−32.1), because the owner could barely hear it |
 | Ocean, Rain, Storm | Layered evolving circular synthesis, three-minute stereo AAC loops |
 | Brown Noise | Warm circular spectral synthesis, three-minute lossless FLAC loop |
 | Silence | No ambience; optional bells remain independent |
@@ -73,8 +73,12 @@ version 1 → 2 while preserving old choices. Malformed/future values fail expli
   two seconds rather than arriving late. Preview load watchdogs are bounded too.
   Cleanup deadlines begin at actual playback and allow the full clip plus a one-second
   safety margin; the old 25-second ending cutoff no longer truncates the acoustic tail.
-- Interval assets are sparse six-hour native timelines, beginning silently, with
-  bells at 300/600/900 active seconds and subsequent intervals. Pause stops their clock;
+- Interval bells (since 2026-10-16) offer 1–60 minutes (INTERVAL_MINUTES in audio-preferences.ts). Each
+  length is one looped FLAC: the interval master at 0 s, then silence (scripts/build-bell-loops.py,
+  loops.json, 3.57 MB for 18 lengths; the former 19.33 MB of six-hour AAC timelines are retired, their
+  builder kept). Native looping rings a bell every N active minutes while JavaScript sleeps, with no
+  six-hour limit; the controller seeks to active seconds mod N and keeps the strike at 0 s silent
+  (volume 0 until it is over). Drift is corrected by loop distance whenever the app is in front. Pause stops their clock;
   resume/recovery seeks to active time, excluding pauses. Serialized revision-guarded
   seeks prevent stale playback; missed bells do not create catch-up bursts.
 - On Android, audible ambience owns the foreground media service; with Silence/zero

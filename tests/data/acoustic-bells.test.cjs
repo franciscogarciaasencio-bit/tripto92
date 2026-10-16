@@ -89,12 +89,13 @@ for (const role of ['start', 'end', 'interval']) {
   });
 }
 
-test('Interval is substantially quieter; end and start are matched without a loud ending strike', () => {
+test('Interval carries over ambience (owner: too quiet before); end and start are matched without a loud ending strike', () => {
   const start = pcm('start.wav').samples;
   const end = pcm('end.wav').samples;
   const interval = pcm('interval.wav').samples;
   const openingRms = samples => rms(samples.slice(0, 48000));
-  assert.ok(openingRms(interval) < openingRms(start) * .65);
+  assert.ok(openingRms(interval) >= openingRms(start), 'the interval strike is at least as present as the starting bell');
+  assert.ok(openingRms(interval) < openingRms(start) * 1.5, 'and never startling');
   assert.ok(openingRms(end) <= openingRms(start));
   assert.ok(openingRms(end) > openingRms(start) * .9);
 });
@@ -110,26 +111,23 @@ test('Full source decays survive mastering; end retains audible signal well into
   assert.ok(rms(end.slice(24 * 24000, 25 * 24000)) < .001);
 });
 
-for (const minutes of [5, 10, 15]) {
-  test(`${minutes}-minute live timeline contains the acoustic interval source with verified first/second/final timing`, () => {
-    const timelines = JSON.parse(readFileSync(path.join(bank, 'timelines.json'), 'utf8'));
-    const entry = timelines.assets[`interval-${minutes}m.m4a`];
-    const bytes = readFileSync(path.join(bank, `interval-${minutes}m.m4a`));
+test('Every offered interval length has a sample-exact loop: the interval master at 0 s, then silence', () => {
+  const loops = JSON.parse(readFileSync(path.join(bank, 'loops.json'), 'utf8'));
+  const catalogue = readFileSync(path.join(root, 'src/audio/assets.ts'), 'utf8');
+  const preferences = readFileSync(path.join(root, 'src/data/audio-preferences.ts'), 'utf8');
+  const offered = preferences.match(/INTERVAL_MINUTES = \[([^\]]+)\]/)[1].split(',').map(Number);
+  assert.equal(loops.sourceSha256, analysis.assets['interval.wav'].sha256);
+  assert.deepEqual(Object.values(loops.assets).map(entry => entry.minutes), offered);
+  let total = 0;
+  for (const [name, entry] of Object.entries(loops.assets)) {
+    const bytes = readFileSync(path.join(bank, name));
     assert.equal(hash(bytes), entry.sha256);
     assert.equal(bytes.length, entry.bytes);
-    assert.equal(entry.sourceSha256, analysis.assets['interval.wav'].sha256);
-    assert.equal(timelines.sourceSha256, entry.sourceSha256);
-    assert.equal(entry.intervalSeconds, minutes * 60);
-    assert.equal(entry.firstBellSeconds, minutes * 60);
-    assert.equal(entry.seconds, timelines.activeSeconds + timelines.tailSeconds);
-    assert.equal(timelines.activeSeconds, 21600);
-    assert.equal(timelines.tailSeconds, 12);
-    assert.ok(entry.decoded.correlationWithIntervalMaster > .98);
-    assert.ok(entry.decoded.samplePeak < .12);
-    assert.ok(entry.decoded.firstSecondRmsDifference < .001);
-    assert.ok(entry.decoded.firstLastRmsDifference < .001);
-    assert.ok(entry.decoded.beforeFirstBellPeak < .002);
-    const catalogue = readFileSync(path.join(root, 'src/audio/assets.ts'), 'utf8');
-    assert.ok(catalogue.includes(`require('../../assets/audio/bells-v2/interval-${minutes}m.m4a')`));
-  });
-}
+    assert.equal(bytes.toString('ascii', 0, 4), 'fLaC');
+    assert.equal(entry.seconds, entry.minutes * 60);
+    assert.equal(entry.samples, entry.seconds * 24000);
+    assert.ok(catalogue.includes(`require('../../assets/audio/bells-v2/${name}')`));
+    total += bytes.length;
+  }
+  assert.ok(total < 5_000_000, 'all loops together stay far below the former 19 MB of six-hour timelines');
+});

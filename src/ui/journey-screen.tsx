@@ -5,6 +5,7 @@ import Animated, { cancelAnimation, Easing, FadeIn, ReduceMotion, useAnimatedPro
 import Svg, { Circle } from 'react-native-svg';
 import { useOna } from '@/application/ona-provider';
 import { CategoryIcon } from './category-icon';
+import { PaperBackdrop } from './coastal-scene';
 import { HomeNavigation } from './home-navigation';
 import { formatRipples } from './format-ripples';
 import { colors, Screen, Type, serifFont as serif } from './primitives';
@@ -61,7 +62,7 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
   const level = journey.level.number;
   const presentation = getLevelCategoryPresentation(journey.level);
   const toward = journey.next ? `Toward Level ${journey.next.number}` : 'Your practice continues';
-  return <View style={{ flex: 1 }}><Screen scroll={false} style={{ paddingBottom: 0 }}>
+  return <PaperBackdrop><Screen scroll={false} style={{ paddingBottom: 0, backgroundColor: 'transparent' }}>
     <View style={styles.header}>
       <Type role="title">Journey</Type>
       <QuietPressable accessibilityRole="button" accessibilityLabel="Return to practice calendar" onPress={onShowCalendar} style={styles.headerAction}>
@@ -97,7 +98,7 @@ export function JourneyScreen({ onShowCalendar }: { onShowCalendar: () => void }
       </View>
     </ScrollView>
     </Animated.View>
-  </Screen><HomeNavigation active="journey" /></View>;
+  </Screen><HomeNavigation active="journey" /></PaperBackdrop>;
 }
 
 const styles = StyleSheet.create({
