@@ -1138,3 +1138,8 @@ Owner: remove the date line under the calendar and bring the painting closer; sh
 completing a session, so a day or a twice-a-day day is visible right away. streakMoment returns 'again'
 for a further counted practice on a day that already counted (tested); the celebration says so, or
 "A day practised twice." when the six-hour rule is met. Day taps open the practice directly.
+
+### Home pull hint (2026-10-17)
+
+Owner chose suggestion 4: a quiet chevron hint for the Home → Journey pull, retiring after three uses.
+Verified on web (visible, three pulls up/down, gone after reload of state).

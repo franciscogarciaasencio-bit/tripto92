@@ -252,6 +252,11 @@ the painting sits closer to the calendar. The after-session calendar now follows
 a second one the same day is 'again' ("Another quiet moment."), and one that makes the day twice-a-day
 says "A day practised twice." while its drop turns indigo.
 
+Pull hint (2026-10-17): a faint upward chevron in the gap above Home's tabs drifts up every few
+seconds (still with Reduced Motion; tap opens Journey) and fades for good after three pulls into
+Journey. The count is a device-only convenience in the platform key store (journey-hint.ts), never
+synced or part of practice data. Home's Level/Consistency divider ends earlier to leave it room.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

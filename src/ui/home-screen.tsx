@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import { GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useVerticalPage } from './vertical-page';
+import { JourneyPullHint } from './journey-pull-hint';
+import { useJourneyPullHint } from '@/application/journey-hint';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
@@ -35,14 +37,15 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
   // Pull up past the end of Home to rise into Journey (its route slides in from below).
   const atBottom = useSharedValue(true), measure = useRef({ offset: 0, layout: 0, content: 0 });
   const updateEdge = () => { const m = measure.current; atBottom.set(m.offset + m.layout >= m.content - 2); };
-  const opening = useRef(false);
+  const opening = useRef(false), hint = useJourneyPullHint(), usedHint = hint.used;
   const openJourney = useCallback(() => {
     if (opening.current) return;
     opening.current = true;
     router.push({ pathname: '/practice', params: { view: 'calendar' } });
     setTimeout(() => { opening.current = false; }, 800);
   }, []);
-  const page = useVerticalPage({ direction: 'up', atEdge: atBottom, onTurn: openJourney, simultaneous: scrollGesture,
+  const pulledToJourney = useCallback(() => { usedHint(); openJourney(); }, [usedHint, openJourney]);
+  const page = useVerticalPage({ direction: 'up', atEdge: atBottom, onTurn: pulledToJourney, simultaneous: scrollGesture,
     enabled: !!scrollGesture && !app.busy && !app.draft && !app.completion && !audio.starting });
 
   const journey = app.journey, consistency = app.snapshot?.consistency;
@@ -105,13 +108,16 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
           <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 9 * scale }]}>{categoryName}</Text>
           <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
         </QuietPressable>
-        <View style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale }}>
+        <View style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale,
+          alignSelf: 'flex-start', minHeight: 92 * scale }}>
           <View style={[styles.titleRow, { height: 32 * scale }]}>
             <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>Consistency</Text>
           </View>
           <View style={{ marginTop: 10 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
         </View>
       </View>}
+      {/* A faint chevron in the gap above the tabs, until the pull into Journey has been used a few times. */}
+      {scrollGesture && <JourneyPullHint visible={hint.visible} top={contentHeight - 9 * scale} scale={scale} onPress={openJourney} />}
     </View>
   </ScrollView>;
   return <View style={styles.screen}><CoastalTexture width={width} height={height} />
