@@ -48,8 +48,23 @@ The Apple ID password is typed into AltServer, a third-party tool; that is the o
   phones; native changes need a new runtime version, a new APK **and** a new run of this workflow,
   then installing the new .ipa over the old one with AltStore (data kept).
 
-## Not verified here
+## Verified unsigned build — 2026-10-16
 
-The cloud workspace cannot reach GitHub's runners or a phone. Unverified until the first build
-and install: the macOS build itself, background audio on a locked iPhone, Google sign-in on iOS,
-haptics/safe areas on the owner's model, and update arrival on iPhone.
+[GitHub run 38858542679](https://github.com/franciscogarciaasencio-bit/tripto92/actions/runs/38858542679)
+succeeded on its first attempt from commit `f82e964c57be691d2220746db4d023e6cc217c8f`.
+Artifact `ona-ios-unsigned-f82e964c57be691d2220746db4d023e6cc217c8f` is retained until 2026-10-30.
+
+- File: `Ona-1.2.0-unsigned.ipa`, **50.14 MB** (50,136,861 bytes, decimal MB).
+- SHA-256: `8ef9ddea0ba50e24b2409c21ebdec139c2bde8703af4b1b8e00c5f87fa4243ba`.
+- Downloaded with `gh run download` to the owner's Downloads/ona-ios/run-38858542679 folder,
+  outside the repository. The downloaded file matches the runner's checksum.
+
+The workflow and downloaded archive checks passed: ARM64 app, `com.meditation.ona`, version
+1.2.0 (build 1), bundled Hermes JavaScript/update manifest, background audio, update runtime
+1.2.0 and channel preview. Local TypeScript/lint, 998 tests and all-platform export also passed.
+No build fixes or Apple credentials were needed; no generated ios folder or IPA was committed.
+
+## Device checks still pending
+
+Signing/installing with the owner's free Apple ID, background audio on a locked iPhone, Google
+sign-in on iOS, haptics/safe areas on the owner's model and update arrival still need a phone.

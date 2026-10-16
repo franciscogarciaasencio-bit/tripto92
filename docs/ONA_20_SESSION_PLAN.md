@@ -1071,3 +1071,12 @@ Owner chose the free route: an unsigned build from GitHub Actions (ios-unsigned.
 a free Apple ID through AltStore, renewed every 7 days, updated over the air like the APK. app.json
 gains the iOS identity and the preview channel header; tests guard both. Not yet run: the macOS build,
 install and on-device checks (docs/IOS_SIDELOAD.md).
+
+### Unsigned iPhone build — Verified (2026-10-16)
+
+GitHub run `38858542679` succeeded first attempt from `f82e964`; downloaded the unsigned 1.2.0 (1)
+IPA outside the repository (50.14 MB), matching the runner's SHA-256. Archive identity/ARM64,
+bundled Hermes, background audio and preview runtime 1.2.0 passed. Local checks: TypeScript/lint,
+998 tests and all-platform export passed. No build fixes, Apple credentials or generated native
+files were committed. Free-ID signing/installation and device behavior remain unverified.
+Run link, checksum and details: IOS_SIDELOAD.md.
