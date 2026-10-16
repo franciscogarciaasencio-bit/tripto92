@@ -1100,3 +1100,11 @@ completion for existing users without the stored dismissal). Owner reported an A
 completion screen as Consistency was about to grow; not reproducible on web (no errors, consistency
 grows by one small step). Hardened the reward glows' colour strings against exponent notation; the
 device crash log is still needed to confirm the cause.
+
+### Published breath-counting guide, indigo calendar and reward glow fix — 2026-10-16
+
+Published Android/iOS OTA group `328a10bc-2757-4dca-abd3-6a2668e8d199` from clean commit
+`3e6cce1` to runtime `1.2.0` on channel `preview`, using EAS environment `preview`.
+Node 24.21.0, npm ci, TypeScript/lint, 1,003 tests and all-platform export passed; EAS confirmed
+both platforms and the channel mapping. Update arrival and Android crash resolution remain
+device checks. Details: UPDATES.md. No APK was built.

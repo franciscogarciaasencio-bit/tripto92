@@ -52,3 +52,16 @@ the previous commit (`eas update:republish` or a new update from that commit).
 Published after clean npm ci, TypeScript/lint, 997 passing tests and all-platform export.
 EAS confirmed the runtime and active channel mapping. The owner confirmed installing 1.2.0 (3)
 over the old app before publication. Update arrival and native listening remain device checks.
+
+### 2026-10-16 — Breath-counting guide, indigo calendar and reward glow fix
+
+- Update group: `328a10bc-2757-4dca-abd3-6a2668e8d199` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/328a10bc-2757-4dca-abd3-6a2668e8d199).
+- Source commit: `3e6cce1d253beecb5598595210bcee96695d3577` (clean main).
+- Android and iOS, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+
+Published after Node 24.21.0, clean npm ci, TypeScript/lint, 1,003 passing tests and
+all-platform export. EAS confirmed both published platforms and the active preview channel's
+mapping to this group. Includes the breath-counting guide, indigo twice-a-day calendar marks
+and legend, and reward glow colour hardening. Update arrival and the reported Android crash's
+resolution remain device checks; no APK was built.
