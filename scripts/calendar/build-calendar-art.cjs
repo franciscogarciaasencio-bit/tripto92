@@ -66,12 +66,16 @@ function gooMask(id, n, neck) {
     <mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><g filter="url(#${id}-goo)">${drops}</g></mask>`;
 }
 
-function inkDay(variant) {
+/** Near-black ink; indigo ink marks a day practised twice (two practices six hours apart). */
+const INK_TONES = { black: ['#2b2a27', '#1a1917', '#121210'], indigo: ['#34405c', '#232e48', '#19223a'] };
+
+function inkDay(variant, tone = 'black') {
   const seed = 11 + variant * 17;
   const lightAt = [[0.36, 0.34], [0.6, 0.4], [0.45, 0.62]][variant % 3];
+  const [a, b, c] = INK_TONES[tone];
   return `<defs>${inkFilter('ink', seed)}
       <radialGradient id="depth" cx="${lightAt[0]}" cy="${lightAt[1]}" r="0.75">
-        <stop offset="0" stop-color="#2b2a27"/><stop offset="0.7" stop-color="#1a1917"/><stop offset="1" stop-color="#121210"/></radialGradient></defs>
+        <stop offset="0" stop-color="${a}"/><stop offset="0.7" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></radialGradient></defs>
     <g filter="url(#ink)"><circle cx="${C / 2}" cy="${Y}" r="${R * (variant === 2 ? 0.99 : 1)}" fill="url(#depth)"/></g>`;
 }
 
@@ -88,6 +92,14 @@ function washRun(n) {
     </g></g>`;
 }
 
+/** One indigo-washed drop, the size of a run's drop: laid over a day of a run practised twice. */
+function indigoBead() {
+  return `<defs>${washFilter('wash', 41)}
+      <radialGradient id="tone" cx="0.42" cy="0.4" r="0.7">
+        <stop offset="0" stop-color="#ccd3de"/><stop offset="0.75" stop-color="#c3cbd8"/><stop offset="1" stop-color="#bac3d2"/></radialGradient></defs>
+    <g filter="url(#wash)"><circle cx="${C / 2}" cy="${Y}" r="${RUN_R}" fill="url(#tone)"/></g>`;
+}
+
 async function render(scene, name, crop) {
   const work = mkdtempSync(path.join(tmpdir(), 'ona-calendar-'));
   const png = path.join(work, 'full.png');
@@ -101,7 +113,13 @@ im.save(${JSON.stringify(path.join(OUT, name))}, 'WEBP', quality=92, method=6)`]
 
 async function main() {
   mkdirSync(OUT, { recursive: true });
-  for (let v = 0; v < 3; v++) await render(inkDay(v), `ink-${v + 1}.webp`, [0, Y - C / 2, C, Y + C / 2]);
-  for (let n = 2; n <= 7; n++) await render(washRun(n), `wash-${n}.webp`, [0, Y - C / 2, n * C, Y + C / 2]);
+  // ONLY=indigo paints just the twice-a-day marks (added 2026-10-16) and leaves the others untouched.
+  const only = process.env.ONLY;
+  if (only !== 'indigo') {
+    for (let v = 0; v < 3; v++) await render(inkDay(v), `ink-${v + 1}.webp`, [0, Y - C / 2, C, Y + C / 2]);
+    for (let n = 2; n <= 7; n++) await render(washRun(n), `wash-${n}.webp`, [0, Y - C / 2, n * C, Y + C / 2]);
+  }
+  for (let v = 0; v < 3; v++) await render(inkDay(v, 'indigo'), `indigo-${v + 1}.webp`, [0, Y - C / 2, C, Y + C / 2]);
+  await render(indigoBead(), 'indigo-bead.webp', [0, Y - C / 2, C, Y + C / 2]);
 }
 main().catch((error) => { console.error(error); process.exit(1); });

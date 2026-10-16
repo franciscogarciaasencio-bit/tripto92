@@ -1090,3 +1090,13 @@ counting out-breaths 1–10, come back), ending with Meditate now → Prepare. T
 reuses the stored explanation dismissal (no migration). Guide's How to Meditate and the
 wandering-mind answer now teach counting. Verified on web at 390/320 from a fresh profile (opens
 once, not again after reload). JavaScript only: ships over the air.
+
+### Calendar: days practised twice, legend; first-launch guide only for new users (2026-10-16)
+
+Owner asked for double-session days to look different (dark blue suggested) with a legend: indigo ink
+drop / indigo drop within a run, two-line legend under the month, a Guide sentence. The first-launch
+guide now opens only for a user with no saved practice (it had appeared right after acknowledging a
+completion for existing users without the stored dismissal). Owner reported an Android crash on the
+completion screen as Consistency was about to grow; not reproducible on web (no errors, consistency
+grows by one small step). Hardened the reward glows' colour strings against exponent notation; the
+device crash log is still needed to confirm the cause.

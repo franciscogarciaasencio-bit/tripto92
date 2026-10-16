@@ -85,7 +85,7 @@ export default function CompletionScreen() {
         <CoastalScene composition={{ ...c, contentHeight }} completion stageId={getForestStage({ highestLevel: app.habit?.highestLevel ?? 0,
           currentLevel: app.journey?.level.number ?? 0 }).id} />
       </View>
-      {stage === 'rhythm' && rhythm ? <StreakCelebration key={rhythm.id} moment={rhythm.moment} sessions={rhythm.sessions} scale={c.scale}
+      {stage === 'rhythm' && rhythm ? <StreakCelebration key={rhythm.id} moment={rhythm.moment} sessions={rhythm.sessions} practiceId={rhythm.id} scale={c.scale}
         busy={app.busy || departing !== null} onContinue={continueHome} />
       : displayed ? <CompletionContent key={displayed.completion.session.id}
         completion={displayed.completion} journey={displayed.journey} snapshot={displayed.snapshot} scale={c.scale}

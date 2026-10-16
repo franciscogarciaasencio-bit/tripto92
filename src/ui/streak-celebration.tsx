@@ -6,6 +6,7 @@ import type { MeditationSession, PracticeStreaks, StreakMoment } from '@/domain/
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
 import { PaintedMonth } from './painted-month';
+import { doubleDays, doubleDaysBefore } from './double-days';
 import { practiceDateLabel } from './practice-history';
 import { QuietPressable } from './quiet-pressable';
 import { useReducedMotion } from './reduced-motion';
@@ -83,8 +84,8 @@ function RollingNumber({ from, to, style, still }: { from: number; to: number; s
  * The calendar moment after "Well done": the month of the practice, with this practice's day joining
  * its streak, and words that celebrate days in a row, a consistent week or a full month.
  */
-export function StreakCelebration({ moment, sessions, scale, busy, onContinue }: {
-  moment: StreakMoment; sessions: readonly Pick<MeditationSession, 'status' | 'activeDurationSeconds' | 'localDate'>[];
+export function StreakCelebration({ moment, sessions, practiceId, scale, busy, onContinue }: {
+  moment: StreakMoment; sessions: readonly MeditationSession[]; practiceId: string;
   scale: number; busy: boolean; onContinue: () => void;
 }) {
   const still = useReducedMotion();
@@ -99,6 +100,7 @@ export function StreakCelebration({ moment, sessions, scale, busy, onContinue }:
 
   const month = moment.date.slice(0, 7);
   const [practiced] = useState(() => new Set(sessions.map((session) => session.localDate)));
+  const [twice] = useState(() => ({ after: doubleDays(sessions), before: doubleDaysBefore(sessions, practiceId) }));
   const headline = { fontFamily: coastalSerif, fontSize: 32 * scale, lineHeight: 40 * scale, color: coastalInk };
 
   return <Animated.View style={[{ width: '100%' }, enterStyle]}>
@@ -128,7 +130,7 @@ export function StreakCelebration({ moment, sessions, scale, busy, onContinue }:
       </View>
       <View accessible accessibilityLabel={`${practiceDateLabel(moment.date, { month: 'long', day: 'numeric' })} joins your calendar`}>
         <PaintedMonth month={month} streaks={streaks} practiced={practiced} today={moment.date}
-          moment={{ date: moment.date }} />
+          moment={{ date: moment.date }} doubles={twice.after} doublesBefore={twice.before} />
       </View>
     </View>
 

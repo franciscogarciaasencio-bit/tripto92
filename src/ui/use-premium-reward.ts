@@ -98,8 +98,9 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
     fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity]);
   const levelStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   const levelContainerStyle = useAnimatedStyle(() => ({ opacity: levelOpacity.value }));
-  const levelGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${levelHighlight.value * .16})` }));
-  const consistencyGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${consistencyHighlight.value * .16})` }));
+  // Fixed decimals: a native color parser must never see exponent notation (1e-7) mid-animation.
+  const levelGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, levelHighlight.value * .16)).toFixed(4)})` }));
+  const consistencyGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, consistencyHighlight.value * .16)).toFixed(4)})` }));
   const bonusStyle = useAnimatedStyle(() => ({ opacity: bonusOpacity.value }));
   const baseEarningsStyle = useAnimatedStyle(() => ({ opacity: 1 - bonusOpacity.value }));
   return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency,

@@ -8,7 +8,8 @@ import { currentContext, useOna } from '@/application/ona-provider';
 import type { StoredMeditationSession } from '@/data';
 import { practiceStreaks, STREAK_RULES } from '@/domain/progression';
 import { MonthSlide, StreakOverview } from './calendar-streaks';
-import { CALENDAR_VIGNETTE, PaintedMonth, VIGNETTE_RATIO } from './painted-month';
+import { CALENDAR_VIGNETTE, CalendarLegend, PaintedMonth, VIGNETTE_RATIO } from './painted-month';
+import { doubleDays } from './double-days';
 import { HomeNavigation } from './home-navigation';
 import { Action, colors, formatDuration, Notice, Screen, serifFont, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
@@ -86,6 +87,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
   const byDate = useMemo(() => new Map(groupPracticeHistory(current ? records : []).map(day => [day.key, day.data])), [current, records]);
   const summary = useMemo(() => monthPracticeSummary(current ? records : [], month), [current, records, month]);
   const streaks = useMemo(() => practiceStreaks((current ? records : []).map(({ session }) => session), today), [current, records, today]);
+  const doubles = useMemo(() => doubleDays((current ? records : []).map(({ session }) => session)), [current, records]);
   const shown = !loading && current && !error;
   const practiceDates = useMemo(() => new Set(byDate.keys()), [byDate]);
 
@@ -141,8 +143,9 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </View>
       <MonthSlide key={month} direction={direction}>
         <PaintedMonth month={month} streaks={streaks} practiced={practiceDates} today={today} selected={selected}
-          onSelect={setSelected} live={shown} />
+          onSelect={setSelected} live={shown} doubles={doubles} />
       </MonthSlide>
+      <CalendarLegend />
       {/* The chosen day in one quiet line; its practice opens with a tap. */}
       {shown && <QuietPressable accessibilityRole={selectedRecords.length ? 'button' : 'text'} disabled={!selectedRecords.length}
         accessibilityHint={selectedRecords.length ? 'Opens this practice' : undefined} onPress={() => {

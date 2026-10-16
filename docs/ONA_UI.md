@@ -232,6 +232,11 @@ Sprites (assets/ona/calendar/ink-1…3, wash-2…7) are painted by scripts/calen
 (ink filter with feathered edge and faint lighter pools; wash with mottled blooms and a pooled rim; drops
 plus bridges re-sharpened into rounded necks) and cut to whole columns, never stretched.
 
+Twice a day (owner, 2026-10-16): a day with two qualifying practices six hours apart (the rule that
+earns two practice credits; ui/double-days.ts) is indigo: an indigo ink drop on its own, or an indigo
+wash drop laid over its place in a run (indigo-*.webp, painted by the same script with ONLY=indigo).
+A two-line legend under the month names the four marks with the same sprites.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

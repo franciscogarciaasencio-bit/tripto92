@@ -21,6 +21,11 @@ const WASH: Record<number, number> = {
   4: require('../../assets/ona/calendar/wash-4.webp'), 5: require('../../assets/ona/calendar/wash-5.webp'),
   6: require('../../assets/ona/calendar/wash-6.webp'), 7: require('../../assets/ona/calendar/wash-7.webp'),
 };
+/** A day practised twice (two practices at least six hours apart): indigo ink, or an indigo drop in a run. */
+const INDIGO = [require('../../assets/ona/calendar/indigo-1.webp'), require('../../assets/ona/calendar/indigo-2.webp'),
+  require('../../assets/ona/calendar/indigo-3.webp')] as const;
+const INDIGO_BEAD = require('../../assets/ona/calendar/indigo-bead.webp');
+const NO_DOUBLES: ReadonlySet<string> = new Set();
 export const CALENDAR_VIGNETTE = require('../../assets/ona/calendar/vignette.webp');
 /** Width / height of vignette.webp. */
 export const VIGNETTE_RATIO = 1024 / 722;
@@ -60,29 +65,34 @@ export function monthRows(month: string) {
 }
 
 /** A stable ink variant per date, so a day keeps its drop. */
-function inkFor(date: string) {
+function inkFor(date: string, twice = false) {
   let hash = 0;
   for (const char of date) hash = (hash * 31 + char.charCodeAt(0)) % 997;
-  return INK[hash % INK.length]!;
+  return (twice ? INDIGO : INK)[hash % INK.length]!;
 }
 
 type Run = readonly [number, number];
 const sameRun = (a: Run, b: Run) => a[0] === b[0] && a[1] === b[1];
 
-/** One mark: an ink drop for a single day, the n-day wash for a run. */
-function Mark({ run, dates, cell, top }: { run: Run; dates: readonly string[]; cell: number; top: number }) {
+/** One mark: an ink drop for a single day, the n-day wash for a run; days practised twice in indigo. */
+function Mark({ run, dates, cell, top, doubles = NO_DOUBLES }: { run: Run; dates: readonly string[]; cell: number; top: number; doubles?: ReadonlySet<string> }) {
   const length = run[1] - run[0] + 1;
-  return <Image source={length === 1 ? inkFor(dates[run[0]]!) : WASH[length]!}
-    style={{ position: 'absolute', left: run[0] * cell, top, width: length * cell, height: cell }} />;
+  if (length === 1) return <Image source={inkFor(dates[run[0]]!, doubles.has(dates[run[0]]!))}
+    style={{ position: 'absolute', left: run[0] * cell, top, width: cell, height: cell }} />;
+  return <>
+    <Image source={WASH[length]!} style={{ position: 'absolute', left: run[0] * cell, top, width: length * cell, height: cell }} />
+    {dates.slice(run[0], run[1] + 1).map((date, index) => doubles.has(date) && <Image key={date} source={INDIGO_BEAD}
+      style={{ position: 'absolute', left: (run[0] + index) * cell, top, width: cell, height: cell }} />)}
+  </>;
 }
 
 /** A mark that draws in left to right like one brush stroke (calendar opening, month change). */
-function DrawnMark({ run, dates, cell, top, delay, still }: { run: Run; dates: readonly string[]; cell: number; top: number; delay: number; still: boolean }) {
+function DrawnMark({ run, dates, cell, top, delay, still, doubles }: { run: Run; dates: readonly string[]; cell: number; top: number; delay: number; still: boolean; doubles: ReadonlySet<string> }) {
   const length = run[1] - run[0] + 1;
   const reveal = useStep(delay, 240 + length * 80, still);
   const style = useAnimatedStyle(() => ({ width: cell * length * reveal.value, opacity: Math.min(1, reveal.value * 2.5) }));
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, height: cell, overflow: 'hidden' }, style]}>
-    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} />
+    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} doubles={doubles} />
   </Animated.View>;
 }
 
@@ -94,17 +104,17 @@ function FadeOut({ delay, duration, still, children }: { delay: number; duration
 }
 
 /** The newest day's mark arriving: an ink drop settles in, or the run grows from the days it joins. */
-function Arriving({ run, from, dates, cell, top, still }: { run: Run; from: number; dates: readonly string[]; cell: number; top: number; still: boolean }) {
+function Arriving({ run, from, dates, cell, top, still, doubles }: { run: Run; from: number; dates: readonly string[]; cell: number; top: number; still: boolean; doubles: ReadonlySet<string> }) {
   const length = run[1] - run[0] + 1;
   const grow = useStep(420, 520, still);
   const drop = useStep(420, 460, still, arrive);
   const growStyle = useAnimatedStyle(() => ({ width: cell * (from + (length - from) * grow.value), opacity: from > 0 ? 1 : Math.min(1, grow.value * 2.5) }));
   const dropStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, drop.value * 2), transform: [{ scale: 0.4 + 0.6 * drop.value }] }));
   if (length === 1) return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, width: cell, height: cell }, dropStyle]}>
-    <Mark run={[0, 0]} dates={[dates[run[0]]!]} cell={cell} top={0} />
+    <Mark run={[0, 0]} dates={[dates[run[0]]!]} cell={cell} top={0} doubles={doubles} />
   </Animated.View>;
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: run[0] * cell, top, height: cell, overflow: 'hidden' }, growStyle]}>
-    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} />
+    <Mark run={[0, length - 1]} dates={dates.slice(run[0], run[1] + 1)} cell={cell} top={0} doubles={doubles} />
   </Animated.View>;
 }
 
@@ -140,11 +150,14 @@ function DayNumber({ day, inMonth, onInk, wasOnInk, cell, turnsAt, fade = 260, s
  * in (its drop settles, or its run grows from the days it joins, and ripples spread). Otherwise the
  * month draws in gently, row by row.
  */
-export function PaintedMonth({ month, streaks, practiced, today, selected, onSelect, moment, live = true }: {
+export function PaintedMonth({ month, streaks, practiced, today, selected, onSelect, moment, live = true, doubles = NO_DOUBLES, doublesBefore }: {
   month: string; streaks: PracticeStreaks; practiced: ReadonlySet<string>; today: string;
   selected?: string | null; onSelect?: (date: string) => void;
   moment?: { date: string } | null; live?: boolean;
+  /** Days practised twice (two practices at least six hours apart); before the moment's practice, too. */
+  doubles?: ReadonlySet<string>; doublesBefore?: ReadonlySet<string>;
 }) {
+  const twice = live ? doubles : NO_DOUBLES, twiceBefore = live ? doublesBefore ?? doubles : NO_DOUBLES;
   const still = useMotionPreference() !== false;
   const [width, setWidth] = useState(0);
   const cell = width / 7, rowHeight = cell * ROW_RATIO, markTop = (rowHeight - cell) / 2, dot = Math.max(4, Math.round(cell * 0.115));
@@ -169,15 +182,15 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
           {showsWeek && <View style={[styles.week, { top: rowHeight * 0.06, height: rowHeight * 0.88, borderRadius: rowHeight * 0.44 }]} />}
           {moment
             ? <>
-              {unchanged.map((run) => <Mark key={`s${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} />)}
+              {unchanged.map((run) => <Mark key={`s${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} doubles={twice} />)}
               {replaced.length > 0 && <FadeOut delay={420} duration={520} still={still}>
-                {replaced.map((run) => <Mark key={`b${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} />)}
+                {replaced.map((run) => <Mark key={`b${run[0]}`} run={run} dates={dates} cell={cell} top={markTop} doubles={twiceBefore} />)}
               </FadeOut>}
-              {arriving && <Arriving run={arriving} dates={dates} cell={cell} top={markTop} still={still}
+              {arriving && <Arriving run={arriving} dates={dates} cell={cell} top={markTop} still={still} doubles={twice}
                 from={replaced.length ? Math.max(0, momentColumn - arriving[0]) : 0} />}
             </>
             : after.map((run) => <DrawnMark key={`${month}${run[0]}`} run={run} dates={dates} cell={cell} top={markTop}
-              delay={drawDelay(row, run[0])} still={still} />)}
+              delay={drawDelay(row, run[0])} still={still} doubles={twice} />)}
           {dates.map((date, column) => {
             const inMonth = date.startsWith(`${month}-`);
             const isCounted = counted[column]!;
@@ -187,7 +200,7 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
             const chosen = !!onSelect && selected === date && inMonth;
             const isMoment = column === momentColumn;
             const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}`
-              + `${isCounted ? ', counts toward streaks' : short ? ', a shorter practice' : ''}${date === today ? ', today' : ''}`;
+              + `${isCounted ? ', counts toward streaks' : short ? ', a shorter practice' : ''}${twice.has(date) ? ', practised twice' : ''}${date === today ? ', today' : ''}`;
             const content = <>
               {isMoment && <View style={{ position: 'absolute', left: cell / 2, top: rowHeight / 2 }}>
                 <Ripple size={cell * 0.74} delay={780} still={still} /><Ripple size={cell * 0.74} delay={1060} still={still} />
@@ -213,7 +226,30 @@ export function PaintedMonth({ month, streaks, practiced, today, selected, onSel
   </View>;
 }
 
+/** What the marks mean, drawn with the same sprites, small and quiet; two balanced lines. */
+export function CalendarLegend() {
+  const size = 18;
+  const item = (mark: React.ReactNode, label: string) => <View key={label} style={styles.legendItem}>{mark}<Text style={styles.legendText}>{label}</Text></View>;
+  return <View accessible accessibilityLabel="Legend: a dark drop is a day of practice; a pale wash joins days in a row; indigo is a day practised twice, six hours apart; a small dot is a shorter practice."
+    style={styles.legend}>
+    <View style={styles.legendLine}>
+      {item(<Image source={INK[0]} style={{ width: size, height: size }} />, 'A day of practice')}
+      {item(<Image source={WASH[2]!} style={{ width: size * 2, height: size }} />, 'Days in a row')}
+    </View>
+    <View style={styles.legendLine}>
+      {item(<View style={{ flexDirection: 'row' }}><Image source={INDIGO[0]} style={{ width: size, height: size }} />
+        <Image source={INDIGO_BEAD} style={{ width: size, height: size, marginLeft: -2 }} /></View>, 'Twice in a day')}
+      {item(<View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.ink }} /></View>, 'Shorter practice')}
+    </View>
+  </View>;
+}
+
 const styles = StyleSheet.create({
+  legend: { alignItems: 'center', gap: 4, marginTop: 10 },
+  legendLine: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 16, rowGap: 4 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendText: { fontFamily: 'ManropeRegular', fontSize: 11.5, lineHeight: 16, color: 'rgba(20,20,20,0.58)' },
   weekdays: { flexDirection: 'row', paddingBottom: 6 },
   weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 10.5, lineHeight: 16, letterSpacing: 0.6, color: 'rgba(20,20,20,0.5)' },
   line: { position: 'absolute', top: 0, left: 2, right: 2, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },

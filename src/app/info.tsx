@@ -30,7 +30,7 @@ export default function Guide() {
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your rhythm</Text>
         <Type>Even a short practice can earn Ripples. At least three active minutes build Consistency. Five quiet milestones mark a rhythm that grows over about two months of daily practice.</Type>
-        <Type role="secondary">A second practice, at least six hours after the first ends, helps that rhythm grow a little faster. Returning twice a day can reach the final milestone in about a month.</Type>
+        <Type role="secondary">A second practice, at least six hours after the first ends, helps that rhythm grow a little faster. Returning twice a day can reach the final milestone in about a month. Your calendar marks those days in indigo.</Type>
         <Type role="secondary">Time away gradually softens your rhythm. Regular practice brings extra Ripples automatically; come back whenever you can.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your journey</Text>

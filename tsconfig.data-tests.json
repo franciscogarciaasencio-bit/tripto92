@@ -27,7 +27,8 @@
     "src/application/sync-status.ts",
     "src/ui/intentions.ts",
     "src/ui/streak-geometry.ts",
-    "src/ui/breath-rhythm.ts"
+    "src/ui/breath-rhythm.ts",
+    "src/ui/double-days.ts"
   ],
   "exclude": [
     "src/data/index.ts",
