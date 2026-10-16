@@ -74,7 +74,7 @@ test('Real saved history produces correct summaries through paging, reload and f
   const first = await meditations.getMeditationHistory({ limit: 2 });
   const rest = await meditations.getMeditationHistory({ limit: 2, offset: 2 });
   const merged = appendHistoryPage(first, rest), checkpoint = await meditations.loadProgressionState();
-  assert.deepEqual(monthPracticeSummary(merged, '2026-01'), { practiceDays: 2, practices: 3, activeSeconds: 1020 });
+  assert.deepEqual(monthPracticeSummary(merged, '2026-01'), { practiceDays: 2, practices: 2, activeSeconds: 900 }, 'the two-minute practice stays in history but not in the totals');
   assert.deepEqual(groupPracticeHistory(merged).map(day => [day.key, day.data.length]), [['2026-01-06', 1], ['2026-01-05', 2]]);
   assert.deepEqual(merged, await meditations.getMeditationHistory());
   assert.deepEqual(await meditations.loadProgressionState(), checkpoint, 'Reading and summarizing does not change awards or progression');
