@@ -39,10 +39,13 @@ The Apple ID password is typed into AltServer, a third-party tool; that is the o
 
 ## Living with it
 
-- **Every 7 days** the signature expires. AltStore renews in the background while the PC runs
-  AltServer and the iPhone is on the same Wi-Fi; otherwise open AltStore → My Apps → Refresh All,
-  or plug in by USB. An expired Ona will not open until refreshed; its practice data stays as
-  long as the app is **never deleted**. Refresh, do not reinstall from scratch.
+- **Every 7 days** the free Apple ID signature expires. AltStore can renew apps it manages in
+  the background while the PC runs AltServer and the iPhone is on the same Wi-Fi; otherwise use
+  AltStore → My Apps → Refresh All, or connect by USB. Ona was installed directly through AltServer
+  on 2026-10-17, so its AltStore renewal is not yet confirmed: check whether Ona appears in My Apps.
+  Until renewal is confirmed, re-sign the same IPA through AltServer before seven days elapse,
+  installing over the existing app. An expired Ona will not open until renewed. **Never delete it**;
+  keeping the existing app preserves its practice data.
 - A free Apple ID allows 3 sideloaded apps at once (AltStore counts as one).
 - Updates: publish with `--platform all` (docs/UPDATES.md). JavaScript and assets reach both
   phones; native changes need a new runtime version, a new APK **and** a new run of this workflow,
@@ -86,9 +89,26 @@ The owner confirmed AltStore is installed and signed in. AltServer was confirmed
 PC. Copying into iCloud Drive is blocked by the owner's iCloud sign-in error; its sync folder is
 absent, so no successful iCloud transfer is claimed. The downloaded IPA can instead be imported
 into AltStore after transfer to Files, or installed from the PC with AltServer's
-Shift-click → Sideload .ipa menu. Ona signing/installation and device behavior remain unverified.
+Shift-click → Sideload .ipa menu. See the installation result below.
+
+## Installation confirmed — 2026-10-17
+
+The owner downloaded the verified IPA over a temporary local Wi-Fi link after iCloud sign-in
+failed. Importing it through the iPhone AltStore app failed with `Apple.APIError -90010` and
+`AltStore.AppleDeveloperError 3000` (Apple authentication HTTP 503). Refresh All succeeded.
+Disabling Prefer Remote AltServer and retrying over USB still returned HTTP 503.
+
+Direct installation from the Windows AltServer 1.8 tray menu (Shift-click → Sideload .ipa →
+iPhone → the same verified IPA) succeeded. The owner then confirmed Ona opens and works after
+being asked to check Home and Settings version 1.2.0. No Ona archive or app-code change was needed.
+The owner also reported successful sign-in to the already-installed iLoader 2.3.9.
+
+Ona keeps its embedded preview runtime 1.2.0 update configuration. JavaScript/asset updates download
+on launch and apply on the next launch; free-ID signature renewal is a separate weekly task.
+Background renewal of this directly installed app and arrival of a later OTA still need confirmation.
 
 ## Device checks still pending
 
-Signing/installing with the owner's free Apple ID, background audio on a locked iPhone, Google
-sign-in on iOS, haptics/safe areas on the owner's model and update arrival still need a phone.
+Focused checks remain for long locked-screen audio, Google sign-in in the standalone iPhone app,
+safe areas/accessibility, weekly signature renewal and arrival of a later OTA update. The owner
+has confirmed installation and normal opening; those focused checks were not individually reported.

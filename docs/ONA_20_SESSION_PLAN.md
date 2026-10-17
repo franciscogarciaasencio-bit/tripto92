@@ -1191,3 +1191,12 @@ outside the repo and passed checksum, ARM64/Hermes, background-audio and preview
 (IOS_SIDELOAD.md). Owner confirmed AltStore installed/signed in, and AltServer is running. iCloud
 Drive transfer is blocked by iCloud sign-in; Ona installation and native behavior remain owner checks.
 No APK, IPA, generated native folder or credentials were committed.
+
+### iPhone installation confirmed — 2026-10-17
+
+Owner downloaded the IPA over local Wi-Fi after iCloud sign-in failed. The iPhone AltStore import
+returned Apple authentication HTTP 503 / -90010, including after disabling Prefer Remote AltServer;
+Refresh All worked. Direct Windows AltServer → Sideload .ipa installed the same verified archive.
+Owner confirmed Ona opens and works after the Home/version check. Documented the separate OTA
+update and weekly free-ID signature-renewal paths in IOS_SIDELOAD.md; Ona's AltStore-managed
+renewal and a later OTA arriving remain focused device checks.
