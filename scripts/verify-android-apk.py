@@ -25,6 +25,19 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def expected_audio_hashes():
+    targets = {}
+    for folder, report in [("meditation", "analysis.json"), ("bells-v2", "analysis.json"), ("bells-v2", "loops.json")]:
+        audio = json.loads((ROOT / "assets/audio" / folder / report).read_text(encoding="utf-8"))
+        for name, entry in audio["assets"].items():
+            targets[entry["sha256"]] = f"{folder}/{name}"
+    ending = json.loads((ROOT / "assets/audio/bells-v2/ending-timeline.json").read_text(encoding="utf-8"))
+    targets[ending["sha256"]] = "bells-v2/ending-timeline.m4a"
+    choir = ROOT / "assets/audio/meditation-choir.m4a"
+    targets[digest(choir.read_bytes())] = "meditation-choir.m4a"
+    return targets
+
+
 def elf_load_alignment(data):
     """Return PT_LOAD alignments; reject malformed ELF instead of claiming a pass."""
     if len(data) < 16 or data[:4] != b"\x7fELF" or data[5] != 1 or data[6] != 1:
@@ -94,13 +107,7 @@ def main():
     if not minimum_sdk or not target_sdk:
         raise ValueError("Missing numeric minimum/target Android SDK metadata")
 
-    targets = {}
-    for folder, report in [("meditation", "analysis.json"), ("bells-v2", "analysis.json"), ("bells-v2", "timelines.json")]:
-        audio = json.loads((ROOT / "assets/audio" / folder / report).read_text(encoding="utf-8"))
-        for name, entry in audio["assets"].items():
-            targets[entry["sha256"]] = f"{folder}/{name}"
-    choir = ROOT / "assets/audio/meditation-choir.m4a"
-    targets[digest(choir.read_bytes())] = "meditation-choir.m4a"
+    targets = expected_audio_hashes()
     found = {}
     native_alignment = {}
     with zipfile.ZipFile(apk) as archive:

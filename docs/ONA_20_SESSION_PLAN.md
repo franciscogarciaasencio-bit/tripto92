@@ -1174,3 +1174,20 @@ tested); the forest title is one line that scales down instead of wrapping. Rema
 Rain, Storm 2.9 MB each, Choir 1.84 MB, bells 2.5 MB, interval loops 3.57 MB, ending timeline 0.86 MB.
 Shortening the 3-minute ambience loops was judged not easy (evolving textures, AAC loop seams, analysis
 and tests) and not done. The title fix is not verifiable on web, where the title already rendered.
+
+### Published update and verified phone builds — 2026-10-17
+
+From clean main `f192e21`, Node 24.21.0, npm ci, TypeScript/lint, 1,010 tests and all-platform
+export passed. Published Android/iOS OTA group `afbf351e-78b9-40bc-a90a-9c8937666efa` on preview,
+runtime `1.2.0`; EAS confirmed the channel mapping (UPDATES.md).
+
+Android build `a8ce54e7-91d5-4c0d-82f2-35ac8a83694a` succeeded with the existing key: 1.2.0 (4),
+68.45 MB, approved signing digest, ARM-only compressed libraries, ARM64 16 KB alignment and preview
+update configuration verified. The verifier follows the new interval-loop manifest and checks all
+26 runtime audio files; eight fixtures passed (ANDROID_BUILD.md).
+
+GitHub run `39029728384` succeeded first attempt; its unsigned 1.2.0 (1) IPA (36.49 MB) was downloaded
+outside the repo and passed checksum, ARM64/Hermes, background-audio and preview runtime checks
+(IOS_SIDELOAD.md). Owner confirmed AltStore installed/signed in, and AltServer is running. iCloud
+Drive transfer is blocked by iCloud sign-in; Ona installation and native behavior remain owner checks.
+No APK, IPA, generated native folder or credentials were committed.

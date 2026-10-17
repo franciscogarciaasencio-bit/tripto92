@@ -1,6 +1,7 @@
-"""Focused fixtures for the APK verifier's ELF compatibility boundary (stdlib only)."""
+"""APK verifier fixtures for ELF alignment and current offline audio (stdlib only)."""
 import importlib.util
 from pathlib import Path
+import re
 import struct
 import unittest
 
@@ -61,6 +62,17 @@ class ElfCompatibility(unittest.TestCase):
     def test_no_loadable_segments_rejected(self):
         with self.assertRaises(ValueError):
             verifier.elf_load_alignment(library(kind=2))
+
+
+class OfflineAudio(unittest.TestCase):
+    def test_verifier_covers_the_current_runtime_catalogue(self):
+        catalogue = (verifier.ROOT / "src/audio/assets.ts").read_text(encoding="utf-8")
+        bundled = set(re.findall(r"require\(['\"]\.\./\.\./assets/audio/([^'\"]+\.(?:wav|m4a|flac))['\"]\)", catalogue))
+        self.assertTrue(bundled, "The runtime catalogue must contain bundled audio")
+        targets = verifier.expected_audio_hashes()
+        self.assertEqual(set(targets.values()), bundled)
+        for sha256, name in targets.items():
+            self.assertEqual(verifier.digest((verifier.ROOT / "assets/audio" / name).read_bytes()), sha256)
 
 
 if __name__ == "__main__":

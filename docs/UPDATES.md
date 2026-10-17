@@ -65,3 +65,16 @@ all-platform export. EAS confirmed both published platforms and the active previ
 mapping to this group. Includes the breath-counting guide, indigo twice-a-day calendar marks
 and legend, and reward glow colour hardening. Update arrival and the reported Android crash's
 resolution remain device checks; no APK was built.
+
+### 2026-10-17 — Prepare interval bell, clean-up and completion moments
+
+- Update group: `afbf351e-78b9-40bc-a90a-9c8937666efa` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/afbf351e-78b9-40bc-a90a-9c8937666efa).
+- Source commit: `f192e21c050bde986388485b8763a0b89ab87f2e` (clean main).
+- Android and iOS, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+
+Published after Node 24.21.0, clean npm ci, TypeScript/lint, 1,010 tests and all-platform export
+passed. EAS confirmed both platforms and the active channel mapping. Moves the interval bell to
+Prepare, removes the intention and Brown Noise, and includes clean-up, Consistency rounds and
+level-up moments. Native listening, gestures, completion animation and update arrival remain
+device checks. A new iPhone installation needs the separately built IPA before it can receive OTA.

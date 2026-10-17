@@ -38,6 +38,29 @@ The cloud workspace cannot reach Expo's build service, so the owner starts build
 (through Codex): pull main, `npm ci`, `npm run check`, then the EAS command below. EAS keeps the same
 signing key, so the new APK installs over the old one and keeps the phone's practice.
 
+### Verified preview 1.2.0 (4) — 2026-10-17
+
+- Build ID: `a8ce54e7-91d5-4c0d-82f2-35ac8a83694a`;
+  [build page](https://expo.dev/accounts/tripto92/projects/MeditationApp/builds/a8ce54e7-91d5-4c0d-82f2-35ac8a83694a).
+- [Download APK](https://expo.dev/artifacts/eas/2OFoIjHoKFIMm4UrOCXgkBo0XEaHYK7TMi5wxr4Z7zI.apk):
+  **68.45 MB** (68,447,760 bytes; decimal MB, down from 94.44 MB and the first APK's 205.29 MB).
+- APK SHA-256: `9f96eb985f3b2258646e6d981a06167e5118e52b192cbed68878a87766ce3e53`.
+- Signing certificate SHA-256: `15fccec1f10e5788cbfc12612184df2bc997872d761715c25031c4e2bd48bce7`.
+
+Built from clean commit `f192e21c050bde986388485b8763a0b89ab87f2e` using the existing EAS-managed
+keystore. Verified package `com.meditation.ona`, version `1.2.0` / versionCode `4`, release Hermes,
+all 26 current offline audio files, compressed libraries (26 each for armeabi-v7a and arm64-v8a),
+ZIP alignment and ARM64 16 KB ELF alignment. Embedded EAS Update is enabled for runtime `1.2.0`,
+channel `preview`, check on launch and zero launch wait. Node 24.21.0, npm ci, TypeScript/lint,
+1,010 tests, all-platform export and eight APK-verifier fixtures passed. The verifier now uses the
+current interval-loop manifest and also checks the ending timeline; its regression test checks
+coverage against the runtime audio catalogue.
+
+Owner's copy: `C:\Users\fga31\Downloads\Ona-1.2.0-4.apk`. Ignored verification copy/report:
+artifacts/android/ona-preview-1.2.0-4.apk and verification-1.2.0-4.json. Install over the existing
+Ona app **without uninstalling** to retain practice data. Device installation/listening remain
+owner checks.
+
 ## Build and installation
 
 First verified release preview (Session 11): **1.0.0 (1)**, 205.29 MB, Android 7+
@@ -103,7 +126,7 @@ build-tools paths (Python standard library only):
 python scripts/verify-android-apk.py artifacts/android/ona-preview.apk --java /path/to/java --build-tools /path/to/sdk/build-tools/36.0.0 --report artifacts/android/verification.json
 ```
 
-It compares all eleven runtime audio files against the current source manifests/Choir,
+It compares all 26 runtime audio files against the current source manifests/Choir,
 checks the release identity, bundled Hermes and arm64 libraries, signing/ZIP alignment,
 background playback permissions and absence of microphone recording. Its public certificate
 digest is safe to retain; it never exports or reads the private signing keystore.
@@ -120,7 +143,8 @@ before public distribution. No microphone/recording permission is present.
 
 Session 12 extended the verifier to check every bundled 64-bit ELF PT_LOAD segment;
 all ARM64/x86_64 libraries pass the 16 KB alignment/congruence gate. Run
-`python scripts/test-android-apk.py` for seven standard-library fixtures. This still
+`python scripts/test-android-apk.py` for eight standard-library fixtures (ELF alignment and runtime
+audio catalogue coverage). This still
 does not prove device execution. Native acceptance is pending because no phone is
 available and the existing emulator lacks its hypervisor driver. See ANDROID_ACCEPTANCE.md
 for the remaining checklist and CLAUDE_HANDOFF.md for external setup/signing context.

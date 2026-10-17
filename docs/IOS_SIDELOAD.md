@@ -64,6 +64,30 @@ The workflow and downloaded archive checks passed: ARM64 app, `com.meditation.on
 1.2.0 and channel preview. Local TypeScript/lint, 998 tests and all-platform export also passed.
 No build fixes or Apple credentials were needed; no generated ios folder or IPA was committed.
 
+## Latest verified unsigned build — 2026-10-17
+
+[GitHub run 39029728384](https://github.com/franciscogarciaasencio-bit/tripto92/actions/runs/39029728384)
+succeeded on its first attempt from commit `f192e21c050bde986388485b8763a0b89ab87f2e`.
+Artifact `ona-ios-unsigned-f192e21c050bde986388485b8763a0b89ab87f2e` is retained until 2026-10-31.
+
+- File: `Ona-1.2.0-unsigned.ipa`, **36.49 MB** (36,490,447 bytes, decimal MB).
+- SHA-256: `b6b05c5ef493214d67bf996fc24f413d5cf74670507292584d58ffdef6cc651e`.
+- Downloaded with `gh run download` to Downloads/ona-ios/run-39029728384, outside the repository;
+  a convenient latest copy is at Downloads/ona-ios/Ona-1.2.0-unsigned.ipa.
+
+The runner's checksum matches the local file. Archive checks passed: ARM64 app,
+`com.meditation.ona`, version 1.2.0 (build 1), bundled Hermes/update manifest, background audio,
+runtime `1.2.0`, channel `preview` and the configured Expo update URL. Local npm ci,
+TypeScript/lint, 1,010 tests and all-platform export passed before dispatch; the workflow's
+checks also passed. The app required no build fix; no generated ios folder, IPA or Apple
+credentials were committed.
+
+The owner confirmed AltStore is installed and signed in. AltServer was confirmed running on the
+PC. Copying into iCloud Drive is blocked by the owner's iCloud sign-in error; its sync folder is
+absent, so no successful iCloud transfer is claimed. The downloaded IPA can instead be imported
+into AltStore after transfer to Files, or installed from the PC with AltServer's
+Shift-click → Sideload .ipa menu. Ona signing/installation and device behavior remain unverified.
+
 ## Device checks still pending
 
 Signing/installing with the owner's free Apple ID, background audio on a locked iPhone, Google
