@@ -1,5 +1,6 @@
 import { createCloudAuth } from './auth';
 import { parseCloudConfig } from './config';
+import { createSupabaseFriends } from './friends-client';
 import { createSupabaseLedger } from './ledger-client';
 
 /**
@@ -14,4 +15,9 @@ export const cloudAuth = cloudConfig ? createCloudAuth(cloudConfig) : null;
 /** Bind every RPC to the account whose local ledger is being synced. */
 export const cloudLedgerFor = (accountId: string) => cloudConfig && cloudAuth
   ? createSupabaseLedger(cloudConfig, () => cloudAuth.accessToken(accountId)) : null;
+/** Friends for the signed-in account; requests stop (signed_out) if another account signs in meanwhile. */
+export const cloudFriendsFor = (accountId: string) => cloudConfig && cloudAuth
+  ? createSupabaseFriends(cloudConfig, () => cloudAuth.accessToken(accountId)) : null;
 export { loadActiveAccount, saveActiveAccount, type CloudAccount } from './auth';
+export { looksLikeEmail, type AddFriendResult, type CloudFriends, type Friend, type FriendRequest, type FriendsList } from './friends-client';
+export type { CloudErrorKind } from './rest';

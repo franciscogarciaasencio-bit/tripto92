@@ -1,13 +1,7 @@
 import type { CloudConfig } from './config';
+import { CloudError, createRestClient, responseList, responseRecord, type FetchLike } from './rest';
 
-export type CloudErrorKind = 'offline' | 'signed_out' | 'server' | 'rejected';
-/** Network and server failures, classified so sync can decide between retrying and stopping. */
-export class CloudError extends Error {
-  constructor(readonly kind: CloudErrorKind, message: string, readonly status: number | null = null) {
-    super(message);
-    this.name = 'CloudError';
-  }
-}
+export { CloudError, type CloudErrorKind } from './rest';
 
 export interface CloudRow { readonly table: string; readonly key: string; readonly hash: string; readonly row: Readonly<Record<string, unknown>> }
 export interface CloudRef { readonly table: string; readonly key: string }
@@ -46,39 +40,9 @@ export interface CloudLedger {
   deleteCloudData(): Promise<void>;
 }
 
-type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) =>
-  Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
-
-const platformFetch = (globalThis as unknown as { fetch: FetchLike }).fetch;
-export function createSupabaseLedger(config: CloudConfig, accessToken: () => Promise<string | null>, fetchImpl: FetchLike = (url, init) => platformFetch(url, init)): CloudLedger {
-  async function request(path: string, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
-    const token = await accessToken().catch(() => { throw new CloudError('offline', 'Could not refresh the sign-in session'); });
-    if (!token) throw new CloudError('signed_out', 'Sign in to sync');
-    let response: Awaited<ReturnType<FetchLike>>;
-    try {
-      response = await fetchImpl(`${config.url}/rest/v1/${path}`, {
-        method,
-        headers: { apikey: config.publishableKey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      });
-    } catch {
-      throw new CloudError('offline', 'No connection');
-    }
-    const text = await response.text();
-    if (!response.ok) {
-      let message = `Server responded ${response.status}`;
-      try { const parsed = JSON.parse(text) as { message?: unknown; code?: unknown }; if (typeof parsed.message === 'string') message = parsed.message; } catch { /* plain text */ }
-      if (response.status === 401 || /Sign in to sync/.test(message)) throw new CloudError('signed_out', message, response.status);
-      throw new CloudError(response.status >= 500 ? 'server' : 'rejected', message, response.status);
-    }
-    try { return text ? JSON.parse(text) as unknown : null; }
-    catch { throw new CloudError('server', 'Unreadable server response', response.status); }
-  }
-  const rpc = (name: string, args: Record<string, unknown>) => request(`rpc/${name}`, 'POST', args);
-  const record = (value: unknown) => {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new CloudError('server', 'Unexpected server response');
-    return value as Record<string, unknown>;
-  };
+export function createSupabaseLedger(config: CloudConfig, accessToken: () => Promise<string | null>, fetchImpl?: FetchLike): CloudLedger {
+  const { request, rpc } = createRestClient(config, accessToken, fetchImpl);
+  const record = responseRecord;
   const revision = (value: unknown) => {
     if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new CloudError('server', 'Unexpected server revision');
     return value;
@@ -88,10 +52,7 @@ export function createSupabaseLedger(config: CloudConfig, accessToken: () => Pro
     if (typeof value !== 'string' || !/^[0-9a-f-]{36}$/.test(value)) throw new CloudError('server', 'Unexpected cloud ledger identity');
     return value;
   };
-  const list = <T>(value: unknown) => {
-    if (!Array.isArray(value)) throw new CloudError('server', 'Unexpected server response');
-    return value as T[];
-  };
+  const list = responseList;
 
   return {
     async push(input) {

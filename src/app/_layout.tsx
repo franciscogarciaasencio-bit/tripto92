@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OnaProvider, useOna } from '@/application/ona-provider';
 import { AudioProvider } from '@/application/audio-provider';
+import { FriendsProvider } from '@/application/friends-provider';
 import { Opening } from '@/ui/opening';
 import { Action, colors, Screen, Type } from '@/ui/primitives';
 import { OceanMotionProvider } from '@/ui/ocean-motion';
@@ -62,6 +63,6 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
   return <GestureHandlerRootView style={{ flex: 1 }}><MotionPreferenceProvider><SafeAreaProvider style={{ flex: 1, backgroundColor: colors.background }}><StatusBar style="dark" />
     {fontError ? <Screen style={{ justifyContent: 'center' }}><Type>Ona’s font could not be loaded. Please reopen the app.</Type></Screen> :
-      <OnaProvider><AudioProvider><OceanMotionProvider><ForestNavigationProvider><Application /></ForestNavigationProvider></OceanMotionProvider></AudioProvider></OnaProvider>}
+      <OnaProvider><FriendsProvider><AudioProvider><OceanMotionProvider><ForestNavigationProvider><Application /></ForestNavigationProvider></OceanMotionProvider></AudioProvider></FriendsProvider></OnaProvider>}
   </SafeAreaProvider></MotionPreferenceProvider></GestureHandlerRootView>;
 }

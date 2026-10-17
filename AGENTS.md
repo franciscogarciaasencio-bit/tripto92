@@ -20,6 +20,8 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   atomic repository operation; animation/audio callbacks never award or save rewards.
 - Preserve released rules V1–V6 and migrations 1–13. Add versioned rules or migration 14
   for future changes; never recompute historical earnings or auto-reset corrupt data.
+- Friends (docs/FRIENDS.md) share only a level and weeks in a row between mutual friends; Supabase
+  changes come as new files in supabase/migrations, tested on PGlite (tests/data/supabase-*.test.cjs).
 - Optional account sync is designed in docs/SYNC.md. Ledger export/import (database/ledger.ts)
   is the only path that replaces practice wholesale, and it always revalidates like startup.
 - AudioProvider owns playback. Reuse its controllers; do not create screen-owned

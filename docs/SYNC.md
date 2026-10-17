@@ -10,7 +10,8 @@ default. Sync is optional, account-scoped and never required to meditate.
 - Allow occasional use on more than one device without losing practice.
 - Never leak one account's data into another account or into guest use.
 - Never rewrite synced history because of a formula change (rules stay versioned).
-- Non-goals: real-time collaboration, sharing, social features, server-side earning.
+- Non-goals: real-time collaboration, sharing practice, server-side earning. (Friends, added
+  2026-10-17, is separate from sync and shares only a level and weeks in a row: FRIENDS.md.)
 
 ## Why not generic last-write-wins
 

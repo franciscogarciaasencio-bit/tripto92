@@ -25,7 +25,7 @@ The phone frame/status bar in references is not app artwork or a screenshot inte
 
 ## Routes and flow
 
-All navigation uses Expo Router. _layout.tsx mounts fonts, safe areas, OnaProvider,
+All navigation uses Expo Router. _layout.tsx mounts fonts, safe areas, OnaProvider, FriendsProvider,
 AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a headerless stack.
 
 | Route | Screen |
@@ -39,6 +39,7 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | /info | Guide: Why Ona?, How to Meditate (counting breaths) and the rules in detail |
 | /preferences | Settings, sounds, Account entry (when configured) and confirmed Reset All Practice Data |
 | /account | Optional Google account: sign in/out, sync status, guest copy, remove/delete |
+| /friends | Friends (docs/FRIENDS.md): add by email, requests, friends' stage, level and weeks in a row |
 | /history | Paginated saved meditation history |
 | /practice-detail?id=… | Read-only saved duration, pauses, historical local time and Ripples |
 | /how-progress-works | Secondary explanation of practice/progression |
@@ -53,7 +54,8 @@ use an underlined radio pattern; the interval bell (Off or 1–60 minutes) a −
 default. The optional intention was removed the same day (owner: unnecessary clutter); a stored one
 is cleared on the next Begin and the session line is always the quiet default. A fixed length counts down and ends with the
 End bell; finishing earlier still completes the practice.
-The secondary sprout control on Home opens the same Forest route without a gesture.
+Home's top-right control opens Friends (owner, 2026-10-17; it replaced the forest's sprout). A small
+ink dot marks it while someone who added you waits for an answer. The Forest is a left swipe away.
 forest-pages.tsx composes the same Home/Forest surfaces as active and incoming pages.
 forest-swipe.tsx tracks horizontal drags on the UI thread, then settles or cancels with
 restrained easing. Router commits once after settling; the Forest stack transition is
@@ -205,10 +207,14 @@ tab); pull down at its top to settle back (vertical-page.tsx, vertical-page-geom
 chevron above Home's tabs hints at the pull and fades for good after three uses (journey-hint.ts: a
 device-only counter in the platform key store, never synced). Reduced Motion: no page movement or slide.
 
-Top to bottom: one line, active weeks in a row with this week's three pebbles (calendar-streaks.tsx);
-the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; a three-entry
-legend; the owner's ink painting of stones in still water; practice days and time for the month; and
-Meditation history. Tapping a day with practice opens it (several: the history).
+Journey opens on the calendar and the painting together (owner, 2026-10-17: no title or numbers above
+them). Top to bottom: the month in large serif with "‹ year ›" and Today on a fixed line; the painted
+month; the owner's ink painting of stones in still water, sized to fill what is left of the first screen
+(never below 70%; measured once on the month Journey opens with, so changing months never resizes it;
+loading and error lines float over its sky). Below it, one quiet list separated by the calendar's
+hairlines: active weeks in a row with this week's three pebbles (calendar-streaks.tsx); practice days and
+time for the month; the three-entry legend; then Progress details and Meditation history as rows with
+a thin chevron. Tapping a day with practice opens it (several: the history).
 
 The painted month (painted-month.tsx; owner reference docs/evidence/calendar-reference.png) is shared
 with the after-session celebration. A single counted day is a round drop of near-black ink with a light
@@ -222,6 +228,18 @@ painted by scripts/calendar/build-calendar-art.cjs (ONLY=indigo repaints only th
 to whole columns, never stretched. Marks draw in left to right, row by row, light numbers waiting for
 their ink. The painting (vignette.webp) is ink on transparency (scripts/calendar/paper-to-alpha.py), 1.12
 × the screen width in an edge-to-edge scroll view, so its faded sides fall past the screen.
+
+### Friends (current, 2026-10-17)
+
+friends-screen.tsx on Journey's paper: back arrow, the serif title and a quiet "+ Add a friend" that
+opens an underlined email field at the top (open by default while the list is empty, so the keyboard
+never covers it). A request ("ADDED YOU", name and email, Add back / Not now) rests on a soft sand
+card above the friends. Each friend is one row: their stage in a sand disc, first name in serif (the
+full name when two share it), and "Level N · N weeks in a row" (just "Level N" at zero). A stage you
+have not reached yourself is an empty dotted ring, so stages ahead stay undiscovered. Tapping a row
+offers "Remove". Invitations not yet answered close the list ("Waiting for …", Withdraw), then a
+footnote: friends see only your level and weeks in a row, and the address they can add you with.
+Signed out, the screen explains and offers Continue with Google. Pull to refresh; it also reloads on focus.
 
 ### After a session (current, 2026-10-17)
 

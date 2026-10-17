@@ -26,6 +26,8 @@ Supabase **secret** key in the app or in chat. (The app refuses to use a secret 
 2. Open `supabase/migrations/20261014120000_ona_sync.sql` from this repository, copy all of
    it, paste it into the editor and click **Run**. It should say "Success. No rows returned".
 3. Run it only once. Future changes will come as new files.
+4. Friends (2026-10-17): do the same with `supabase/migrations/20261017120000_ona_friends.sql`.
+   This one is safe to run again. See [FRIENDS.md](FRIENDS.md).
 
 ## 3. Create the Google sign-in client
 
@@ -35,6 +37,7 @@ Supabase **secret** key in the app or in chat. (The app refuses to use a secret 
    contact. Default scopes (email, profile, openid) are enough. Save.
 3. Under **Audience**, either add your Google address as a **test user** (testing only) or
    click **Publish app**. Basic scopes do not need Google's verification review.
+   Friends who sign in to use Friends must be test users too while the app is in Testing.
 4. Open **Credentials → Create credentials → OAuth client ID**.
    - Application type: **Web application**. Name: `Ona Supabase`.
    - **Authorized redirect URIs**: add `https://<your-project-ref>.supabase.co/auth/v1/callback`.

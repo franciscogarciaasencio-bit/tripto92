@@ -48,7 +48,7 @@ export function AccountScreen() {
   } else if (!app.account) {
     body = <>
       <Type role="heading">Keep your practice safe</Type>
-      <Type role="secondary">Optional. Sign in with Google to keep your meditation history, levels and forest if you change or lose your phone. Ona works fully without an account.</Type>
+      <Type role="secondary">Optional. Sign in with Google to keep your meditation history, levels and forest if you change or lose your phone, and to add friends. Ona works fully without an account.</Type>
       <View style={{ marginTop: 16 }}>
         <Action disabled={disabled} onPress={signIn}>{app.busy ? 'Opening…' : 'Continue with Google'}</Action>
       </View>
@@ -63,7 +63,7 @@ export function AccountScreen() {
   } else if (confirm === 'delete') {
     body = <>
       <Type role="heading">Delete this account’s practice?</Type>
-      <Type role="secondary">This permanently deletes the practice saved in your account and this phone’s copy of it, then signs out. Other phones signed in to this account keep their own copy until removed. This cannot be undone.</Type>
+      <Type role="secondary">This permanently deletes the practice saved in your account and this phone’s copy of it, removes you from your friends’ lists, then signs out. Other phones signed in to this account keep their own copy until removed. This cannot be undone.</Type>
       <Action quiet disabled={app.busy} onPress={() => setConfirm(null)}>Keep my practice</Action>
       <Action disabled={disabled} onPress={() => run(app.deleteAccountData, 'This account’s practice was deleted.')}>{app.busy ? 'Deleting…' : 'Delete permanently'}</Action>
     </>;

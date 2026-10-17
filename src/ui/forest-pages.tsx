@@ -31,11 +31,11 @@ export function ForestPages({ page }: { page: 'home' | 'forest' }) {
   }, [page]);
   const enabled = focused && foreground && !app.busy && !app.draft && !app.completion && !audio.starting;
   const preview = (moving: boolean) => page === 'home' ? <ForestScreen goHome={() => {}} />
-    : <HomeScreen openForest={() => {}} scrollOffsetRef={scrollOffsetRef} animateWave={focused && moving} />;
+    : <HomeScreen scrollOffsetRef={scrollOffsetRef} animateWave={focused && moving} />;
   return <ForestSwipe direction={page === 'home' ? 'left' : 'right'} enabled={enabled}
     ref={swipeRef} scrollGesture={scrollGesture} onNavigate={navigate} preview={preview}>
     {page === 'home'
-      ? <HomeScreen openForest={go} scrollGesture={scrollGesture} scrollOffsetRef={scrollOffsetRef} rememberScroll animateWave={focused} />
+      ? <HomeScreen scrollGesture={scrollGesture} scrollOffsetRef={scrollOffsetRef} rememberScroll animateWave={focused} />
       : <ForestScreen goHome={go} />}
   </ForestSwipe>;
 }

@@ -14,6 +14,8 @@ export type { CalendarContext, LocalDate } from './calendar';
 export { forwardOnly, readingContext } from './calendar';
 export { STREAK_RULES, practiceStreaks, qualifiesForStreak, streakMoment, WELCOME_BACK_DAYS } from './streaks';
 export type { PracticeStreaks, StreakCount, WeekStatus, MonthStatus, PeriodState, StreakMoment, StreakMomentKind } from './streaks';
+export { FRIEND_RULES, sharedStreak, sharedWeeksInARow, stageOfLevel, stageDiscovered } from './friends';
+export type { SharedStreak } from './friends';
 export type { MeditationSession } from '../meditation/session';
 export type {
   CentiXp, ProgressionRules, ProgressionState, ProgressionAward, ProgressSnapshot,

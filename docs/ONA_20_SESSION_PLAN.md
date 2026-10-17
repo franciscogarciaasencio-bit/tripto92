@@ -16,6 +16,8 @@ directs small batches in chat; each batch is logged at the end of this file. Sta
   (`--platform all`, UPDATES.md); native changes need a new runtime, APK and iPhone build.
 - Rules V6 (practices under three minutes earn nothing), calendar after every counted practice, Home ⇅
   Journey pull, Consistency in rounds, level-up and round moments (ONA_UI.md "After a session").
+- Friends (FRIENDS.md, 2026-10-17): needs the friends SQL run once in Supabase and each friend added
+  as a Google test user (or the Google app published).
 - On hold by the owner: forest work, until the owner improves the images.
 - Open: physical checks of the latest batch (interval loops on a locked phone, pull gesture feel,
   round/level moments), cloud history compaction (SYNC.md) and store publishing before a wider release,
@@ -1200,3 +1202,20 @@ Refresh All worked. Direct Windows AltServer → Sideload .ipa installed the sam
 Owner confirmed Ona opens and works after the Home/version check. Documented the separate OTA
 update and weekly free-ID signature-renewal paths in IOS_SIDELOAD.md; Ona's AltStore-managed
 renewal and a later OTA arriving remain focused device checks.
+
+### Journey opens on the calendar; Friends — 2026-10-17
+
+Journey: no title, Progress details or weeks-in-a-row line above the calendar any more. It opens on the
+month and the owner's painting together; the painting fills the rest of the first screen (70–100% of
+its size, measured once per visit). Below it: weeks in a row with this week's pebbles, the month's
+practice days and time, the legend, then Progress details and Meditation history as quiet rows.
+
+Friends (FRIENDS.md): Home's top-right icon (replacing the forest's sprout; the Forest is still a left
+swipe away) opens /friends. Add a friend by email; once both have added each other, each sees the
+other's name, stage symbol (only stages the viewer has reached), level and weeks in a row. Adding never
+reveals whether an address uses Ona. Weeks in a row lapse for friends exactly when the sharer's own
+calendar would, from a shared "holds until" date instead of practice dates. Supabase migration
+20261017120000_ona_friends.sql (RLS, functions only, safe to re-run), tested on PGlite; the client is
+tested against it through a PostgREST-shaped fetch. Owner steps: run the SQL, add friends as Google test
+users (or publish the Google app), then the OTA update. Not verified on a device or against the live
+Supabase project; web screenshots used mocked responses.

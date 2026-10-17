@@ -9,6 +9,7 @@ import { useJourneyPullHint } from '@/application/journey-hint';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
+import { useFriends } from '@/application/friends-provider';
 import { CategoryIcon } from './category-icon';
 import { HomeIcon } from './home-icons';
 import { HomeNavigation } from './home-navigation';
@@ -19,11 +20,12 @@ import { ConsistencyBar } from './consistency-bar';
 import { getLevelCategoryPresentation } from './category-presentation';
 import { getForestStage } from '@/domain/forest/growth';
 
-export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, rememberScroll = false, animateWave = true }: {
-  openForest: () => void; scrollGesture?: NativeGesture; scrollOffsetRef: { current: number } | null;
+export function HomeScreen({ scrollGesture, scrollOffsetRef, rememberScroll = false, animateWave = true }: {
+  scrollGesture?: NativeGesture; scrollOffsetRef: { current: number } | null;
   rememberScroll?: boolean; animateWave?: boolean;
 }) {
   const app = useOna(), audio = useOnaAudio();
+  const { list } = useFriends(), friends = { requests: (list?.requests.length ?? 0) > 0 };
   const scroll = useRef<ScrollView>(null);
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -70,10 +72,17 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
           }} style={{ width: 46 * scale, height: 48 * scale, alignItems: 'center', justifyContent: 'center' }}>
           <HomeIcon name="speaker" selected={app.audioPreferences?.homeEnabled} size={18 * scale} color="#8D897A" />
         </QuietPressable>
-        <QuietPressable accessibilityRole="button" accessibilityLabel="Open your forest" accessibilityHint="You can also swipe left from Home"
-          accessibilityState={{ disabled: app.busy || audio.starting }} disabled={app.busy || audio.starting} onPress={openForest}
+        {/* Friends (owner, 2026-10-17) replaces the forest's button; the forest is still a swipe left away. */}
+        <QuietPressable accessibilityRole="button" accessibilityLabel={friends.requests ? 'Friends, someone added you' : 'Friends'}
+          accessibilityHint="Your friends’ levels and weeks in a row"
+          accessibilityState={{ disabled: app.busy || audio.starting }} disabled={app.busy || audio.starting} onPress={() => router.push('/friends')}
           style={{ width: 46 * scale, height: 48 * scale, alignItems: 'center', justifyContent: 'center' }}>
-          <HomeIcon name="sprout" size={20 * scale} color="#8D897A" />
+          <View>
+            <HomeIcon name="friends" size={21 * scale} color="#8D897A" />
+            {/* Someone added you: one small ink dot, nothing more. */}
+            {friends.requests && <View style={{ position: 'absolute', top: -3 * scale, right: -6 * scale, width: 6 * scale, height: 6 * scale,
+              borderRadius: 3 * scale, backgroundColor: '#343C37' }} />}
+          </View>
         </QuietPressable>
       </View>
       <Text accessibilityRole="header" maxFontSizeMultiplier={1.3} style={{ position: 'absolute', top: wordmarkTop, left: sunLeft, width: sunDiameter, textAlign: 'center',

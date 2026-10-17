@@ -109,21 +109,27 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
     setMonth(destination);
   }
 
+  // Journey opens on the calendar and the whole painting together (owner, 2026-10-17): the painting
+  // fills what is left of the first screen, measured from the calendar on the month Journey opens with,
+  // so moving between months never resizes it. Loading and error lines float over its sky.
+  const natural = vignetteWidth / VIGNETTE_RATIO;
+  const openedMonth = useRef(month), viewport = useRef(0), calendarBottom = useRef(0);
+  const [fit, setFit] = useState<number | null>(null);
+  const refit = () => {
+    if (month !== openedMonth.current || !viewport.current || !calendarBottom.current) return;
+    setFit(paintingHeight(natural, viewport.current - calendarBottom.current + PAINTING_OVERLAP - PAINTING_BREATH));
+  };
+  const painting = fit ?? natural;
+
   return <PaperBackdrop><Screen scroll={false} style={{ paddingBottom: 0, backgroundColor: 'transparent' }}>
-    <View style={calendarStyles.heading}>
-      <Type role="title">Journey</Type>
-      <QuietPressable accessibilityRole="button" accessibilityLabel="View progression details" onPress={onShowProgress}
-        style={calendarStyles.details}>
-        <Type role="secondary">Progress details</Type>
-      </QuietPressable>
-    </View>
-    {/* Switching from the level view crossfades only the content; the title and tabs stay still. */}
+    {/* Switching from the level view crossfades only the content; the tabs stay still. */}
     <Animated.View entering={reduced ? undefined : FadeIn.duration(UI_MOTION.navigation)} style={{ flex: 1 }}>
     {/* Edge to edge, so the painting can reach past the screen's margins instead of being clipped by them. */}
     <GestureDetector gesture={page.gesture}><Animated.View style={[{ flex: 1 }, page.style]}><GestureDetector gesture={scrollNative}>
     <ScrollView style={{ flex: 1, marginHorizontal: -gutter }} contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: gutter }}
+      onLayout={(event) => { viewport.current = event.nativeEvent.layout.height; refit(); }}
       scrollEventThrottle={32} onScroll={(event) => atTop.set(event.nativeEvent.contentOffset.y <= 1)}>
-      {shown && <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />}
+      <View onLayout={(event) => { calendarBottom.current = event.nativeEvent.layout.y + event.nativeEvent.layout.height; refit(); }}>
       <View style={calendarStyles.monthHeading}>
         <Text accessibilityRole="header" accessibilityLiveRegion="polite" numberOfLines={1} adjustsFontSizeToFit
           style={[calendarStyles.monthName, { fontSize: monthNameSize, lineHeight: monthNameSize * 1.18 }]}>{practiceDateLabel(`${month}-01`, { month: 'long' })}</Text>
@@ -156,17 +162,22 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
         {/* No line under the month (owner, 2026-10-17): tapping a day opens its practice directly. */}
         <PaintedMonth month={month} streaks={streaks} today={today} onSelect={openDay} live={shown} doubles={doubles} />
       </MonthSlide>
-      <CalendarLegend />
-      {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>
-        {error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}
-      </Type> : null}
-      <Notice>{error ? 'Your practice could not be loaded. Your saved records are unchanged.' : null}</Notice>
-      {error && <Action quiet onPress={() => setAttempt((value) => value + 1)}>Try again</Action>}
+      </View>
       {/* The owner's painting rests under the month: its misty sky reaches up into the calendar. */}
       {/* A little wider than the screen: its softly faded sides fall past the edges, only ink on paper remains. */}
-      <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: vignetteWidth, height: vignetteWidth / VIGNETTE_RATIO,
-        marginTop: -vignetteWidth / VIGNETTE_RATIO * 0.16, alignSelf: 'center' }} />
-      {shown && <View style={calendarStyles.monthSummary}>
+      <View style={{ marginTop: -PAINTING_OVERLAP }}>
+        <Image source={CALENDAR_VIGNETTE} accessible={false} style={{ width: painting * VIGNETTE_RATIO, height: painting, alignSelf: 'center' }} />
+        {(loading || !current || error) && <View style={calendarStyles.status}>
+          <Type role="secondary" style={{ textAlign: 'center' }}>{error ? 'Saved practice is unavailable.' : 'Opening your saved practice…'}</Type>
+          <Notice>{error ? 'Your practice could not be loaded. Your saved records are unchanged.' : null}</Notice>
+          {error && <Action quiet onPress={() => setAttempt((value) => value + 1)}>Try again</Action>}
+        </View>}
+      </View>
+      {/* Below the painting: the week's streak, the month in numbers, what the marks mean, then the quieter ways on. */}
+      {shown && <View style={[calendarStyles.section, calendarStyles.below]}>
+        <StreakOverview streaks={streaks} daysPerWeek={STREAK_RULES.activeDaysPerWeek} />
+      </View>}
+      {shown && <View style={[calendarStyles.section, calendarStyles.monthSummary]}>
         <View accessible accessibilityLabel={`${summary.practiceDays} practice days`} style={{ flex: 1, gap: 2 }}>
           <Type role="heading" accessibilityRole="text">{summary.practiceDays}</Type><Type role="secondary">Practice days</Type>
         </View>
@@ -174,23 +185,50 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
           <Type role="heading" accessibilityRole="text">{practiceTimeLabel(summary.activeSeconds)}</Type><Type role="secondary">Time for yourself</Type>
         </View>
       </View>}
-      <Action quiet onPress={() => router.push('/history')}>Meditation history</Action>
+      <View style={calendarStyles.legend}><CalendarLegend /></View>
+      <View style={calendarStyles.links}>
+        <LinkRow label="Progress details" accessibilityLabel="View progression details" onPress={onShowProgress} />
+        <LinkRow label="Meditation history" onPress={() => router.push('/history')} last />
+      </View>
     </ScrollView>
     </GestureDetector></Animated.View></GestureDetector>
     </Animated.View>
   </Screen><HomeNavigation active="journey" /></PaperBackdrop>;
 }
 
+/** The painting's misty sky may reach this far up into the month's last row. */
+const PAINTING_OVERLAP = 10;
+/** Paper left between the painting's last reflection and the tabs. */
+const PAINTING_BREATH = 6;
+/** The painting's height on the first screen: the room left under the month, never smaller than 70%. */
+export function paintingHeight(natural: number, room: number) {
+  return Math.round(Math.min(natural, Math.max(natural * 0.7, room)));
+}
+
+/** A quiet row with a thin chevron, matching the calendar's hairlines. */
+function LinkRow({ label, accessibilityLabel, onPress, last = false }: { label: string; accessibilityLabel?: string; onPress: () => void; last?: boolean }) {
+  return <QuietPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} onPress={onPress}
+    style={[calendarStyles.link, last && { borderBottomWidth: 0 }]}>
+    <Type style={{ flex: 1 }}>{label}</Type>
+    <Chevron direction={1} />
+  </QuietPressable>;
+}
+
 const calendarStyles = StyleSheet.create({
-  heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, paddingBottom: 16, gap: 12 },
-  details: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 8 },
+  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 },
   monthName: { flexShrink: 1, fontFamily: serifFont, fontSize: 44, lineHeight: 52, letterSpacing: -0.6, color: colors.ink },
   yearNav: { flexDirection: 'row', alignItems: 'center', marginRight: -12 },
   year: { fontFamily: serifFont, fontSize: 22, lineHeight: 28, color: 'rgba(20,20,20,0.6)', fontVariant: ['tabular-nums'] },
   monthArrow: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
   todayLine: { height: 30, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 },
   todayAction: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 4 },
-  // No rule above: the painting's reflection fades into the month's numbers on the same paper.
-  monthSummary: { flexDirection: 'row', columnGap: 20, marginTop: -6, paddingTop: 8 },
+  // Hairlines as light as the calendar's own, so the page below the painting reads as one quiet list.
+  below: { marginTop: 10 },
+  section: { paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.16)' },
+  monthSummary: { flexDirection: 'row', columnGap: 20 },
+  legend: { paddingTop: 6, paddingBottom: 22, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.16)' },
+  status: { position: 'absolute', top: PAINTING_OVERLAP + 14, left: 0, right: 0, alignItems: 'center' },
+  links: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.16)' },
+  link: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.16)' },
 });
