@@ -32,7 +32,7 @@ export const VIGNETTE_RATIO = 1024 / 722;
 const ON_INK = '#F6F1E8';
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 /** Rows are a little taller than columns are wide, as in the reference. */
-export const ROW_RATIO = 1.22;
+const ROW_RATIO = 1.22;
 const settle = Easing.bezier(0.22, 0.61, 0.36, 1);
 const arrive = Easing.out(Easing.back(1.4));
 
@@ -55,7 +55,7 @@ function addDays(date: string, days: number) {
 }
 
 /** Rows of the month, Monday first, as dates. */
-export function monthRows(month: string) {
+function monthRows(month: string) {
   const first = new Date(`${month}-01T00:00:00.000Z`);
   const offset = (first.getUTCDay() + 6) % 7;
   const end = new Date(first); end.setUTCMonth(end.getUTCMonth() + 1); end.setUTCDate(0);
@@ -145,16 +145,15 @@ function DayNumber({ day, inMonth, onInk, wasOnInk, cell, turnsAt, fade = 260, s
 
 /**
  * One month, painted like ink and wash on paper (owner reference): a single counted day is an ink drop,
- * consecutive counted days one pale wash; hairlines between weeks; the week in progress outlined; a
- * chosen day other than today ringed. Practices under three minutes leave no mark. With `moment`, the newest practice day is painted
+ * consecutive counted days one pale wash; hairlines between weeks; the week in progress outlined.
+ * Practices under three minutes leave no mark. With `moment`, the newest practice day is painted
  * in (its drop settles, or its run grows from the days it joins, and ripples spread). Otherwise the
  * month draws in gently, row by row.
  */
-export function PaintedMonth({ month, streaks, today, selected, onSelect, moment, live = true, doubles = NO_DOUBLES, doublesBefore }: {
+export function PaintedMonth({ month, streaks, today, onSelect, moment, live = true, doubles = NO_DOUBLES, doublesBefore }: {
   month: string; streaks: PracticeStreaks; today: string;
-  /** Practices under three minutes are not shown (owner, 2026-10-16); kept for callers. */
-  practiced?: ReadonlySet<string>;
-  selected?: string | null; onSelect?: (date: string) => void;
+  /** Tapping a day (Journey opens its practice). */
+  onSelect?: (date: string) => void;
   moment?: { date: string } | null; live?: boolean;
   /** Days practised twice (two practices at least six hours apart); before the moment's practice, too. */
   doubles?: ReadonlySet<string>; doublesBefore?: ReadonlySet<string>;
@@ -198,7 +197,6 @@ export function PaintedMonth({ month, streaks, today, selected, onSelect, moment
             const isCounted = counted[column]!;
             const single = after.some(([start, end]) => start === column && end === column);
             const wasSingle = before.some(([start, end]) => start === column && end === column);
-            const chosen = !!onSelect && selected === date && inMonth;
             const isMoment = column === momentColumn;
             const label = `${practiceDateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}`
               + `${isCounted ? ', counts toward streaks' : ''}${twice.has(date) ? ', practised twice' : ''}${date === today ? ', today' : ''}`;
@@ -206,9 +204,6 @@ export function PaintedMonth({ month, streaks, today, selected, onSelect, moment
               {isMoment && <View style={{ position: 'absolute', left: cell / 2, top: rowHeight / 2 }}>
                 <Ripple size={cell * 0.74} delay={780} still={still} /><Ripple size={cell * 0.74} delay={1060} still={still} />
               </View>}
-              {/* Today is the default choice and needs no ring (the week outline already holds it), as in the reference. */}
-              {chosen && date !== today && <View style={[styles.ring, { width: cell * 0.86, height: cell * 0.86, borderRadius: cell * 0.43,
-                left: cell * 0.07, top: (rowHeight - cell * 0.86) / 2 }]} />}
               {/* Light numbers wait for their ink: on the newest day as it arrives, elsewhere as the drop's wipe crosses them. */}
               <DayNumber day={Number(date.slice(8))} inMonth={inMonth} onInk={single} wasOnInk={!!moment && !isMoment && wasSingle} cell={cell} still={still}
                 fade={moment ? 260 : 160}
@@ -216,7 +211,7 @@ export function PaintedMonth({ month, streaks, today, selected, onSelect, moment
             </>;
             const frame = { position: 'absolute' as const, left: column * cell, top: 0, width: cell, height: rowHeight };
             return inMonth && onSelect
-              ? <QuietPressable key={date} accessibilityRole="button" accessibilityState={{ selected: chosen }} accessibilityLabel={label}
+              ? <QuietPressable key={date} accessibilityRole="button" accessibilityLabel={label}
                 onPress={() => onSelect(date)} style={frame}>{content}</QuietPressable>
               : <View key={date} accessible={inMonth} accessibilityLabel={inMonth ? label : undefined} style={frame}>{content}</View>;
           })}
@@ -252,6 +247,5 @@ const styles = StyleSheet.create({
   weekday: { flex: 1, textAlign: 'center', fontFamily: serifFont, fontSize: 10.5, lineHeight: 16, letterSpacing: 0.6, color: 'rgba(20,20,20,0.5)' },
   line: { position: 'absolute', top: 0, left: 2, right: 2, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(20,20,20,0.16)' },
   week: { position: 'absolute', left: -4, right: -4, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(20,20,20,0.3)' },
-  ring: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(20,20,20,0.55)' },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
 });

@@ -154,7 +154,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
       </View>
       <MonthSlide key={month} direction={direction}>
         {/* No line under the month (owner, 2026-10-17): tapping a day opens its practice directly. */}
-        <PaintedMonth month={month} streaks={streaks} today={today} selected={null} onSelect={openDay} live={shown} doubles={doubles} />
+        <PaintedMonth month={month} streaks={streaks} today={today} onSelect={openDay} live={shown} doubles={doubles} />
       </MonthSlide>
       <CalendarLegend />
       {loading || !current ? <Type role="secondary" style={{ textAlign: 'center', marginTop: 16 }}>

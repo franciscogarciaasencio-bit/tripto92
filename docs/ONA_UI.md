@@ -191,93 +191,54 @@ stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match
 ("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
 captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
 Settings holds only what lives nowhere else: Bells (starting/ending on/off with a small play button
-each, interval Off/5/10/15 with play, bell volume), Home ambience volume, Account and Reset. Gentle
+each, interval Off or 1–60 minutes with − / + and play, bell volume), Home ambience volume, Account and Reset. Gentle
 haptics and the in-app sound credits were removed at the owner's request (2026-10-15): nothing vibrates,
 and sound provenance lives in docs/AUDIO.md and the asset READMEs. Ambience choice is made on Prepare and its volume from the speaker during
 a practice; Home's speaker mutes Home. Saving writes only those fields onto the current preferences.
 
-### Streak celebration after completion (2026-10-15)
+### Journey and the calendar (current, 2026-10-17)
 
-Owner request: after a practice, the calendar appears with satisfying animation and congratulations
-that encourage coming back. Continue on "Well done" now opens a second, display-only moment on the
-same completion screen (streak-celebration.tsx) whenever the practice added a new active day (at
-least three minutes, completed, its day not already counted); otherwise Continue returns Home as
-before. The acknowledgement still happens only on the final Continue, so a restart reopens "Well done".
-`streakMoment` (domain/progression/streaks.ts, tested) compares the calendar without and with the
-practice. Message priority, weeks before days: a full month ("A full month." — every week of the month
-consistent), a week that just reached three days ("A very consistent week."), days in a row
-("2 days in a row." with the number rolling up from 1; "Come back tomorrow for 3."), otherwise
-"Today counts." with how many days remain for a consistent week. The month of the practice is drawn
-with its week bands and streak capsules: the practice's day joins yesterday's capsule (or appears as a
-disc), its ink disc settles with a slight overshoot, two thin ripples spread from it like water, the
-week's band unfolds when that day made the week count, this week's three pebbles fill with a small pop,
-and a completed month sends one soft wave down its weeks. Everything settles in about two seconds, never
-loops, and Reduced Motion shows the end state. No haptics, rewards or stored data are involved.
+Journey is one of Ona's main pages. It sits on Home's paper (PaperBackdrop: #F4EBDD and the coastal
+texture). Pull up past the end of Home to rise into it (the route slides in from below, also from the
+tab); pull down at its top to settle back (vertical-page.tsx, vertical-page-geometry.ts). A faint
+chevron above Home's tabs hints at the pull and fades for good after three uses (journey-hint.ts: a
+device-only counter in the platform key store, never synced). Reduced Motion: no page movement or slide.
 
-Welcome back (owner choice, 2026-10-15): a practice after three or more days without one
-(`WELCOME_BACK_DAYS`) is greeted "Welcome back · Good to see you again. · N days away, and you came back.
-Every return counts." It ranks below a full month and a newly consistent week, above days in a row; a
-short practice does not end the time away. The very first practice says "The habit begins."
+Top to bottom: one line, active weeks in a row with this week's three pebbles (calendar-streaks.tsx);
+the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; a three-entry
+legend; the owner's ink painting of stones in still water; practice days and time for the month; and
+Meditation history. Tapping a day with practice opens it (several: the history).
 
-### Painted calendar (2026-10-15)
+The painted month (painted-month.tsx; owner reference docs/evidence/calendar-reference.png) is shared
+with the after-session celebration. A single counted day is a round drop of near-black ink with a light
+number; consecutive counted days are one pale warm-grey wash whose drops flow together through soft
+necks, with dark numbers; a day practised twice (two counted practices six hours apart, the double-credit
+rule; double-days.ts) is indigo: an indigo drop, or an indigo bead within its run. Practices under three
+minutes leave no mark. Weeks are separated by hairlines; the week in progress has a rounded outline.
+Proportions were measured on the reference (drops 0.73 of a column, wash 0.76, necks 0.48, numbers 0.34;
+rows 1.22 × the column). Sprites (assets/ona/calendar: ink-1…3, wash-2…7, indigo-1…3, indigo-bead) are
+painted by scripts/calendar/build-calendar-art.cjs (ONLY=indigo repaints only the indigo marks) and cut
+to whole columns, never stretched. Marks draw in left to right, row by row, light numbers waiting for
+their ink. The painting (vignette.webp) is ink on transparency (scripts/calendar/paper-to-alpha.py), 1.12
+× the screen width in an edge-to-edge scroll view, so its faded sides fall past the screen.
 
-Owner direction, matched to the owner's reference (docs/evidence/calendar-reference.png):
-painted-month.tsx draws every month (Journey calendar and the celebration after a practice). A single
-counted day is a round drop of near-black ink with a light number; consecutive counted days are one pale
-warm-grey wash whose drops flow into each other through soft necks, with dark numbers. Weeks are separated
-by hairlines; the week in progress has a rounded hairline outline; a chosen day other than today a thin ring; a
-shorter practice a small dot. Proportions measured on the reference: drops 0.73 of a column, wash drops
-0.76 with necks 0.48, numbers 0.34, the short-practice dot 0.115 just under its number. Columns are square for the marks and rows 1.22 × taller, as in the reference.
-Sprites (assets/ona/calendar/ink-1…3, wash-2…7) are painted by scripts/calendar/build-calendar-art.cjs
-(ink filter with feathered edge and faint lighter pools; wash with mottled blooms and a pooled rim; drops
-plus bridges re-sharpened into rounded necks) and cut to whole columns, never stretched.
+### After a session (current, 2026-10-17)
 
-Twice a day (owner, 2026-10-16): a day with two qualifying practices six hours apart (the rule that
-earns two practice credits; ui/double-days.ts) is indigo: an indigo ink drop on its own, or an indigo
-wash drop laid over its place in a run (indigo-*.webp, painted by the same script with ONLY=indigo).
-A two-line legend under the month names the four marks with the same sprites.
+"Well done", the time, then one Ripples number at a time: the practice's, then the total with "60 for
+your practice · +4 for Consistency". Each level step up swells the new "Level N" in a warm glow and one
+ring spreads from it. The Consistency bar fills in rounds (consistency-rounds.ts): the big bar fills once
+per milestone (12 of the 60 counted practices; a twice-a-day day counts two); when a round completes it
+holds full in a warm glow while its new small bar swells and glows, then empties gently and refills the
+remainder (ROUND_MOTION in use-premium-reward.ts); decay empties rounds in reverse. A practice under
+three minutes shows one quiet note instead ("Saved in your history").
 
-Since 2026-10-16 Journey sits on Home's paper (PaperBackdrop: #F4EBDD and the coastal texture) and the
-stones painting is ink on transparency (paper-to-alpha.py), so it reads as painted on the same page.
-
-Home ⇅ Journey (2026-10-16): pulling up past the end of Home moves it with the finger (resisted,
-fading slightly) and opens Journey, whose route slides in from below (also from the tab); pulling down
-at the top of Journey settles back to Home. vertical-page.tsx / vertical-page-geometry.ts; Reduced
-Motion keeps the page still and uses no route animation. Short practices leave no calendar mark (the
-dot and its legend entry are gone). The painting is 1.12 × the screen width and the calendar's scroll
-view runs edge to edge, so its faded sides fall past the screen instead of being clipped by margins.
-
-2026-10-17: no line under the month; tapping a day with practice opens it (several: the history), so
-the painting sits closer to the calendar. The after-session calendar now follows every counted practice:
-a second one the same day is 'again' ("Another quiet moment."), and one that makes the day twice-a-day
-says "A day practised twice." while its drop turns indigo.
-
-Pull hint (2026-10-17): a faint upward chevron in the gap above Home's tabs drifts up every few
-seconds (still with Reduced Motion; tap opens Journey) and fades for good after three pulls into
-Journey. The count is a device-only convenience in the platform key store (journey-hint.ts), never
-synced or part of practice data. Home's Level/Consistency divider ends earlier to leave it room.
-
-Consistency rounds (owner, 2026-10-17): the big bar fills once per milestone (12 of the 60 counted
-practices; a twice-a-day day counts two); when full, one small bar beneath fills and the big bar starts
-again from empty; at the end all five small bars and the big bar are full (consistency-rounds.ts,
-tested). Decay empties them in reverse. Completion shows one Ripples number at a time: the practice's,
-then the total with "60 for your practice · +4 for Consistency" (no stacked crossfading texts).
-
-Special moments (owner, 2026-10-17): after a session, a completed Consistency round fills the big bar
-to the brim, holds it in a warm glow while its new small bar swells and glows, then empties the big bar
-gently and refills the remainder (use-premium-reward ROUND_MOTION; drain/flourish in ConsistencyBar).
-Each level step up swells the new "Level N" in a warm glow with one ring spreading from it. Reduced
-Motion skips both. Journey's top is one line: weeks in a row and this week's three pebbles.
-
-Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
-a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
-line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water
-(vignette.webp: paper matched to #F2E9DA, edges faded), whose misty sky reaches up under that line and
-bleeds to the screen edges; then practice days and time for the month, and Meditation history. Removed at
-the owner's request: the past-year dots, the "n of 5 weeks active" line, the legend, the recent-week and
-month trails, and the week washes. Marks draw in left to right row by row, light numbers waiting for their
-ink. In the celebration the newest day's drop settles in (or its run grows from the days it joins while
-the marks it replaces fade), and two ripples spread from it.
+Continue then opens the calendar moment (streak-celebration.tsx) after every counted practice:
+`streakMoment` (domain/progression/streaks.ts, tested) picks the words, weeks before days: a full month,
+a newly consistent week, welcome back after three or more days away, days in a row, the first day, or
+"Today counts."; a further counted practice the same day is "Another quiet moment.", or "A day practised
+twice." when it meets the six-hour rule. The newest day's mark settles in (or its run grows from the
+days it joins, or it turns indigo) and two ripples spread from it; this week's pebbles fill. The
+acknowledgement happens only on the final Continue. Reduced Motion shows end states.
 
 ### App size and icon (2026-10-15)
 
@@ -289,27 +250,7 @@ builds only ARM ABIs (armeabi-v7a, arm64-v8a; x86 is emulator-only) with compres
 the two-line wave, on sand (scripts/icon/build-icons.cjs renders the iOS/Expo icon, Android adaptive
 foreground/background/monochrome and favicon).
 
-### Journey calendar and level path (2026-10-15)
-
-Calendar hierarchy (owner direction: weeks and months lead, days stay quiet): the header shows
-active weeks in a row as the hero serif number, with this week's three pebbles ("2 of 3 days this
-week", "This week counts", or "A fresh week begins Monday") and the last eight weeks as small
-capsules; full months come second with the last six months as small circles; days in a row is a
-single quiet line ("5 days in a row · best 8"). Filled = counted, outlined = in progress, faint = not counted.
-
-Grid: each Monday–Sunday row is a week; an active week rests on a soft solid band, the week in
-progress has a hairline outline. Consecutive counting days in a row are one capsule (no seams);
-a single counting day is a disc; a dot marks a shorter practice. Neighbouring-month days are faint.
-Under the grid, the month's own weeks as capsules plus "All 5 weeks active · this month counts" /
-"3 of 5 weeks active so far", then a one-line legend. Solid tones (#E9E0D1 band, #D9D0C1 capsule).
-No flames, warnings or "streak lost" language.
-
-Streak motion (streak-geometry.ts holds timings; everything on the UI thread, settles in about one
-second, nothing loops): week bands unfold row by row (80 ms stagger); each run appears as a disc on
-its first day and extends to its last day like one brush stroke; the chosen day's ink disc eases in
-(180 ms); a new month slides 22 pt in from the side it was reached from (300 ms); header numbers rise
-into place when they change; pebbles and capsules fill in sequence. Reduced Motion, or a preference
-not yet known at cold start, draws everything finished immediately.
+### Levels
 
 Levels (owner direction 2026-10-15): Journey is a centred composition, not a list: the current
 stage's symbol sits in a soft sand halo inside a thin ring that fills toward the next level only
@@ -329,10 +270,6 @@ in Chromium; STYLE.md). 384 px RGBA, shown small (30 pt, 92 % opacity) beside th
 medallion and 84 pt in the new-stage reveal. Visible stages are bundled PNGs (stage-art.ts); sealed
 stages are XOR-veiled inside the sealed data and unveiled in memory to a data URI (core RN Image);
 no sealed painting exists as an image file. The old line symbols remain only as a fallback.
-
-Consistency bar (owner direction 2026-10-15): one rounded bar (ink on a darker sand track) with five
-small segments beneath it, one per milestone; a segment fills, with a tiny swell, as the bar passes
-its milestone. Same component on Home, completion and the introduction.
 
 ## Timer/data boundary and accessibility
 

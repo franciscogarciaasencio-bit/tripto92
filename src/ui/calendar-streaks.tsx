@@ -5,7 +5,6 @@ import type { PracticeStreaks, WeekStatus } from '@/domain/progression';
 import { colors, serifFont, Type } from './primitives';
 import { useMotionPreference } from './reduced-motion';
 import { STREAK_MOTION } from './streak-geometry';
-export { streakRuns } from './streak-geometry';
 
 // Solid tones mixed from ink on sand, so overlapping discs, joins and bands never stack into darker seams.
 const OUTLINE = 'rgba(20,20,20,0.42)';

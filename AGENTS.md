@@ -18,7 +18,7 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   not legacy ranks/levels or the compatibility balance in ProgressSnapshot.
 - Application code imports the storage API from src/data. Session completion is an
   atomic repository operation; animation/audio callbacks never award or save rewards.
-- Preserve released rules V1–V5 and migrations 1–13. Add versioned rules or migration 14
+- Preserve released rules V1–V6 and migrations 1–13. Add versioned rules or migration 14
   for future changes; never recompute historical earnings or auto-reset corrupt data.
 - Optional account sync is designed in docs/SYNC.md. Ledger export/import (database/ledger.ts)
   is the only path that replaces practice wholesale, and it always revalidates like startup.

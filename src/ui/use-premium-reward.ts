@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { HabitRewardReceipt, LifetimeJourney } from '@/domain/progression';
-import { canAnimateReward, rewardSteps, playRewardSteps, REWARD_MOTION, type RewardStage } from './reward-sequence';
+import { canAnimateReward, rewardSteps, playRewardSteps, type RewardStage } from './reward-sequence';
 import { useMotionPreference } from './reduced-motion';
 import { useForeground } from './use-foreground';
 import { UI_MOTION } from './motion';
@@ -23,7 +23,7 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
   const fill = useSharedValue(first?.from ?? journey.fraction), consistency = useSharedValue(first ? indicator.before : finalIndicator);
   // drain ≥ 0 overrides the big bar while a completed round empties; flourish lights its new small bar.
   const drain = useSharedValue(-1), flourish = useSharedValue(0);
-  const levelOpacity = useSharedValue(1), levelHighlight = useSharedValue(0), consistencyHighlight = useSharedValue(0), bonusOpacity = useSharedValue(first ? 0 : 1);
+  const levelOpacity = useSharedValue(1), levelHighlight = useSharedValue(0), consistencyHighlight = useSharedValue(0);
   const [stage, setStage] = useState<RewardStage>(first ? 'base' : 'done'), [level, setLevel] = useState(first?.level ?? journey.level.number);
   const started = useRef(false), finished = useRef(!first);
   const renderedLevel = useRef(level), pendingLevelCommit = useRef<(() => void) | null>(null);
@@ -44,7 +44,7 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
         (completed) => { if (completed) scheduleOnRN(deliver); }));
     };
     const settle = () => {
-      finished.current = true; fill.set(journey.fraction); consistency.set(finalIndicator); drain.set(-1); flourish.set(0); levelOpacity.set(1); bonusOpacity.set(1);
+      finished.current = true; fill.set(journey.fraction); consistency.set(finalIndicator); drain.set(-1); flourish.set(0); levelOpacity.set(1);
       pendingLevelCommit.current = null;
       const duration = active && foreground && !reduced && AppState.currentState === 'active' ? 300 : 0;
       levelHighlight.set(withTiming(0, { duration }));
@@ -54,7 +54,7 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
     const lifecycle = AppState.addEventListener('change', (state) => {
       if (state === 'active' || !started.current) return;
       cancelSequence();
-      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]) cancelAnimation(value);
+      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, drain, flourish]) cancelAnimation(value);
       settle();
     });
     // Defer orchestration until the route/accessibility preference has resolved.
@@ -68,7 +68,6 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
         if (disposed) return;
         const next = () => { if (!disposed) complete(); };
         setStage(step.stage);
-        if (step.stage === 'bonus') bonusOpacity.set(withTiming(1, { duration: REWARD_MOTION.revealMilliseconds }));
         if (step.stage === 'consistency') {
           if (step.duration) consistencyHighlight.set(withTiming(1, { duration: 180 }));
           const finishStep = () => { consistencyHighlight.set(withTiming(0, { duration: 400 })); next(); };
@@ -113,17 +112,15 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
     return () => {
       disposed = true; clearTimeout(launch); cancelSequence(); lifecycle.remove();
       pendingLevelCommit.current = null;
-      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]) cancelAnimation(value);
+      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, drain, flourish]) cancelAnimation(value);
     };
   }, [receipt, applicable, journey.fraction, journey.level.number, active, foreground, reduced, motion, finalIndicator, indicator,
-    fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]);
+    fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, drain, flourish]);
   const levelStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   const levelContainerStyle = useAnimatedStyle(() => ({ opacity: levelOpacity.value }));
   // Fixed decimals: a native color parser must never see exponent notation (1e-7) mid-animation.
   const levelGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, levelHighlight.value * .16)).toFixed(4)})` }));
   const consistencyGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, consistencyHighlight.value * .16)).toFixed(4)})` }));
-  const bonusStyle = useAnimatedStyle(() => ({ opacity: bonusOpacity.value }));
-  const baseEarningsStyle = useAnimatedStyle(() => ({ opacity: 1 - bonusOpacity.value }));
   return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency, consistencyDrain: drain, consistencyFlourish: flourish,
-    levelGlow, consistencyGlow, bonusStyle, baseEarningsStyle };
+    levelGlow, consistencyGlow };
 }

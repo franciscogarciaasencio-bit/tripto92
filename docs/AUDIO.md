@@ -10,8 +10,8 @@ contains the mastered clips and matching sparse interval tracks. Its README desc
 comparison, mastering and remaining subjective/native listening checks. Original 48 kHz
 recordings, source URLs, rights evidence and hashes remain in scripts/audio-sources/bells.
 master-acoustic-bells.py reproduces the PCM bank (`--roles interval` re-renders one clip and keeps
-the others byte-for-byte); build-bell-timelines.py builds/verifies
-timelines from that exact interval master. Regenerate timelines whenever Interval changes.
+the others byte-for-byte); build-bell-loops.py builds/verifies the interval loops from that exact
+interval master. Regenerate the loops whenever Interval changes.
 bell-timing.ts holds sample-verified cleanup ceilings; native end events release normally.
 
 Ocean/Rain/Storm/Brown Noise remain original deterministic procedural DSP in
@@ -45,7 +45,7 @@ No screen owns a player; sound never changes timer, rewards, persistence or wave
 
 Ambience is chosen on Prepare before each practice; its volume (and a change of ambience) is
 adjusted live from the meditation speaker. Settings keeps only what lives nowhere else: starting/
-ending bell toggles with previews, Off/5/10/15-minute intervals with a preview, bell volume and Home
+ending bell toggles with previews, Off or 1–60-minute intervals with a preview, bell volume and Home
 ambience volume. Haptics were removed (the stored `hapticsEnabled` field is kept for compatibility
 and ignored). Done persists only those fields onto the current
 preferences; Back cancels edits. Previews use edited volumes, are exclusive/bounded, and stop on
@@ -82,7 +82,7 @@ version 1 → 2 while preserving old choices. Malformed/future values fail expli
   resume/recovery seeks to active time, excluding pauses. Serialized revision-guarded
   seeks prevent stale playback; missed bells do not create catch-up bursts.
 - On Android, audible ambience owns the foreground media service; with Silence/zero
-  ambience the interval timeline (or opening tone when appropriate) owns it. Never
+  ambience the interval loop (or opening tone when appropriate) owns it. Never
   create competing background owners. OS media Pause affects sound, not the saved timer.
 - Unexpected media stops fail closed; explicit Resume sound realigns playback. Cleanup
   cancels timers/listeners and attempts background release, pause and removal separately
@@ -90,10 +90,9 @@ version 1 → 2 while preserving old choices. Malformed/future values fail expli
 
 ## Size, analysis and verification limits
 
-All assets are local at 24 kHz except Choir (48 kHz AAC). Bundled audio is about 41 MB, including
-19.33 MB of sparse interval timelines (the largest remaining item; shortening them from six to three
-active hours would halve that, at the cost of the six-hour interval limit); native decoders stream
-only selected files. Intervals stop after six active hours; ambience/timing continue.
+All assets are local at 24 kHz except Choir (48 kHz AAC). Bundled audio is about 26 MB; the largest item is
+the 9 MB lossless Brown Noise loop. Interval loops total 3.57 MB (see Lifecycle). Native decoders stream
+only selected files.
 On 2026-10-15 the Choir moved from its 22 MB WAV to a 1.8 MB AAC encode (assets/audio/README.md).
 
 Generation analysis checks headroom/DC, soft attacks/tails, >0.99 decoded/master

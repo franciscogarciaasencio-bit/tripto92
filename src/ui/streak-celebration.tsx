@@ -106,7 +106,6 @@ export function StreakCelebration({ moment, sessions, practiceId, scale, busy, o
   const actionStyle = useAnimatedStyle(() => ({ opacity: action.value }));
 
   const month = moment.date.slice(0, 7);
-  const [practiced] = useState(() => new Set(sessions.map((session) => session.localDate)));
   const headline = { fontFamily: coastalSerif, fontSize: 32 * scale, lineHeight: 40 * scale, color: coastalInk };
 
   return <Animated.View style={[{ width: '100%' }, enterStyle]}>
@@ -135,7 +134,7 @@ export function StreakCelebration({ moment, sessions, practiceId, scale, busy, o
         </View>
       </View>
       <View accessible accessibilityLabel={`${practiceDateLabel(moment.date, { month: 'long', day: 'numeric' })} joins your calendar`}>
-        <PaintedMonth month={month} streaks={streaks} practiced={practiced} today={moment.date}
+        <PaintedMonth month={month} streaks={streaks} today={moment.date}
           moment={{ date: moment.date }} doubles={twice.after} doublesBefore={twice.before} />
       </View>
     </View>

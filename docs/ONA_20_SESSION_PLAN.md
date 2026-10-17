@@ -8,21 +8,19 @@ commit `e5c3b17` is the first complete snapshot of Sessions 1–11. Claude works
 cloud Linux checkout and pushes after every session; the owner pulls on Windows.
 Only one agent edits at a time: pull before starting, push before handing over.
 
-**All 20 sessions and the pre-meditation screen are complete (2026-10-15).** The final
-acceptance matrix is in the Session 20 log entry: what is done, verified only by the owner,
-unverified on a physical phone, blocked or not done by decision. Open items, in order:
+**All 20 sessions and the pre-meditation screen are complete (2026-10-15).** Since then the owner
+directs small batches in chat; each batch is logged at the end of this file. State on 2026-10-17:
 
-1. ~~Google sign-in returns to localhost~~ resolved (2026-10-15): web login and Save now
-   verified; owner confirmed email appears and Save now completes on physical iPhone
-   Expo Go through `--tunnel`. Numeric LAN callbacks remain rejected by Supabase.
-   See AUTH_DEBUG.md.
-2. Device checks the owner can do in Expo Go (listed at the end of Session 20).
-3. Owner requested the 1.2.0 (3) APK with EAS Update support (2026-10-15). Build and artifact
-   verification are complete with the approved package/key; owner confirmed installation over
-   the old app. The painted-calendar/bell OTA is published; device arrival remains unverified.
-   See ANDROID_BUILD.md and UPDATES.md.
-4. Before wider release: cloud history compaction (SYNC.md), Google app publishing.
-5. ~~Clock skew defect~~ fixed 2026-10-15 (see "Clock skew" in the log).
+- Phones: Android 1.2.0 (3) APK and an unsigned iPhone 1.2.0 (1) sideloaded with AltStore (free Apple
+  ID, 7-day refresh; IOS_SIDELOAD.md). JavaScript/asset changes ship over the air to both
+  (`--platform all`, UPDATES.md); native changes need a new runtime, APK and iPhone build.
+- Rules V6 (practices under three minutes earn nothing), calendar after every counted practice, Home ⇅
+  Journey pull, Consistency in rounds, level-up and round moments (ONA_UI.md "After a session").
+- On hold by the owner: forest work, until the owner improves the images.
+- Open: physical checks of the latest batch (interval loops on a locked phone, pull gesture feel,
+  round/level moments), cloud history compaction (SYNC.md) and store publishing before a wider release,
+  the owner-supplied interval gong's licence (AUDIO.md), and the Android crash log if the completion
+  crash returns.
 
 Read AGENTS.md first. Never claim device/listening results the owner has not reported.
 
@@ -1154,3 +1152,14 @@ caption, and the big bar fills once per milestone while the small bars count com
 
 Owner chose: make filling a small Consistency bar and every level up feel special; reduce Journey's top
 clutter as much as possible. Verified on web with frame captures of a completed round and a level step.
+
+### Maintenance pass (2026-10-17)
+
+Owner asked for clean-up to keep the app light and easy to build on. Removed dead code left by the
+recent reworks (calendar selection ring and `practiced` prop, stacked Ripples crossfade values, a stale
+re-export), un-exported calendar internals, and rewrote ONA_UI.md's calendar/completion sections as one
+current description (the dated paragraphs described designs that no longer exist). AUDIO.md and
+AGENTS.md updated (interval loops, rules V1–V6). Checked with knip, strict unused-locals and lint:
+no unused source files or dependencies remain (pglite is a test dependency; expo-linking/system-ui are
+Expo Router peers; expo-symbols' 1 MB icon font comes in through expo-router). No native or runtime
+change. Bundle: 26.5 MB audio (9 MB Brown Noise FLAC is the largest), 4.4 MB images, 7.5 MB JS.
