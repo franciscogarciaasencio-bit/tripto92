@@ -1275,3 +1275,21 @@ level-up animations about half as fast; the meditation line says "You can turn y
 introduction asks how the mind usually feels (shown again at Level 100 and on that Journey stage);
 Journey pages through every reached stage with its guide. android.versionCode 6 for the next APK.
 Not yet seen on a device.
+
+### Choir/Silence release and verified Android 1.2.0 (6) — 2026-10-17
+
+From clean main `8947f8098aad0350432af8833187c2bb17a40416`, Node 24.21.0, npm ci, TypeScript/lint,
+1,045 tests (550 domain, 495 data), all-platform export and eight APK-verifier fixtures passed.
+Published Android/iOS OTA group `3d3029cf-b48a-4897-9be7-930ae3fc6e08`, runtime `1.2.0`, channel/branch
+and environment `preview`; EAS confirmed the active channel mapping (UPDATES.md). Message:
+"Choir and Silence only, interval bell = starting bell, slower rewards, Journey stages to revisit, Settings save fix".
+
+Android build `d3f19ee0-01ac-4877-b642-1c539a42caed` finished using the existing EAS keystore.
+The verified 1.2.0 (6) APK is **60.45 MB** (60,453,464 bytes), versus **68.48 MB** for 1.2.0 (5).
+APK SHA-256: `c9ae497b7fa0a68c927b2a2a8cfe4e3a1ecd296b99041ef732d6a3ab5b014729`.
+Package, approved signing certificate, all 22 offline audio files, compressed ARM-only native
+libraries, ARM64 16 KB alignment and preview runtime/update settings passed verification.
+Saved outside Git at `C:\Users\fga31\Downloads\Ona-1.2.0-6.apk`; full links and certificate digest
+are in ANDROID_BUILD.md. No APK, IPA or credentials were committed. Install over the existing app
+without uninstalling to keep practice data. Device audio, animation, Settings-save crash resolution
+and OTA arrival remain to be confirmed by the owner.

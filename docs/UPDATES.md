@@ -108,3 +108,18 @@ channel's mapping to this group. Ships Rules V7, Consistency levels and colours,
 page and the practice/Consistency Ripples split. Update arrival and native behaviour remain device
 checks; no APK or IPA was built. npm ci completed with audit warnings (11 moderate, 20 high);
 dependencies were unchanged.
+
+### 2026-10-17 — Choir and Silence, starting-bell intervals and Journey revisits
+
+- Update group: `3d3029cf-b48a-4897-9be7-930ae3fc6e08` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/3d3029cf-b48a-4897-9be7-930ae3fc6e08).
+- Source commit: `8947f8098aad0350432af8833187c2bb17a40416` (clean main).
+- Android and iOS, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+- Message: "Choir and Silence only, interval bell = starting bell, slower rewards, Journey stages to revisit, Settings save fix".
+
+Published after Node 24.21.0, npm ci, TypeScript/lint, 1,045 passing tests (550 domain, 495 data)
+and all-platform export. EAS confirmed the active preview channel maps to this group for both
+platforms. The release removes the retired ambience choices, uses the starting bell in interval
+loops, slows reward moments, allows reached Journey stages to be revisited and changes the Settings
+volume-save path. Native audio, motion, Settings-save crash resolution and OTA arrival remain device
+checks; the matching Android 1.2.0 (6) build is recorded in ANDROID_BUILD.md.

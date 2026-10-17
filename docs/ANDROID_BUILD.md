@@ -83,6 +83,32 @@ artifacts/android/ona-preview-1.2.0-5.apk and verification-1.2.0-5.json. Install
 Ona app **without uninstalling** to retain practice data. Device installation/listening remain
 owner checks.
 
+### Verified preview 1.2.0 (6) — 2026-10-17
+
+- Build ID: `d3f19ee0-01ac-4877-b642-1c539a42caed`;
+  [build page](https://expo.dev/accounts/tripto92/projects/MeditationApp/builds/d3f19ee0-01ac-4877-b642-1c539a42caed).
+- [Download APK](https://expo.dev/artifacts/eas/POW4oPfYq3NitxyYt6a5M1jpc2PQAoInrX9EOAnahSc.apk):
+  **60.45 MB** (60,453,464 bytes; decimal MB), versus **68.48 MB** for 1.2.0 (5): 8.03 MB smaller.
+- APK SHA-256: `c9ae497b7fa0a68c927b2a2a8cfe4e3a1ecd296b99041ef732d6a3ab5b014729`.
+- Signing certificate SHA-256: `15fccec1f10e5788cbfc12612184df2bc997872d761715c25031c4e2bd48bce7`.
+- Android/iOS OTA group: `3d3029cf-b48a-4897-9be7-930ae3fc6e08` —
+  [update page](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/3d3029cf-b48a-4897-9be7-930ae3fc6e08).
+
+Built from clean commit `8947f8098aad0350432af8833187c2bb17a40416` with the existing EAS-managed
+keystore. Verified package `com.meditation.ona`, version `1.2.0` / versionCode `6`, release Hermes,
+signature, ZIP alignment and ARM64 16 KB ELF alignment. All 22 embedded offline audio files match
+the current manifests/Choir exactly, with no extra audio. Contains 26 compressed native libraries
+each for `armeabi-v7a` and `arm64-v8a`. EAS Update is enabled for runtime `1.2.0`, channel `preview`,
+check on launch and zero launch wait. The OTA group targets both Android and iOS on that runtime
+and channel, with the owner's exact release message (UPDATES.md).
+
+Node 24.21.0, npm ci, TypeScript/lint, 1,045 tests (550 domain, 495 data), all-platform export and
+eight APK-verifier fixtures passed. Owner's copy: `C:\Users\fga31\Downloads\Ona-1.2.0-6.apk`;
+its hash matches the ignored verification copy and report at artifacts/android/ona-preview-1.2.0-6.apk
+and verification-1.2.0-6.json. No APK or credentials are committed. Install over the existing Ona app
+**without uninstalling** to retain practice data. Native listening, reward/Journey motion,
+Settings-save crash resolution and update arrival remain device checks.
+
 ## Build and installation
 
 First verified release preview (Session 11): **1.0.0 (1)**, 205.29 MB, Android 7+
@@ -148,7 +174,7 @@ build-tools paths (Python standard library only):
 python scripts/verify-android-apk.py artifacts/android/ona-preview.apk --java /path/to/java --build-tools /path/to/sdk/build-tools/36.0.0 --report artifacts/android/verification.json
 ```
 
-It compares all 26 runtime audio files against the current source manifests/Choir,
+It compares all 22 current runtime audio files against the source manifests/Choir,
 checks the release identity, bundled Hermes and arm64 libraries, signing/ZIP alignment,
 background playback permissions and absence of microphone recording. Its public certificate
 digest is safe to retain; it never exports or reads the private signing keystore.
