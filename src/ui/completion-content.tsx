@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { PracticeCompletion } from '@/data';
 import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
@@ -62,26 +62,18 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       </Text>
     </View> : <>
     <View style={[panel, { marginTop: 17 * scale, padding: 14 * scale }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 * scale }}>
+      {/* One number at a time (owner, 2026-10-17: overlapping texts on Android): the practice's Ripples,
+          then the total once the Consistency bonus is added, each fading in on its own line. */}
+      <View accessible accessibilityLabel={`${formatRipples(showTotal ? total : base)} Ripples ${showTotal ? 'earned' : 'from practice'}`}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 * scale }}>
         <HomeIcon name="wave" size={36 * scale} color={coastalInk} />
-        <View accessible accessibilityLabel={`${formatRipples(showTotal ? total : base)} Ripples ${showTotal ? 'earned' : 'from practice'}`}>
-          <Animated.Text accessible={false} aria-hidden importantForAccessibility="no"
-            style={[earningsText, motion.bonusStyle]}>{`+${formatRipples(total)} Ripples`}</Animated.Text>
-          <Animated.Text accessible={false} aria-hidden importantForAccessibility="no"
-            style={[earningsText, motion.baseEarningsStyle, { position: 'absolute', alignSelf: 'center' }]}>{`+${formatRipples(base)} Ripples`}</Animated.Text>
-        </View>
+        <Animated.Text key={showTotal ? 'total' : 'base'} entering={reduced ? undefined : FadeIn.duration(320)} accessible={false} importantForAccessibility="no"
+          numberOfLines={1} style={earningsText}>{`+${formatRipples(showTotal ? total : base)} Ripples`}</Animated.Text>
       </View>
-      <Text accessibilityLiveRegion="polite" style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 20 * scale, textAlign: 'center', color: coastalQuiet }}>
-        {showTotal ? 'Total earned' : motion.stage === 'consistency' && completion.consistencyIndicator.after > completion.consistencyIndicator.before ? 'Your Consistency grows' : 'From your practice'}
+      <Text accessibilityLiveRegion="polite" style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, textAlign: 'center', color: coastalQuiet, marginTop: 2 * scale }}>
+        {showTotal ? displayedBonus > 0 ? `${formatRipples(base)} for your practice · +${displayedBonus} for Consistency` : 'For your practice'
+          : motion.stage === 'consistency' && completion.consistencyIndicator.after > completion.consistencyIndicator.before ? 'Your Consistency grows' : 'For your practice'}
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 * scale, gap: 4 }}>
-        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, color: coastalQuiet }}>{`Base · ${formatRipples(base)} Ripples`}</Text>
-        {displayedBonus > 0 && <Animated.Text accessibilityElementsHidden={!showTotal} aria-hidden={!showTotal}
-          importantForAccessibility={showTotal ? 'auto' : 'no-hide-descendants'}
-          style={[motion.bonusStyle, { fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, color: coastalQuiet }]}>
-          {`Consistency · +${displayedBonus} Ripples`}
-        </Animated.Text>}
-      </View>
       <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 10 * scale }} />
       <Animated.View style={motion.levelContainerStyle}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 }}>

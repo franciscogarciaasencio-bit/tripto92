@@ -29,7 +29,7 @@ export default function Guide() {
         <Type role="secondary">Thoughts are normal. You do not need to empty your mind. Begin with what feels manageable.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your rhythm</Text>
-        <Type>A practice counts from three active minutes: it earns Ripples and builds Consistency. Five quiet milestones mark a rhythm that grows over about two months of daily practice.</Type>
+        <Type>A practice counts from three active minutes: it earns Ripples and builds Consistency. Five quiet milestones mark a rhythm that grows over about two months of daily practice: the bar fills once for each, a small mark beneath it is kept, and the bar begins again.</Type>
         <Type role="secondary">A second practice, at least six hours after the first ends, helps that rhythm grow a little faster. Returning twice a day can reach the final milestone in about a month. Your calendar marks those days in indigo.</Type>
         <Type role="secondary">Time away gradually softens your rhythm. Regular practice brings extra Ripples automatically; come back whenever you can.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />

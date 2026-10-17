@@ -257,6 +257,12 @@ seconds (still with Reduced Motion; tap opens Journey) and fades for good after 
 Journey. The count is a device-only convenience in the platform key store (journey-hint.ts), never
 synced or part of practice data. Home's Level/Consistency divider ends earlier to leave it room.
 
+Consistency rounds (owner, 2026-10-17): the big bar fills once per milestone (12 of the 60 counted
+practices; a twice-a-day day counts two); when full, one small bar beneath fills and the big bar starts
+again from empty; at the end all five small bars and the big bar are full (consistency-rounds.ts,
+tested). Decay empties them in reverse. Completion shows one Ripples number at a time: the practice's,
+then the total with "60 for your practice · +4 for Consistency" (no stacked crossfading texts).
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

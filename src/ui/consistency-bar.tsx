@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Animated, { cancelAnimation, Easing, interpolate, interpolateColor, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming,
   type SharedValue } from 'react-native-reanimated';
 import { useReducedMotion } from './reduced-motion';
+import { consistencyRounds } from './consistency-rounds';
 
 const MILESTONES = [0.2, 0.4, 0.6, 0.8, 1] as const;
 const INK = '#1C231B';
@@ -13,14 +14,16 @@ const RESTING = '#D3C6AF';
 function Segment({ index, progress, scale }: { index: number; progress: SharedValue<number>; scale: number }) {
   const at = MILESTONES[index]!;
   const style = useAnimatedStyle(() => {
-    const reached = interpolate(progress.value, [at - 0.015, at], [0, 1], 'clamp');
+    // Fills in the instant the big bar completes its round.
+    const reached = interpolate(progress.value, [at - 0.004, at - 1e-9], [0, 1], 'clamp');
     return { backgroundColor: interpolateColor(reached, [0, 1], [RESTING, INK]), transform: [{ scaleY: 1 + 0.25 * reached * (1 - reached) * 4 }] };
   });
   return <Animated.View style={[style, { flex: 1, height: 4 * scale, borderRadius: 2 * scale }]} />;
 }
 
 /**
- * Consistency: one continuous bar, and five small segments beneath it for the milestones.
+ * Consistency: the big bar shows the current round toward the next milestone; five small segments
+ * beneath it count the completed rounds.
  * All animated work stays on the UI thread; the value comes from the domain indicator.
  */
 export function ConsistencyBar({ fraction, progress, scale = 1, label = 'Consistency' }: {
@@ -32,8 +35,8 @@ export function ConsistencyBar({ fraction, progress, scale = 1, label = 'Consist
     owned.set(withTiming(fraction, { duration: reduced ? 0 : 750, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }));
     return () => cancelAnimation(owned);
   }, [fraction, progress, owned, reduced]);
-  const fill = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(1, value.value)) * 100}%` }));
-  const reached = MILESTONES.filter((at) => fraction >= at).length;
+  const fill = useAnimatedStyle(() => ({ width: `${consistencyRounds(value.value).current * 100}%` }));
+  const reached = consistencyRounds(fraction).completed;
   return <View accessible accessibilityRole="progressbar" accessibilityLabel={`${label}, ${reached} of 5 milestones`}
     accessibilityValue={{ min: 0, max: 100, now: Math.round(fraction * 100) }}
     aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction * 100)}

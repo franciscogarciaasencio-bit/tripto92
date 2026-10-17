@@ -1143,3 +1143,9 @@ for a further counted practice on a day that already counted (tested); the celeb
 
 Owner chose suggestion 4: a quiet chevron hint for the Home → Journey pull, retiring after three uses.
 Verified on web (visible, three pulls up/down, gone after reload of state).
+
+### Completion Ripples overlap; Consistency rounds (2026-10-17)
+
+Owner: Ripples texts overlapped after a session (two crossfading texts stacked; on Android both could
+show) and the small bars under Consistency were misunderstood. Now one number at a time with a single
+caption, and the big bar fills once per milestone while the small bars count completed rounds.
