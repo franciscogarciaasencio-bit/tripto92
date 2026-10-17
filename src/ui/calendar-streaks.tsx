@@ -62,52 +62,32 @@ function thisWeekText(week: WeekStatus, needed: number) {
 }
 
 /**
- * Weeks lead, months follow, days stay quiet: a rhythm of three days a week is the habit Ona
- * celebrates, so a missed day never looks like a loss.
+ * One quiet line above the calendar (owner, 2026-10-17: "reduce as much clutter as you can"): active
+ * weeks in a row, and this week's three pebbles. Months and days in a row stay in the calendar's
+ * celebrations; screen readers still hear this week's progress.
  */
 export function StreakOverview({ streaks, daysPerWeek }: { streaks: PracticeStreaks; daysPerWeek: number }) {
   const thisWeek = streaks.recentWeeks(1)[0]!;
-  const { days } = streaks;
-  const weekLabel = streaks.weeks.current === 1 ? 'active week in a row' : 'active weeks in a row';
-  const monthLabel = streaks.months.current === 1 ? 'full month' : 'full months';
-  const dayLine = `${days.current} ${days.current === 1 ? 'day' : 'days'} in a row${days.best > days.current ? ` · best ${days.best}` : ''}`;
-  return <View style={styles.overview}>
-    <View style={styles.columns}>
-      <View accessible accessibilityLabel={`${streaks.weeks.current} ${weekLabel}${streaks.weeks.best > streaks.weeks.current ? `, best ${streaks.weeks.best}` : ''}. ${thisWeekText(thisWeek, daysPerWeek)}.`}
-        style={styles.weeks}>
-        <RisingNumber key={`w${streaks.weeks.current}`} value={streaks.weeks.current} style={styles.hero} />
-        <Type role="secondary" style={styles.label}>{weekLabel}</Type>
-        <View style={styles.thisWeek}>
-          <View style={styles.pebbles}>
-            {Array.from({ length: daysPerWeek }, (_, index) => <Pebble key={`${thisWeek.start}-${index}`}
-              full={index < thisWeek.activeDays} delay={240 + index * STREAK_MOTION.pebbleStagger} />)}
-          </View>
-          <Type role={thisWeek.state === 'active' ? 'label' : 'secondary'} style={styles.small}>{thisWeekText(thisWeek, daysPerWeek)}</Type>
-        </View>
-      </View>
-      <View accessible accessibilityLabel={`${streaks.months.current} ${monthLabel} in a row${streaks.months.best > streaks.months.current ? `, best ${streaks.months.best}` : ''}`}
-        style={styles.months}>
-        <RisingNumber key={`m${streaks.months.current}`} value={streaks.months.current} style={styles.second} />
-        <Type role="secondary" style={styles.label}>{monthLabel}</Type>
-      </View>
+  const weeks = streaks.weeks.current;
+  const weekLabel = weeks === 1 ? 'week in a row' : 'weeks in a row';
+  return <View accessible accessibilityLabel={`${weeks} active ${weekLabel}. ${thisWeekText(thisWeek, daysPerWeek)}.`} style={styles.overview}>
+    <View style={styles.weeks}>
+      <RisingNumber key={`w${weeks}`} value={weeks} style={styles.hero} />
+      <Type role="secondary" style={styles.label}>{weekLabel}</Type>
     </View>
-    <Type role="secondary" style={styles.days} accessibilityLabel={dayLine}>{dayLine}</Type>
+    <View style={styles.pebbles}>
+      {Array.from({ length: daysPerWeek }, (_, index) => <Pebble key={`${thisWeek.start}-${index}`}
+        full={index < thisWeek.activeDays} delay={240 + index * STREAK_MOTION.pebbleStagger} />)}
+    </View>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  overview: { paddingTop: 4, paddingBottom: 14, borderBottomWidth: 1, borderColor: colors.line, gap: 14 },
-  columns: { flexDirection: 'row', gap: 20 },
-  weeks: { flex: 1.5, gap: 2 },
-  // Baselines of the two numbers line up (Newsreader: ascent 0.735 em), and so do their labels.
-  months: { flex: 1, gap: 2, paddingTop: 9 },
-  hero: { fontFamily: serifFont, fontSize: 48, lineHeight: 56, fontVariant: ['tabular-nums'] },
-  second: { fontFamily: serifFont, fontSize: 34, lineHeight: 46, fontVariant: ['tabular-nums'] },
-  label: { fontSize: 13, lineHeight: 18 },
-  small: { fontSize: 13, lineHeight: 18 },
-  thisWeek: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  pebbles: { flexDirection: 'row', gap: 6 },
-  days: { fontSize: 13, lineHeight: 18 },
+  overview: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 4 },
+  weeks: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  hero: { fontFamily: serifFont, fontSize: 34, lineHeight: 42, fontVariant: ['tabular-nums'] },
+  label: { fontSize: 14, lineHeight: 20, marginBottom: 8 },
+  pebbles: { flexDirection: 'row', gap: 7 },
   pebble: { width: 10, height: 10, borderRadius: 5 },
   markOpen: { borderWidth: 1, borderColor: OUTLINE },
   markEmpty: { overflow: 'hidden' },

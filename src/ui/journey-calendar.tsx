@@ -184,7 +184,7 @@ export function JourneyCalendar({ onShowProgress }: { onShowProgress: () => void
 const calendarStyles = StyleSheet.create({
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, paddingBottom: 16, gap: 12 },
   details: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
-  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, gap: 8 },
+  monthHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 8 },
   monthName: { flexShrink: 1, fontFamily: serifFont, fontSize: 44, lineHeight: 52, letterSpacing: -0.6, color: colors.ink },
   yearNav: { flexDirection: 'row', alignItems: 'center', marginRight: -12 },
   year: { fontFamily: serifFont, fontSize: 22, lineHeight: 28, color: 'rgba(20,20,20,0.6)', fontVariant: ['tabular-nums'] },

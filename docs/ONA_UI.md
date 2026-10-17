@@ -263,6 +263,12 @@ again from empty; at the end all five small bars and the big bar are full (consi
 tested). Decay empties them in reverse. Completion shows one Ripples number at a time: the practice's,
 then the total with "60 for your practice · +4 for Consistency" (no stacked crossfading texts).
 
+Special moments (owner, 2026-10-17): after a session, a completed Consistency round fills the big bar
+to the brim, holds it in a warm glow while its new small bar swells and glows, then empties the big bar
+gently and refills the remainder (use-premium-reward ROUND_MOTION; drain/flourish in ConsistencyBar).
+Each level step up swells the new "Level N" in a warm glow with one ring spreading from it. Reduced
+Motion skips both. Journey's top is one line: weeks in a row and this week's three pebbles.
+
 Journey calendar, top to bottom: streak numbers (weeks in a row, full months, this week's pebbles, days in
 a row); the month in large serif with "‹ year ›" and Today on a fixed line; the painted month; one quiet
 line for the chosen day (tap opens its practice); the owner's ink painting of stones in still water

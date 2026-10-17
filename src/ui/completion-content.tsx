@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import type { PracticeCompletion } from '@/data';
 import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
@@ -23,6 +23,23 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
   const currentConsistency = snapshot.consistency.fraction;
   const indicator = snapshot.consistency.indicatorFraction;
   const motion = usePremiumReward(receipt, journey, active, currentConsistency, indicator, completion.consistencyIndicator);
+  // A level up (owner, 2026-10-17: "make it feel special"): the new level number swells softly in a warm
+  // glow, a ring spreads from it, and it settles. Plays each time the animated level steps up.
+  const levelUp = useSharedValue(0), levelRingProgress = useSharedValue(0), shownLevel = useRef(motion.level);
+  useEffect(() => {
+    const previous = shownLevel.current; shownLevel.current = motion.level;
+    if (reduced || motion.level <= previous) return;
+    levelUp.set(0);
+    levelUp.set(withSequence(withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }),
+      withDelay(650, withTiming(0, { duration: 900, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }))));
+    levelRingProgress.set(0);
+    levelRingProgress.set(withDelay(120, withTiming(1, { duration: 1100, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.Never })));
+  }, [motion.level, reduced, levelUp, levelRingProgress]);
+  const levelNumberStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.16 * levelUp.value }] }));
+  const levelHalo = useAnimatedStyle(() => ({ backgroundColor: `rgba(216,190,142,${(0.38 * levelUp.value).toFixed(4)})` }));
+  // One ring spreads once from the new number and is gone, like a drop on still water.
+  const levelRing = useAnimatedStyle(() => ({ opacity: levelRingProgress.value > 0 ? 0.55 * (1 - levelRingProgress.value) : 0,
+    transform: [{ scaleX: 0.9 + 0.7 * levelRingProgress.value }, { scaleY: 0.9 + 1.1 * levelRingProgress.value }] }));
   const reveal = useSharedValue(0);
   useEffect(() => {
     if (!active) return;
@@ -76,12 +93,19 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       </Text>
       <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 10 * scale }} />
       <Animated.View style={motion.levelContainerStyle}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 }}>
-        <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>
-          <Text style={{ color: coastalInk }}>{`Level ${displayLevel.number}`}</Text>{veiled ? ' · A new stage' : ` · ${getLevelCategoryPresentation(displayLevel).name}`}
-        </Text>
+      <Animated.View style={[levelHalo, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 5,
+        borderRadius: 10 * scale, marginHorizontal: -6 * scale, paddingHorizontal: 6 * scale, paddingVertical: 2 * scale }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+          <View>
+            <Animated.View pointerEvents="none" style={[levelRing, { position: 'absolute', left: -6 * scale, right: -6 * scale, top: -4 * scale, bottom: -4 * scale,
+              borderRadius: 14 * scale, borderWidth: 1, borderColor: '#B89B66' }]} />
+            <Animated.Text style={[levelNumberStyle, { fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 19 * scale, color: coastalInk }]}>{`Level ${displayLevel.number}`}</Animated.Text>
+          </View>
+          <Text numberOfLines={1} style={{ flexShrink: 1, marginLeft: 5 * scale, fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>
+            {veiled ? '· A new stage' : `· ${getLevelCategoryPresentation(displayLevel).name}`}</Text>
+        </View>
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 19 * scale, color: coastalQuiet }}>{next ? `Toward Level ${next.number}` : 'Journey complete'}</Text>
-      </View>
+      </Animated.View>
       <Animated.View style={[motion.levelGlow, { paddingVertical: 7 * scale, marginTop: 3 * scale, borderRadius: 8 }]}>
         <View accessible accessibilityRole="progressbar" accessibilityLabel="Level progress"
           accessibilityValue={{ min: 0, max: 100, now: Math.floor(journey.fraction * 100), text: `Saved Level ${journey.level.number}` }}
@@ -101,7 +125,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 * scale }}><HomeIcon name="wave" size={20 * scale} color={coastalInk} />
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 20 * scale, color: coastalInk }}>Consistency</Text>
       </View>
-      <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} scale={scale} label="Consistency progress" /></View>
+      <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} drain={motion.consistencyDrain} flourish={motion.consistencyFlourish} scale={scale} label="Consistency progress" /></View>
       <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
         {explanation ?? 'A gentle rhythm of returning.'}
       </Text>

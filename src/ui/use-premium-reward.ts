@@ -1,12 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { HabitRewardReceipt, LifetimeJourney } from '@/domain/progression';
 import { canAnimateReward, rewardSteps, playRewardSteps, REWARD_MOTION, type RewardStage } from './reward-sequence';
 import { useMotionPreference } from './reduced-motion';
 import { useForeground } from './use-foreground';
 import { UI_MOTION } from './motion';
+import { consistencyRounds, CONSISTENCY_STEPS } from './consistency-rounds';
+
+/** A completed Consistency round (owner, 2026-10-17): hold the full bar, light the new small bar, empty gently. */
+export const ROUND_MOTION = { hold: 380, flourishIn: 320, flourishOut: 700, drain: 560, refill: 520 } as const;
 
 /** CompletionContent is keyed by session ID; its immutable receipt/endpoints are captured once. */
 export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journey: LifetimeJourney, active: boolean, finalConsistency: number,
@@ -17,6 +21,8 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
   const applicable = canAnimateReward(receipt, journey, finalConsistency, finalIndicator, indicator.after);
   const first = applicable && motion !== true ? receipt?.baseProgress.segments[0] : undefined;
   const fill = useSharedValue(first?.from ?? journey.fraction), consistency = useSharedValue(first ? indicator.before : finalIndicator);
+  // drain ≥ 0 overrides the big bar while a completed round empties; flourish lights its new small bar.
+  const drain = useSharedValue(-1), flourish = useSharedValue(0);
   const levelOpacity = useSharedValue(1), levelHighlight = useSharedValue(0), consistencyHighlight = useSharedValue(0), bonusOpacity = useSharedValue(first ? 0 : 1);
   const [stage, setStage] = useState<RewardStage>(first ? 'base' : 'done'), [level, setLevel] = useState(first?.level ?? journey.level.number);
   const started = useRef(false), finished = useRef(!first);
@@ -38,7 +44,7 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
         (completed) => { if (completed) scheduleOnRN(deliver); }));
     };
     const settle = () => {
-      finished.current = true; fill.set(journey.fraction); consistency.set(finalIndicator); levelOpacity.set(1); bonusOpacity.set(1);
+      finished.current = true; fill.set(journey.fraction); consistency.set(finalIndicator); drain.set(-1); flourish.set(0); levelOpacity.set(1); bonusOpacity.set(1);
       pendingLevelCommit.current = null;
       const duration = active && foreground && !reduced && AppState.currentState === 'active' ? 300 : 0;
       levelHighlight.set(withTiming(0, { duration }));
@@ -48,7 +54,7 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
     const lifecycle = AppState.addEventListener('change', (state) => {
       if (state === 'active' || !started.current) return;
       cancelSequence();
-      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity]) cancelAnimation(value);
+      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]) cancelAnimation(value);
       settle();
     });
     // Defer orchestration until the route/accessibility preference has resolved.
@@ -65,9 +71,24 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
         if (step.stage === 'bonus') bonusOpacity.set(withTiming(1, { duration: REWARD_MOTION.revealMilliseconds }));
         if (step.stage === 'consistency') {
           if (step.duration) consistencyHighlight.set(withTiming(1, { duration: 180 }));
-          animate(consistency, step.to, step.duration, () => {
-            consistencyHighlight.set(withTiming(0, { duration: 400 })); next();
+          const finishStep = () => { consistencyHighlight.set(withTiming(0, { duration: 400 })); next(); };
+          const before = consistencyRounds(step.from).completed, after = consistencyRounds(step.to).completed;
+          if (!step.duration || after <= before || step.to < step.from) { animate(consistency, step.to, step.duration, finishStep); return; }
+          // Fill to the brim, keep the round, light its small bar, empty the big bar softly, then refill.
+          const boundary = (before + 1) / CONSISTENCY_STEPS;
+          const share = (boundary - step.from) / Math.max(1e-9, step.to - step.from);
+          animate(consistency, boundary - 1e-6, Math.max(420, Math.round(step.duration * share)), () => {
+            drain.set(1); consistency.set(boundary);
+            flourish.set(withSequence(withTiming(1, { duration: ROUND_MOTION.flourishIn, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }),
+              withDelay(ROUND_MOTION.hold, withTiming(0, { duration: ROUND_MOTION.flourishOut, reduceMotion: ReduceMotion.Never }))));
+            drain.set(withDelay(ROUND_MOTION.flourishIn + ROUND_MOTION.hold, withTiming(0, { duration: ROUND_MOTION.drain,
+              easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }, (done) => { if (done) scheduleOnRN(refill); })));
           });
+          const refill = () => {
+            if (disposed || finished.current) return;
+            drain.set(-1);
+            animate(consistency, step.to, step.to > boundary ? ROUND_MOTION.refill : 0, finishStep);
+          };
         } else {
           const fillLevel = () => {
             if (disposed) return;
@@ -92,10 +113,10 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
     return () => {
       disposed = true; clearTimeout(launch); cancelSequence(); lifecycle.remove();
       pendingLevelCommit.current = null;
-      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity]) cancelAnimation(value);
+      for (const value of [fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]) cancelAnimation(value);
     };
   }, [receipt, applicable, journey.fraction, journey.level.number, active, foreground, reduced, motion, finalIndicator, indicator,
-    fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity]);
+    fill, consistency, levelOpacity, levelHighlight, consistencyHighlight, bonusOpacity, drain, flourish]);
   const levelStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   const levelContainerStyle = useAnimatedStyle(() => ({ opacity: levelOpacity.value }));
   // Fixed decimals: a native color parser must never see exponent notation (1e-7) mid-animation.
@@ -103,6 +124,6 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
   const consistencyGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, consistencyHighlight.value * .16)).toFixed(4)})` }));
   const bonusStyle = useAnimatedStyle(() => ({ opacity: bonusOpacity.value }));
   const baseEarningsStyle = useAnimatedStyle(() => ({ opacity: 1 - bonusOpacity.value }));
-  return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency,
+  return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency, consistencyDrain: drain, consistencyFlourish: flourish,
     levelGlow, consistencyGlow, bonusStyle, baseEarningsStyle };
 }

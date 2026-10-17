@@ -1149,3 +1149,8 @@ Verified on web (visible, three pulls up/down, gone after reload of state).
 Owner: Ripples texts overlapped after a session (two crossfading texts stacked; on Android both could
 show) and the small bars under Consistency were misunderstood. Now one number at a time with a single
 caption, and the big bar fills once per milestone while the small bars count completed rounds.
+
+### Level-up and Consistency-round moments; one-line Journey top (2026-10-17)
+
+Owner chose: make filling a small Consistency bar and every level up feel special; reduce Journey's top
+clutter as much as possible. Verified on web with frame captures of a completed round and a level step.
