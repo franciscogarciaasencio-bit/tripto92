@@ -1238,3 +1238,13 @@ to 400 (rounded to 5); third same-day practice 50%; Consistency full in 42 contr
 V1–V6 receipts unchanged. Consistency rounds are now levels with five colours and a celebration;
 Home's Consistency opens an explanation screen; practice details split practice and Consistency Ripples.
 Not yet seen on a device.
+
+### Rules V7 OTA publication — 2026-10-17
+
+From clean main `a5bb182`, Node 24.21.0, npm ci, offline Router type generation including
+`/consistency`, TypeScript/lint, 1,042 tests (550 domain, 492 data) and all-platform export passed.
+Published Android/iOS OTA group `43897c80-f08f-4a13-9146-07184eb7e447`, runtime `1.2.0`, channel/branch
+and EAS environment `preview`, with the owner's exact release message (UPDATES.md). EAS confirmed
+both platforms and the active channel mapping. No APK/IPA was built or committed; update arrival,
+native Consistency moments and the new screen remain device checks. npm ci reported 31 audit
+vulnerabilities (11 moderate, 20 high); dependencies were unchanged.

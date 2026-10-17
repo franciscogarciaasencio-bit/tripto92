@@ -91,3 +91,20 @@ Published after Node 24.21.0, npm ci, refreshed Expo Router route types, TypeScr
 this group for both platforms. The Friends migration was run successfully by the owner in the
 Supabase SQL editor. Adding the friend's Google account as a test user is deferred by the owner;
 that account cannot sign in until it is added or Google sign-in is published.
+
+### 2026-10-17 — Rules V7, Consistency levels and colours, Consistency page, Ripples split
+
+- Update group: `43897c80-f08f-4a13-9146-07184eb7e447` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/43897c80-f08f-4a13-9146-07184eb7e447).
+- Source commit: `a5bb18219ff200409ecfeb87b25d6e6cb66b3695` (clean main).
+- Android and iOS, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+- Android update: `01a14af5-b4f2-7106-be6a-fd15c6716ea5`.
+- iOS update: `01a14af5-b4f2-77f7-b123-5548358fb06f`.
+
+Published with the message above after Node 24.21.0, npm ci, offline Expo Router generation
+confirming `/consistency`, TypeScript/lint, 1,042 passing tests (550 domain, 492 data) and
+all-platform export. EAS confirmed both platforms, runtime, source commit and the active preview
+channel's mapping to this group. Ships Rules V7, Consistency levels and colours, the Consistency
+page and the practice/Consistency Ripples split. Update arrival and native behaviour remain device
+checks; no APK or IPA was built. npm ci completed with audit warnings (11 moderate, 20 high);
+dependencies were unchanged.
