@@ -20,6 +20,8 @@ Preserve current visuals, user data, historical awards and cross-platform behavi
   atomic repository operation; animation/audio callbacks never award or save rewards.
 - Preserve released rules V1–V6 and migrations 1–13. Add versioned rules or migration 14
   for future changes; never recompute historical earnings or auto-reset corrupt data.
+- In-app text explains the habit, not the maths: no multipliers, rates, percentages or timelines
+  (owner, 2026-10-17; ONA_UI.md "Writing rule"). Milestone notes live in src/ui/milestones.ts.
 - Friends (docs/FRIENDS.md) share only a level and weeks in a row between mutual friends; Supabase
   changes come as new files in supabase/migrations, tested on PGlite (tests/data/supabase-*.test.cjs).
 - Optional account sync is designed in docs/SYNC.md. Ledger export/import (database/ledger.ts)

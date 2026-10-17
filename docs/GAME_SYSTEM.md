@@ -34,10 +34,12 @@ stay exactly as earned. Simulated with the owner before building (tests/domain/p
   +33%, 7 are +214%, 21 are +525%. The bar uses the same curve. Decay unchanged (half in 4 days).
   Activation carries the V6 fraction over in proportion.
 - **Levels** (journey.ts `HABIT_LEVELS`): 1–49 unchanged; from 50 each level costs progressively more
-  up to 100 (`steepXpCenti` 9,297,500 on a square curve), and 101–125 each cost what Level 100 did
-  (about 3,900 Ripples). Level 125 has **no** calendar gate any more. Nobody had reached Level 50.
-- Daily 10 minutes: Level 10 on day 5, 50 on day 19, 100 on day 105, 125 on day 181. 20 minutes twice
-  a day: Level 100 on day 37. The owner prefers adding levels after 125 to making these harder.
+  (`steepXpCenti` 9,297,500 on a square curve that continues to 125, so every level costs a little more
+  than the last: Level 100 about 3,900 Ripples, 101 about 3,980, 125 about 5,700). Level 125 has **no**
+  calendar gate any more. Nobody had reached Level 50.
+- Daily 10 minutes: Level 10 on day 5, 50 on day 19, 100 on day 105, 125 on day 200. 20 minutes twice
+  a day: Level 100 on day 37, 125 on day 69. The owner prefers adding levels after 125 to making these harder.
+- In-app text never shows these numbers (ONA_UI.md "Writing rule").
 - Each award keeps its split (`incrementalBaseCentiXp` + `bonusCentiXp`); practice details show it.
 
 The sections below describe the released V5/V6 behaviour that V7 builds on.

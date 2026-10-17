@@ -30,12 +30,13 @@ export function HowItWorks() {
     </QuietPressable>
     {expanded && <Animated.View entering={FadeIn.duration(UI_MOTION.reveal).reduceMotion(accessibility)}
       exiting={FadeOut.duration(120).reduceMotion(accessibility)} style={{ gap: 20 }}>
-        <Type>A practice of at least three active minutes earns Ripples: 16 for every minute up to fifteen minutes, then a little more for each longer stretch, up to 400 for an hour. Shorter practices stay in your history.</Type>
-        <Type>Begin at Level 0 · Monkey Mind. Your Ripples and regular practice gradually open new levels, each revealed when you reach it. Longer sessions and a steady rhythm gently add to your rewards, automatically.</Type>
-        <Type role="secondary">A second practice on the same day earns three quarters, a third half, and more earn nothing. Practices less than 90 minutes apart count as one. Returning on different days matters most.</Type>
-        <Type role="secondary">Consistency multiplies every practice, up to eight times its Ripples. It fills fastest at the start and reaches full in about six weeks of daily practice, or three weeks practising twice a day, six hours apart. Days without practice let it fade, and it returns as soon as you do.</Type>
-        <Type role="secondary">Your earned Ripples and highest level stay in your history. After three complete inactive days, current level progress gradually eases back. Half your highest level always remains protected. Return at your own pace.</Type>
-        <Type role="secondary">Level 100 is Ona’s designed habit-building milestone. Levels 101–125 invite continued practice. These milestones do not measure meditation ability.</Type>
+        {/* Owner, 2026-10-17: explain what matters, not the arithmetic. No multipliers, rates or timelines. */}
+        <Type>A practice of at least three active minutes earns Ripples, and longer practices earn more. Shorter ones stay in your history.</Type>
+        <Type>Begin at Level 0 · Monkey Mind. Each level is revealed when you reach it, and every new stage brings a short note for that part of your practice.</Type>
+        <Type role="secondary">A second or third practice on the same day still counts, a little less each time. Practices close together count as one.</Type>
+        <Type role="secondary">Consistency rewards coming back, generously: the more regularly you practise, the more Ripples every practice earns. Each practice of three minutes or more fills it, and a second one at least six hours after the first fills it again. Days away let it fade; it returns as soon as you do.</Type>
+        <Type role="secondary">The Ripples you earn and your highest level stay in your history. After a few days away, current level progress gradually eases back, and part of your highest level always stays protected. Return at your own pace.</Type>
+        <Type role="secondary">Level 100 means meditation has become a habit: the journey Ona was made for. Levels 101–125 invite you to keep it alive. Levels do not measure meditation ability.</Type>
         <Type role="secondary">Reset All Practice Data in Settings permanently deletes your practice, history and journey. Your preferences stay.</Type>
     </Animated.View>}
   </Animated.View>;

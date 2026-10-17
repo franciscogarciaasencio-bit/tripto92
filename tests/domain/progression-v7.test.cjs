@@ -59,18 +59,18 @@ function pace(minutes, hours, days, skip = () => false) {
   return reached;
 }
 
-test('Owner-approved pacing (2026-10-17): ten minutes daily reaches Level 100 in about 3.5 months, 125 in about 6', () => {
-  assert.deepEqual(pace(10, [9], 190), { 10: 5, 50: 19, 100: 105, 125: 181 });
-  assert.deepEqual(pace(20, [7, 15], 70), { 10: 2, 50: 8, 100: 37, 125: 63 });
+test('Owner-approved pacing (2026-10-17): ten minutes daily reaches Level 100 in about 3.5 months, 125 in about 6.5', () => {
+  assert.deepEqual(pace(10, [9], 210), { 10: 5, 50: 19, 100: 105, 125: 200 });
+  assert.deepEqual(pace(20, [7, 15], 75), { 10: 2, 50: 8, 100: 37, 125: 69 });
 });
 
-test('Level thresholds: 1–49 unchanged, then each level costs more up to 100, then the same to 125', () => {
+test('Level thresholds: 1–49 unchanged, then every level to 125 costs a little more than the last', () => {
   const xp = api.HABIT_LEVELS.map((level) => level.xpCenti);
   const gentle = (index) => Math.round(12_000 + 1_400_000 * index / 124 + 2_688_000 * (index / 124) ** 1.75);
   for (let index = 0; index < 49; index++) assert.equal(xp[index], gentle(index), `level ${index + 1}`);
   const steps = xp.slice(1).map((value, index) => value - xp[index]);
-  for (let index = 49; index < 99; index++) assert.ok(steps[index] > steps[index - 1], `level ${index + 2}`);
-  for (let index = 100; index < 124; index++) assert.equal(steps[index], steps[99]);
+  for (let index = 49; index < 124; index++) assert.ok(steps[index] > steps[index - 1], `level ${index + 2}`);
+  assert.ok(steps[100] - steps[99] < steps[99] * 0.03, 'Level 101 costs only slightly more than Level 100');
   assert.ok(Math.abs(xp[99] - 11_879_900) < 200, String(xp[99]));
   assert.ok(api.HABIT_LEVELS.every((level) => level.realDays === 1 && level.elapsedDays === 0 && level.credits === 1));
 });

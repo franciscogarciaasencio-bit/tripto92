@@ -48,9 +48,9 @@ export const JOURNEY_LEVELS: readonly JourneyLevel[] = freeze(LEGACY_JOURNEY_LEV
 }));
 /**
  * Current habit levels follow effective Ripples alone. Owner, 2026-10-17 (with the V7 rewards): levels
- * 1–49 keep their thresholds; from Level 50 each level costs progressively more up to Level 100 (the
- * demanding part), and levels 101–125 each cost what Level 100 did. Level 125 no longer has a one-year
- * calendar gate. Nobody had reached Level 50, so no reached level changes.
+ * 1–49 keep their thresholds; from Level 50 each level costs progressively more (the demanding part),
+ * and the same curve continues to 125 (owner, later the same day: every level a little more than the
+ * last). Level 125 no longer has a one-year calendar gate. Nobody had reached Level 50.
  */
 export const HABIT_LEVEL_PACING = freeze({ firstXpCenti: 12_000, linearXpCenti: 1_400_000, curvedXpCenti: 2_688_000, exponent: 1.75,
   steepFromLevel: 50, steepToLevel: 100, steepXpCenti: 9_297_500 });
@@ -63,12 +63,11 @@ const habitXp: readonly number[] = (() => {
   const { steepFromLevel: from, steepToLevel: to, steepXpCenti } = HABIT_LEVEL_PACING;
   const xp = Array.from({ length: from - 1 }, (_, index) => gentleHabitXp(index));
   const last = xp[from - 2]!, step = last - xp[from - 3]!;
-  for (let level = from; level <= to; level++) {
+  // The same curve continues past Level 100, so every level to 125 costs a little more than the last.
+  for (let level = from; level <= PRACTICE_CREDIT_RULES.maximumLevel; level++) {
     const climb = (level - from + 1) / (to - from + 1);
     xp.push(Math.round(last + step * (level - from + 1) + steepXpCenti * climb ** 2));
   }
-  const top = xp[to - 1]!, topStep = top - xp[to - 2]!;
-  for (let level = to + 1; level <= PRACTICE_CREDIT_RULES.maximumLevel; level++) xp.push(top + topStep * (level - to));
   return xp;
 })();
 export const HABIT_LEVELS: readonly JourneyLevel[] = freeze(JOURNEY_LEVELS.map((level, index) => ({

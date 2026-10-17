@@ -11,7 +11,7 @@ const QUESTIONS = [
   { id: 'short', question: 'Is a short practice worthwhile?', answer: 'Three quiet minutes are enough. A practice counts toward Ripples, Consistency and your calendar from three active minutes; shorter ones stay in your history. There is no need to rush.' },
   { id: 'return', question: 'What if I miss a day?', answer: 'Come back when you can. One missed day does not reset your journey. Time away gently softens Consistency; after a longer pause, current level progress can ease back while part of your achievement stays protected.' },
   { id: 'time', question: 'Can I meditate without watching time?', answer: 'Tap the time during meditation to hide it. Tap “Show time” to bring it back. Your practice keeps running, and Pause and Finish stay available. If you choose a length before you begin, the practice ends by itself when that time is reached.' },
-  { id: 'silence', question: 'Can I practice in silence?', answer: 'Before you begin, choose Silence under Sound. In Settings, Meditation Sounds also lets you turn off the starting, ending and interval bells. Your choices are remembered for your next practice.' },
+  { id: 'silence', question: 'Can I practice in silence?', answer: 'Before you begin, choose Silence under Sound and leave the interval bell off. In Settings you can also turn off the starting and ending bells. Your choices are remembered for your next practice.' },
 ] as const;
 
 /** Secondary practical help. One answer at a time, with no effect on timer, sound or progression. */

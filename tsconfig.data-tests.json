@@ -32,7 +32,8 @@
     "src/ui/breath-rhythm.ts",
     "src/ui/double-days.ts",
     "src/ui/vertical-page-geometry.ts",
-    "src/ui/consistency-rounds.ts"
+    "src/ui/consistency-rounds.ts",
+    "src/ui/milestones.ts"
   ],
   "exclude": [
     "src/data/index.ts",

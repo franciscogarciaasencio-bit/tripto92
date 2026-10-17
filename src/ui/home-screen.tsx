@@ -17,7 +17,7 @@ import { Notice, serifFont as serif } from './primitives';
 import { CoastalScene, CoastalTexture, coastalComposition, coastalInk as ink, coastalQuiet as quiet } from './coastal-scene';
 import { QuietPressable } from './quiet-pressable';
 import { ConsistencyBar } from './consistency-bar';
-import { consistencyLevel } from './consistency-rounds';
+import { consistencyRounds } from './consistency-rounds';
 import { getLevelCategoryPresentation } from './category-presentation';
 import { getForestStage } from '@/domain/forest/growth';
 
@@ -119,7 +119,7 @@ export function HomeScreen({ scrollGesture, scrollOffsetRef, rememberScroll = fa
           <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
         </QuietPressable>
         {/* Tapping Consistency explains why Ona rewards coming back (owner, 2026-10-17). */}
-        <QuietPressable accessibilityRole="button" accessibilityLabel={`Consistency, level ${consistencyLevel(consistency.indicatorFraction)} of 5`}
+        <QuietPressable accessibilityRole="button" accessibilityLabel={`Consistency, ${consistencyRounds(consistency.indicatorFraction).completed} of 5 rounds full`}
           accessibilityHint="Why Ona rewards coming back" onPress={() => router.push('/consistency')}
           style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale,
           alignSelf: 'flex-start', minHeight: 92 * scale }}>

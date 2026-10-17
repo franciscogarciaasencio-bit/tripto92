@@ -1248,3 +1248,11 @@ and EAS environment `preview`, with the owner's exact release message (UPDATES.m
 both platforms and the active channel mapping. No APK/IPA was built or committed; update arrival,
 native Consistency moments and the new screen remain device checks. npm ci reported 31 audit
 vulnerabilities (11 moderate, 20 high); dependencies were unchanged.
+
+### Milestone moments, text without numbers — 2026-10-17
+
+Levels 101–125 now cost a little more each (the 50–100 curve continues; Level 125 on day 200 at ten
+minutes daily). All in-app text revised: rules explained without multipliers, rates or timelines; the
+interval-bell answer points to Prepare; "Consistency level N" words removed (the coloured bar says it).
+New stage, Level 100 and Level 125 open a milestone moment after "Well done" with a researched note
+(MILESTONES.md); the completion screen keeps a new stage veiled until then. Not yet seen on a device.

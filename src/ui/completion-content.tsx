@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import type { PracticeCompletion } from '@/data';
 import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
@@ -12,9 +12,8 @@ import { usePremiumReward } from './use-premium-reward';
 import { QuietPressable } from './quiet-pressable';
 import { UI_MOTION } from './motion';
 import { ConsistencyBar } from './consistency-bar';
-import { consistencyRounds, CONSISTENCY_STEPS, roundColor } from './consistency-rounds';
 import { getLevelCategoryPresentation } from './category-presentation';
-import { reachesNewStage, StageReveal, stageOf } from './stage-reveal';
+import { reachesNewStage, stageOf } from './milestones';
 
 export function CompletionContent({ completion, journey, snapshot, scale, busy, error, onContinue, active }: {
   completion: PracticeCompletion; journey: LifetimeJourney; snapshot: ProgressSnapshot; scale: number;
@@ -58,14 +57,11 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
   // Whole-number allocation keeps the displayed sum truthful; receipts retain exact centi-Ripples.
   const displayedBonus = Math.round(total / 100) - Math.round(base / 100);
   const beforeLevel = receipt?.baseProgress.beforeLevel, afterLevel = receipt?.bonusProgress.afterLevel;
-  // A stage never reached before is revealed only after the level animation has settled.
+  // A stage never reached before stays veiled here: its name is revealed in the milestone moment after Continue.
   const newStage = reachesNewStage(beforeLevel, afterLevel, receipt?.beforeCheckpoint.highestLevel ?? 0);
-  const veiled = newStage && motion.stage !== 'done' && stageOf(displayLevel.number) > stageOf(beforeLevel ?? 0);
+  const veiled = newStage && stageOf(displayLevel.number) > stageOf(beforeLevel ?? 0);
   // Under three active minutes nothing counts (rules V6): a quiet note instead of empty reward panels.
   const uncounted = completion.session.activeDurationSeconds < PRACTICE_CREDIT_RULES.minimumActiveSeconds && total === 0;
-  // Rounds completed by this practice: the new Consistency level (6 stands for the final, full round).
-  const roundsBefore = consistencyRounds(completion.consistencyIndicator.before).completed, roundsAfter = consistencyRounds(completion.consistencyIndicator.after).completed;
-  const reachedLevel = roundsAfter > roundsBefore ? roundsAfter + 1 : null;
   const panel = { backgroundColor: 'rgba(228,210,182,0.22)', borderRadius: 17 * scale };
   const earningsText = { fontFamily: coastalSerif, fontSize: 31 * scale, lineHeight: 42 * scale, color: coastalInk };
   const explanation = receipt?.explanation === 'short' ? 'Consistency grows with practices of at least 3 minutes.'
@@ -122,7 +118,6 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 3 * scale }}>
         {beforeLevel !== undefined && afterLevel !== undefined && afterLevel > beforeLevel ? `Level ${beforeLevel} → Level ${afterLevel}` : 'One return at a time.'}
       </Text>
-      {newStage && motion.stage === 'done' && afterLevel !== undefined && <StageReveal level={levels[afterLevel - 1]!} scale={scale} />}
     </View>
     <View style={[panel, { padding: 14 * scale, marginTop: 12 * scale }]}>
       <Animated.View pointerEvents="none" style={[motion.consistencyGlow, { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 17 * scale }]} />
@@ -130,14 +125,9 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 20 * scale, color: coastalInk }}>Consistency</Text>
       </View>
       <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} drain={motion.consistencyDrain} celebrate={motion.consistencyCelebrate} scale={scale} label="Consistency progress" /></View>
-      {/* A completed round is a new Consistency level: named in its colour as the bar celebrates, and kept afterwards. */}
-      {reachedLevel !== null && (motion.roundReached !== null || motion.stage === 'done') ? <Animated.Text key={`round-${reachedLevel}`} accessibilityLiveRegion="polite"
-        entering={reduced ? undefined : FadeInDown.duration(560).springify().damping(14)} style={{ fontFamily: coastalSerif, fontSize: 19 * scale, lineHeight: 25 * scale,
-          color: roundColor(Math.min(4, reachedLevel - 1)), marginTop: 9 * scale }}>
-        {reachedLevel > CONSISTENCY_STEPS ? 'Full Consistency' : `Consistency level ${reachedLevel}`}</Animated.Text>
-        : <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
-          {explanation ?? 'A gentle rhythm of returning.'}
-        </Text>}
+      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
+        {explanation ?? 'A gentle rhythm of returning.'}
+      </Text>
     </View>
     </>}
     <Notice>{error ? 'Your practice is saved. Returning could not be confirmed. Please retry.' : null}</Notice>

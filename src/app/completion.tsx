@@ -7,6 +7,8 @@ import { coastalComposition, CoastalScene } from '@/ui/coastal-scene';
 import { getForestStage } from '@/domain/forest/growth';
 import { CompletionContent } from '@/ui/completion-content';
 import { StreakCelebration } from '@/ui/streak-celebration';
+import { MilestoneMoment } from '@/ui/milestone-moment';
+import { milestoneOf } from '@/ui/milestones';
 import { Action, Notice, Type } from '@/ui/primitives';
 import type { PracticeCompletion } from '@/data';
 import { streakMoment, type LifetimeJourney, type MeditationSession, type ProgressSnapshot, type StreakMoment } from '@/domain/progression';
@@ -30,7 +32,11 @@ export default function CompletionScreen() {
   // After "Well done", a calendar moment celebrates what this practice added (a day in a row, a
   // consistent week, a full month). Display only: it reads saved history and changes nothing.
   const [rhythm, setRhythm] = useState<{ id: string; moment: StreakMoment; sessions: MeditationSession[] } | null>(null);
-  const [stage, setStage] = useState<'reward' | 'rhythm'>('reward');
+  const [stage, setStage] = useState<'reward' | 'milestone' | 'rhythm'>('reward');
+  // A new stage, the habit (Level 100) or the journey's end (125) opens its own moment after "Well done".
+  const reward = displayed?.completion.habitReward ?? null;
+  const milestone = useMemo(() => reward ? milestoneOf(reward.baseProgress.beforeLevel, reward.bonusProgress.afterLevel,
+    reward.beforeCheckpoint.highestLevel) : null, [reward]);
   const practice = completion?.session ?? null;
   useEffect(() => {
     if (!practice) return;
@@ -59,11 +65,13 @@ export default function CompletionScreen() {
     });
   }, [displayed, busy, dismissCompletion]);
   const next = useCallback(() => {
-    if (stage === 'reward' && rhythm && practice && rhythm.id === practice.id && !busy) {
+    if (busy) return;
+    if (stage === 'reward' && milestone) { setStage('milestone'); return; }
+    if (stage !== 'rhythm' && rhythm && practice && rhythm.id === practice.id) {
       setStage('rhythm');
       scroll.current?.scrollTo({ y: 0, animated: false });
     } else continueHome();
-  }, [stage, rhythm, practice, busy, continueHome]);
+  }, [stage, milestone, rhythm, practice, busy, continueHome]);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => {
     if (!focused) return;
@@ -76,6 +84,7 @@ export default function CompletionScreen() {
     if (!app.draft) router.dismissTo('/');
     else if (app.draft.phase !== 'finished') router.replace('/session');
   }, [focused, completion, app.draft, app.busy, departing]);
+  if (stage === 'milestone' && milestone) return <MilestoneMoment milestone={milestone} busy={app.busy || departing !== null} onContinue={next} />;
   return <View style={{ flex: 1, backgroundColor: '#F4EBDD' }}>
     <ScrollView ref={scroll} onContentSizeChange={(_, measuredHeight) => setContentHeight(Math.max(height, measuredHeight))}
       contentContainerStyle={{ minHeight: height, width: c.canvasWidth, alignSelf: 'center',

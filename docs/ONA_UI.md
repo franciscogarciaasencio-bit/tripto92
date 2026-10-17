@@ -248,17 +248,33 @@ your practice · +4 for Consistency". Each level step up swells the new "Level N
 ring spreads from it. The Consistency bar fills in rounds (consistency-rounds.ts): the big bar fills once
 per milestone (a fifth of the eased bar, rules V7); a completed round is a new **Consistency level**
 (owner, 2026-10-17): the full bar holds while a band of light sweeps across it and a glow in the round's
-colour breathes around it, the new small segment pops in its colour, "Consistency level N" (or "Full
-Consistency") appears in the new colour and stays, then the bar empties gently and refills in the next
-colour (ROUND_MOTION in use-premium-reward.ts). Each round has its own colour (ROUND_COLORS: olive
+colour breathes around it, the new small segment pops in its colour, then the bar empties gently and
+refills in the next colour (ROUND_MOTION in use-premium-reward.ts). No words name the level: the bar
+says it (owner, later the same day). Each round has its own colour (ROUND_COLORS: olive
 #76845A, sea #4C7471, dusk #3E4C76, clay #A0593B, ochre #A47A2E); the small segments keep the colour of
 the round they mark. Decay empties rounds in reverse.
 
-Tapping Consistency on Home opens /consistency (consistency-screen.tsx): the bar at 1.6×, "Level N of 5"
-and what each practice earns now (×N, the only place a multiplier is shown), why coming back is the hard
-part and what Ona rewards, how the bar grows (six weeks daily, three twice a day), the five levels in
-their colours with the multiplier where each begins, and time away. Practice details (history) show the
-Ripples "For the practice" and "From Consistency" when the receipt has a bonus. A practice under
+Tapping Consistency on Home opens /consistency (consistency-screen.tsx): the bar at 1.6×, why coming
+back is the hard part and what Ona rewards, how the bar grows and time away, all without numbers.
+Practice details (history) show the Ripples "For the practice" and "From Consistency" when the receipt
+has a bonus.
+
+**Writing rule (owner, 2026-10-17):** in-app text explains the habit, not the maths. Say that
+Consistency rewards coming back generously, never a multiplier, a rate, a percentage or how long
+anything takes; Level 100 means the habit is established. The rules people act on stay: three active
+minutes count, a second practice six hours later counts again.
+
+**Milestones** (milestones.ts, milestone-moment.tsx): entering a new stage (Levels 6, 11, … 121), Level
+100 and Level 125 open a moment after "Well done" and before the calendar moment, the first time only
+(`milestoneOf`; the habit outranks a stage crossed at once). A new stage: the stage left behind shows
+with its name, then settles and fades as three rings spread like a drop on still water; the new stage
+blooms in its halo with a soft overshoot while a thin ring draws around it and specks of light rise;
+then "LEVEL N · A NEW STAGE", the name settling into place, its theme, and a note for this part of the
+way on a sand card; Continue last. One linear 6.2 s timeline drives everything (transform/opacity
+only); a tap settles it at once; Reduced Motion shows the final moment. Levels 100 and 125 hold the
+current stage in a golden ring. The completion screen keeps a new stage veiled ("A new stage"), so its
+name and painting are first seen in the moment. Notes: one per stage, written from common
+descriptions of how a practice grows (docs/MILESTONES.md), without numbers or promises. A practice under
 three minutes shows one quiet note instead ("Saved in your history").
 
 Continue then opens the calendar moment (streak-celebration.tsx) after every counted practice:
@@ -287,9 +303,9 @@ stage's symbol sits in a soft sand halo inside a thin ring that fills toward the
 serif, its theme and "Toward Level n+1"; then one serif line of purpose ("Level 100 completes the
 habit"), Ripples, and quiet links to How it works and history. Halo, symbol, ring and words draw in
 over about a second (instant with Reduced Motion). Future stages are never listed. Stages 2–20
-(Levels 6–100) are sealed surprises: the completion screen veils the level row as "A new stage" while
-the level animation runs, then reveals the stage's symbol (scale/fade, 900 ms) and name (500 ms
-later) once, the first time that stage is reached (stage-reveal.tsx).
+(Levels 6–100) are sealed surprises: the completion screen veils the level row as "A new stage", and
+the milestone moment after it reveals the stage's painting and name, the first time that stage is
+reached (milestone-moment.tsx).
 
 Stage paintings (owner direction 2026-10-15): stage symbols are small watercolour paintings, not
 line icons. Monkey Mind (Level 0 and Levels 1–5) is the owner's own painting, cut out of its paper

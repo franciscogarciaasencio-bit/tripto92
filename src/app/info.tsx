@@ -29,12 +29,12 @@ export default function Guide() {
         <Type role="secondary">Thoughts are normal. You do not need to empty your mind. Begin with what feels manageable.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your rhythm</Text>
-        <Type>A practice counts from three active minutes: it earns Ripples and builds Consistency. Consistency multiplies the Ripples of every practice, up to eight times. Five milestones mark a rhythm that grows over about six weeks of daily practice: the bar fills once for each, takes on a new colour, and begins again.</Type>
-        <Type role="secondary">A second practice, at least six hours after the first ends, helps that rhythm grow a little faster. Returning twice a day can reach the final milestone in about three weeks. Your calendar marks those days in indigo.</Type>
+        <Type>A practice counts from three active minutes: it earns Ripples and builds Consistency. Consistency greatly rewards coming back: the more regularly you practise, the more Ripples every practice earns. Its bar fills in five rounds; each time it fills, a small mark beneath it is kept and the bar begins again in a new colour.</Type>
+        <Type role="secondary">A second practice, at least six hours after the first ends, helps that rhythm grow faster. Your calendar marks those days in indigo.</Type>
         <Type role="secondary">Time away gradually softens your rhythm. Regular practice brings extra Ripples automatically; come back whenever you can.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>Your journey</Text>
-        <Type role="secondary">Level 100 completes Ona’s designed habit-building journey. Levels 101–125 invite you to sustain and deepen your practice.</Type>
+        <Type role="secondary">Level 100 means meditation has become a habit, the journey Ona was made for. Levels 101–125 invite you to sustain and deepen your practice. Each new stage brings a short note for that part of the way.</Type>
         <Type role="secondary">After prolonged inactivity, your current level can gently ease back while part of your achievement stays protected. Levels recognize regular practice, not meditation skill or scientifically proven habit formation.</Type>
         <View style={{ height: 1, backgroundColor: '#D8CEBC', marginVertical: 8 }} />
         <Text accessibilityRole="header" style={{ fontFamily: coastalSerif, color: coastalInk, fontSize: 32, lineHeight: 40 }}>A few gentle answers</Text>

@@ -11,8 +11,8 @@ import { consistencyRounds, CONSISTENCY_STEPS } from './consistency-rounds';
 
 /**
  * A completed Consistency round is a new Consistency level (owner, 2026-10-17: "very rewarding"): the
- * full bar holds while light sweeps across it, its new segment pops in the round's colour, the new level
- * is named, then the bar empties gently and refills in the next colour.
+ * full bar holds while light sweeps across it and its new segment pops in the round's colour (no words:
+ * the bar says it), then the bar empties gently and refills in the next colour.
  */
 export const ROUND_MOTION = { celebrate: 1900, hold: 1250, drain: 620, refill: 560 } as const;
 
@@ -27,8 +27,6 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
   const fill = useSharedValue(first?.from ?? journey.fraction), consistency = useSharedValue(first ? indicator.before : finalIndicator);
   // drain ≥ 0 overrides the big bar while a completed round empties; celebrate plays once per new round.
   const drain = useSharedValue(-1), celebrate = useSharedValue(0);
-  /** The Consistency level just reached during this animation (shown above the bar), or null. */
-  const [roundReached, setRoundReached] = useState<number | null>(null);
   const levelOpacity = useSharedValue(1), levelHighlight = useSharedValue(0), consistencyHighlight = useSharedValue(0);
   const [stage, setStage] = useState<RewardStage>(first ? 'base' : 'done'), [level, setLevel] = useState(first?.level ?? journey.level.number);
   const started = useRef(false), finished = useRef(!first);
@@ -84,7 +82,6 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
           const share = (boundary - step.from) / Math.max(1e-9, step.to - step.from);
           animate(consistency, boundary - 1e-6, Math.max(420, Math.round(step.duration * share)), () => {
             drain.set(1); consistency.set(boundary);
-            setRoundReached(Math.min(CONSISTENCY_STEPS, before + 2));
             celebrate.set(0);
             celebrate.set(withTiming(1, { duration: ROUND_MOTION.celebrate, easing: Easing.linear, reduceMotion: ReduceMotion.Never }));
             drain.set(withDelay(ROUND_MOTION.hold, withTiming(0, { duration: ROUND_MOTION.drain,
@@ -128,6 +125,6 @@ export function usePremiumReward(savedReceipt: HabitRewardReceipt | null, journe
   // Fixed decimals: a native color parser must never see exponent notation (1e-7) mid-animation.
   const levelGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, levelHighlight.value * .16)).toFixed(4)})` }));
   const consistencyGlow = useAnimatedStyle(() => ({ backgroundColor: `rgba(163,139,99,${Math.max(0, Math.min(1, consistencyHighlight.value * .16)).toFixed(4)})` }));
-  return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency, consistencyDrain: drain, consistencyCelebrate: celebrate, roundReached,
+  return { level, stage, levelStyle, levelContainerStyle, consistencyProgress: consistency, consistencyDrain: drain, consistencyCelebrate: celebrate,
     levelGlow, consistencyGlow };
 }
