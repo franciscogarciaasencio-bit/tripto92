@@ -4,10 +4,10 @@ import { BackHandler, ScrollView, useWindowDimensions, View } from 'react-native
 import { useOna } from '@/application/ona-provider';
 import { useOnaAudio } from '@/application/audio-provider';
 import { AMBIENCES } from '@/audio/assets';
-import { DEFAULT_AUDIO_PREFERENCES, DEFAULT_PREFERENCES, FIXED_DURATIONS, INTENTIONS, type AudioPreferences, type Intention } from '@/data';
+import { DEFAULT_AUDIO_PREFERENCES, DEFAULT_PREFERENCES, FIXED_DURATIONS, type AudioPreferences } from '@/data';
 import { Action, colors, Header, Notice, Screen, Type } from './primitives';
 import { QuietPressable } from './quiet-pressable';
-import { intentionLabel } from './intentions';
+import { IntervalStepper, intervalLabel } from './interval-stepper';
 
 /** One quiet choice in an even grid; the chosen one is underlined, as elsewhere in Ona. */
 function Option({ label, accessibilityLabel, selected, onPress, columns }: { label: string; accessibilityLabel?: string; selected: boolean;
@@ -30,13 +30,13 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   </View>;
 }
 
-/** Before a practice: an optional intention, the sound and open or fixed length. Remembered for next time. */
+/** Before a practice: the sound, the length and the interval bell. Remembered for next time. */
 export function PrepareScreen() {
   const app = useOna(), audio = useOnaAudio();
   const prefs = app.preferences ?? DEFAULT_PREFERENCES;
   const sounds = app.audioPreferences ?? DEFAULT_AUDIO_PREFERENCES;
-  const [intention, setIntention] = useState<Intention | null>(prefs.intention);
   const [sound, setSound] = useState<AudioPreferences['sessionSound']>(sounds.sessionSound);
+  const [interval, setIntervalSeconds] = useState<number | null>(sounds.intervalSeconds);
   const [minutes, setMinutes] = useState<number | null>(prefs.durationMode === 'fixed'
     ? Math.round(prefs.defaultDurationSeconds / 60) : null);
   const back = useCallback(() => { if (!app.busy && !audio.starting) router.back(); }, [app.busy, audio.starting]);
@@ -47,14 +47,17 @@ export function PrepareScreen() {
 
   const begin = async () => {
     // Remember the choices; a failed save never blocks the practice itself.
-    const nextPrefs = { ...prefs, intention, durationMode: minutes === null ? 'open' as const : 'fixed' as const,
+    // The intention choice was removed (owner, 2026-10-17); a stored one is cleared.
+    const nextPrefs = { ...prefs, intention: null, durationMode: minutes === null ? 'open' as const : 'fixed' as const,
       defaultDurationSeconds: minutes === null ? prefs.defaultDurationSeconds : minutes * 60 };
     if (nextPrefs.intention !== prefs.intention || nextPrefs.durationMode !== prefs.durationMode ||
       nextPrefs.defaultDurationSeconds !== prefs.defaultDurationSeconds) await app.savePreferences(nextPrefs);
-    if (app.audioPreferences && sound !== app.audioPreferences.sessionSound) await app.saveAudioPreferences({ ...app.audioPreferences, sessionSound: sound });
+    if (app.audioPreferences && (sound !== app.audioPreferences.sessionSound || interval !== app.audioPreferences.intervalSeconds))
+      await app.saveAudioPreferences({ ...app.audioPreferences, sessionSound: sound, intervalSeconds: interval });
     await audio.begin(minutes === null ? { mode: 'open' } : { mode: 'fixed', seconds: minutes * 60 });
   };
-  const summary = `${minutes === null ? 'Open-ended' : `${minutes} minutes`} · ${AMBIENCES.find((entry) => entry.id === sound)?.name ?? ''}`;
+  const summary = `${minutes === null ? 'Open-ended' : `${minutes} minutes`} · ${AMBIENCES.find((entry) => entry.id === sound)?.name ?? ''}`
+    + (interval === null ? '' : ` · bell ${intervalLabel(interval).toLowerCase()}`);
   const disabled = app.busy || audio.starting || app.draft !== null;
   // Large system text: fewer, wider columns so words stay whole instead of shrinking.
   const { fontScale, width } = useWindowDimensions();
@@ -64,10 +67,6 @@ export function PrepareScreen() {
   return <Screen scroll={false} style={{ paddingBottom: 0 }}>
     <Header title="Your practice" back={back} />
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 20, paddingTop: 20, paddingBottom: 24 }}>
-      <Section title="Intention" note="Optional">
-        <Option columns={words} label="None" accessibilityLabel="No intention" selected={intention === null} onPress={() => setIntention(null)} />
-        {INTENTIONS.map((id) => <Option columns={words} key={id} label={intentionLabel(id)} selected={intention === id} onPress={() => setIntention(id)} />)}
-      </Section>
       <Section title="Sound">
         {AMBIENCES.map((entry) => <Option columns={words} key={entry.id} label={entry.name} selected={sound === entry.id} onPress={() => setSound(entry.id)} />)}
       </Section>
@@ -76,6 +75,13 @@ export function PrepareScreen() {
         {FIXED_DURATIONS.map((value) => <Option columns={numbers} key={value} label={`${value}`} accessibilityLabel={`${value} minutes`}
           selected={minutes === value} onPress={() => setMinutes(value)} />)}
       </Section>
+      <View style={{ gap: 6, paddingTop: 20, borderTopWidth: 1, borderColor: colors.line }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+          <Type role="label" accessibilityRole="header">Interval bell</Type>
+          <Type role="secondary" style={{ fontSize: 12 }}>follows meditation time</Type>
+        </View>
+        <IntervalStepper value={interval} onChange={setIntervalSeconds} />
+      </View>
       <Type role="secondary">{minutes === null
         ? 'Open-ended is recommended: stop when you choose. Every practice of three active minutes counts.'
         : `${sounds.closingBellEnabled ? 'A bell ends' : 'Ona quietly ends'} the practice after ${minutes} minutes of meditation. Pauses don’t count, and finishing earlier still counts.`}</Type>

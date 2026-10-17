@@ -14,7 +14,7 @@ the others byte-for-byte); build-bell-loops.py builds/verifies the interval loop
 interval master. Regenerate the loops whenever Interval changes.
 bell-timing.ts holds sample-verified cleanup ceilings; native end events release normally.
 
-Ocean/Rain/Storm/Brown Noise remain original deterministic procedural DSP in
+Ocean/Rain/Storm remain original deterministic procedural DSP in
 assets/audio/meditation. Its README and analysis.json document provenance/measurements.
 generate-meditation-sounds.py retains the historical complete generator, now writing to
 ignored .expo/sound/legacy-dsp so it cannot overwrite current assets. Acoustic recordings
@@ -26,7 +26,6 @@ are external CC0 material, not original Ona synthesis. Everything is bundled off
 | Ending bell | Deeper approximately 305 Hz mode, 29.92-second natural resonance |
 | Interval bell | The owner's gong: approximately 439 Hz with its octave, 9.42-second natural decay; since 2026-10-16 about −29.4 LUFS, a little above the starting bell (−32.1), because the owner could barely hear it |
 | Ocean, Rain, Storm | Layered evolving circular synthesis, three-minute stereo AAC loops |
-| Brown Noise | Warm circular spectral synthesis, three-minute lossless FLAC loop |
 | Silence | No ambience; optional bells remain independent |
 | Choir | User-supplied CC0 Meditation Choir, shipped as 192 kbps AAC since 2026-10-15 (original WAV in Git history); Home and optional meditation source |
 
@@ -90,14 +89,13 @@ version 1 → 2 while preserving old choices. Malformed/future values fail expli
 
 ## Size, analysis and verification limits
 
-All assets are local at 24 kHz except Choir (48 kHz AAC). Bundled audio is about 26 MB; the largest item is
-the 9 MB lossless Brown Noise loop. Interval loops total 3.57 MB (see Lifecycle). Native decoders stream
+All assets are local at 24 kHz except Choir (48 kHz AAC). Bundled audio is about 17 MB (Brown Noise, 9 MB, was removed on 2026-10-17 at the owner's request; a
+saved choice of it plays Ocean). Interval loops total 3.57 MB (see Lifecycle). Native decoders stream
 only selected files.
 On 2026-10-15 the Choir moved from its 22 MB WAV to a 1.8 MB AAC encode (assets/audio/README.md).
 
 Generation analysis checks headroom/DC, soft attacks/tails, >0.99 decoded/master
-correlation, ordinary-sized wrap steps and first/second/final interval timing. Brown Noise
-uses lossless FLAC because AAC testing revealed a boundary mismatch. These checks
+correlation, ordinary-sized wrap steps and first/second/final interval timing. These checks
 do not prove subjective realism or native decoder gaplessness.
 
 npm run check exercises migrations, persisted preferences, sound policy/controllers,

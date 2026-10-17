@@ -1163,3 +1163,14 @@ AGENTS.md updated (interval loops, rules V1–V6). Checked with knip, strict unu
 no unused source files or dependencies remain (pglite is a test dependency; expo-linking/system-ui are
 Expo Router peers; expo-symbols' 1 MB icon font comes in through expo-router). No native or runtime
 change. Bundle: 26.5 MB audio (9 MB Brown Noise FLAC is the largest), 4.4 MB images, 7.5 MB JS.
+
+### Second clean-up round (2026-10-17)
+
+Owner: interval bell moves from Settings to Prepare; remove the intention; delete Brown Noise; report
+sound sizes; fix the forest title ("forest" not visible on the phone). Done: IntervalStepper on Prepare
+(saved with the sound on Begin, Settings no longer owns it); intention UI gone (data field kept for
+compatibility, cleared on Begin); Brown Noise removed (9 MB; a saved or synced choice opens as Ocean,
+tested); the forest title is one line that scales down instead of wrapping. Remaining sounds: Ocean,
+Rain, Storm 2.9 MB each, Choir 1.84 MB, bells 2.5 MB, interval loops 3.57 MB, ending timeline 0.86 MB.
+Shortening the 3-minute ambience loops was judged not easy (evolving textures, AAC loop seams, analysis
+and tests) and not done. The title fix is not verifiable on web, where the title already rendered.

@@ -61,7 +61,7 @@ export default function Session() {
           <SessionTime draft={draft} scale={scale} active={focused} />
           <View style={{ width: 5 * scale, height: 5 * scale, borderRadius: 5, backgroundColor: '#BDAE94', marginTop: 5 * scale }} />
           <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, letterSpacing: 2 * scale, lineHeight: 20 * scale,
-            color: coastalQuiet, marginTop: 10 * scale }}>{sessionLine(app.preferences?.intention ?? null, paused)}</Text>
+            color: coastalQuiet, marginTop: 10 * scale }}>{sessionLine(null, paused)}</Text>
         </>}
       </View>
       <View style={{ position: 'absolute', bottom: controlsBottom, left: 24 * scale, right: 24 * scale, alignItems: 'center', gap: 4 }}>

@@ -32,7 +32,7 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 | --- | --- |
 | / | Home: sun/halo Meditate action, wave, current level/Ripples, Consistency bar |
 | /forest | Highest-achievement forest; native left swipe from Home, right swipe/back to Home |
-| /prepare | Before a practice: optional intention, sound, open-ended (default) or fixed length; Begin |
+| /prepare | Before a practice: sound, open-ended (default) or fixed length, interval bell; Begin |
 | /session | Active timer (counts up when open, down when fixed), pause/resume/finish/discard, sound controls |
 | /completion | Saved duration, earned Ripples, staged reward progress, Continue |
 | /practice | Journey calendar with saved dates/detail and level overview |
@@ -47,10 +47,11 @@ AudioProvider, shared OceanMotionProvider and ForestNavigationProvider above a h
 Home/Journey/Guide/Settings form the quiet bottom navigation; route filenames above
 are historical URLs, not unused legacy screens. Main flow: Home → Prepare → Session →
 Completion → Home. Meditate opens /prepare (owner decision, 2026-10-14), which remembers
-the last intention, sound and length, so a returning person only taps Begin. Choices use the
-same underlined radio pattern as the interval picker; open-ended stays the recommended
-default. An intention replaces the session's quiet line ("Just be here") with a short phrase
-(ui/intentions.ts); it is not stored in history. A fixed length counts down and ends with the
+the last sound, length and interval bell, so a returning person only taps Begin. Sound and length
+use an underlined radio pattern; the interval bell (Off or 1–60 minutes) a − / + stepper
+(interval-stepper.tsx), moved here from Settings on 2026-10-17. Open-ended stays the recommended
+default. The optional intention was removed the same day (owner: unnecessary clutter); a stored one
+is cleared on the next Begin and the session line is always the quiet default. A fixed length counts down and ends with the
 End bell; finishing earlier still completes the practice.
 The secondary sprout control on Home opens the same Forest route without a gesture.
 forest-pages.tsx composes the same Home/Forest surfaces as active and incoming pages.
@@ -191,7 +192,7 @@ stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match
 ("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
 captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
 Settings holds only what lives nowhere else: Bells (starting/ending on/off with a small play button
-each, interval Off or 1–60 minutes with − / + and play, bell volume), Home ambience volume, Account and Reset. Gentle
+each, bell volume), Home ambience volume, Account and Reset (the interval bell is chosen on Prepare). Gentle
 haptics and the in-app sound credits were removed at the owner's request (2026-10-15): nothing vibrates,
 and sound provenance lives in docs/AUDIO.md and the asset READMEs. Ambience choice is made on Prepare and its volume from the speaker during
 a practice; Home's speaker mutes Home. Saving writes only those fields onto the current preferences.

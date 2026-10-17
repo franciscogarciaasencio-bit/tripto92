@@ -78,7 +78,7 @@ export function HomeScreen({ openForest, scrollGesture, scrollOffsetRef, remembe
       </View>
       <Text accessibilityRole="header" maxFontSizeMultiplier={1.3} style={{ position: 'absolute', top: wordmarkTop, left: sunLeft, width: sunDiameter, textAlign: 'center',
         fontFamily: serif, fontSize: 34 * scale, lineHeight: 40 * scale, color: '#121813' }}>Ona</Text>
-      <QuietPressable accessibilityRole="button" accessibilityLabel={audio.starting ? 'Beginning meditation' : 'Meditate'} accessibilityHint="Choose an intention, sound and length, then begin" accessibilityState={{ disabled: app.busy || audio.starting }}
+      <QuietPressable accessibilityRole="button" accessibilityLabel={audio.starting ? 'Beginning meditation' : 'Meditate'} accessibilityHint="Choose a sound, length and interval bell, then begin" accessibilityState={{ disabled: app.busy || audio.starting }}
         disabled={app.busy || audio.starting} disabledOpacity={.62} onPress={() => router.push('/prepare')}
         style={{ position: 'absolute', left: sunLeft, top: sunTop, width: sunDiameter, height: sunDiameter, borderRadius: sunDiameter / 2, alignItems: 'center' }}>
         <View style={{ position: 'absolute', top: labelTop - sunTop, alignItems: 'center' }}>

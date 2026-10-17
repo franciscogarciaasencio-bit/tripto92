@@ -15,7 +15,7 @@ export interface AudioPreferences {
   readonly version: 2;
   readonly homeEnabled: boolean;
   readonly homeVolume: number;
-  readonly sessionSound: 'ocean_music' | 'ocean' | 'rain' | 'storm' | 'brown_noise' | 'silence';
+  readonly sessionSound: 'ocean_music' | 'ocean' | 'rain' | 'storm' | 'silence';
   readonly sessionVolume: number;
   readonly openingBellEnabled: boolean;
   readonly closingBellEnabled: boolean;
@@ -43,11 +43,13 @@ function volume(value: unknown): number {
 export function decodeAudioPreferences(value: unknown): AudioPreferences {
   const row = object(value);
   requireData(row.version === 2, 'Unsupported audio preferences version');
+  // Brown Noise was removed (owner, 2026-10-17); a stored or synced choice of it plays Ocean instead.
   requireData(typeof row.sessionSound === 'string' && ['ocean_music','ocean','rain','storm','brown_noise','silence'].includes(row.sessionSound), 'Unsupported meditation sound');
+  const sessionSound = row.sessionSound === 'brown_noise' ? 'ocean' : row.sessionSound as AudioPreferences['sessionSound'];
   requireData(row.intervalSeconds === null || isIntervalSeconds(row.intervalSeconds), 'Unsupported bell interval');
   return Object.freeze({
     version: 2, homeEnabled: boolean(row.homeEnabled), homeVolume: volume(row.homeVolume),
-    sessionSound: row.sessionSound as AudioPreferences['sessionSound'], sessionVolume: volume(row.sessionVolume),
+    sessionSound, sessionVolume: volume(row.sessionVolume),
     openingBellEnabled: boolean(row.openingBellEnabled), closingBellEnabled: boolean(row.closingBellEnabled),
     bellVolume: volume(row.bellVolume), intervalSeconds: row.intervalSeconds as number | null, hapticsEnabled: boolean(row.hapticsEnabled),
   });

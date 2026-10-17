@@ -14,7 +14,7 @@ import type { AudioPreferences } from '@/data';
  * What Settings edits. Ambience choice and volume belong to the practice screens, Home's mute to its
  * speaker, so saving here never overwrites a choice made there in the meantime.
  */
-const OWNED = ['homeVolume', 'openingBellEnabled', 'closingBellEnabled', 'bellVolume', 'intervalSeconds'] as const;
+const OWNED = ['homeVolume', 'openingBellEnabled', 'closingBellEnabled', 'bellVolume'] as const;
 function owned(preferences: AudioPreferences) {
   return Object.fromEntries(OWNED.map((key) => [key, preferences[key]])) as Pick<AudioPreferences, typeof OWNED[number]>;
 }

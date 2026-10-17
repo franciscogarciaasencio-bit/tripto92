@@ -30,7 +30,9 @@ export function ForestScreen({ goHome }: { goHome: () => void }) {
           <View style={{ transform: [{ rotate: '180deg' }] }}><HomeIcon name="arrow" size={22} color={coastalQuiet} /></View>
         </QuietPressable>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.caption, { marginTop: 12, marginHorizontal: 48 }]}>{stage.name}</Text>
-        <Text accessibilityRole="header" style={styles.title} maxFontSizeMultiplier={1.5}>Your forest</Text>
+        {/* One line, never clipped or wrapped behind the caption (owner, 2026-10-17: "forest" was not visible). */}
+        <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
+          style={[styles.title, { alignSelf: 'stretch', textAlign: 'center', zIndex: 1 }]} maxFontSizeMultiplier={1.3}>Your forest</Text>
         <Text style={styles.caption} maxFontSizeMultiplier={1.5}>Grows with your practice.</Text>
       </View>
       <View style={{ position: 'absolute', left: 24, right: 24, bottom: Math.max(insets.bottom, 20), alignItems: 'center', gap: 6 }}>

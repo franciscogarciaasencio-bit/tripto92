@@ -56,11 +56,17 @@ test('New sound defaults are calm; every environment, bell, interval and haptic 
  const file=disk(t);let store=await openStore(connection(file),context(1));
  assert.deepEqual(await store.settings.loadAudioPreferences(),defaults);assert.equal(defaults.sessionSound,'ocean');
  assert.ok(defaults.openingBellEnabled&&defaults.closingBellEnabled);assert.equal(defaults.intervalSeconds,null);
- for(const sessionSound of ['ocean','rain','storm','brown_noise','silence','ocean_music']){
+ for(const sessionSound of ['ocean','rain','storm','silence','ocean_music']){
   const prefs={...defaults,sessionSound,sessionVolume:.2,bellVolume:.1,intervalSeconds:900,hapticsEnabled:true,closingBellEnabled:false};
   await store.settings.saveAudioPreferences(prefs);await store.close();store=await openStore(connection(file),context(1));
   assert.deepEqual(await store.settings.loadAudioPreferences(),prefs);
  }await store.close();
+});
+
+test('Brown Noise was removed: a saved or synced choice of it opens as Ocean, never as an error',async t=>{
+ assert.equal(decodeAudioPreferences({...defaults,sessionSound:'brown_noise'}).sessionSound,'ocean');
+ const catalogue=require('node:fs').readFileSync(require('node:path').join(__dirname,'../../src/audio/assets.ts'),'utf8');
+ assert.ok(!catalogue.includes('brown'),'no Brown Noise in the sound catalogue or bundle');
 });
 
 test('Stopping a preview fades softly, then releases exactly that player',()=>{
@@ -204,7 +210,7 @@ test('Late-loading bells are dropped, and removing preview/session owners cancel
 test('Every retained ambience matches its original output; encoded loops retain headroom and clean boundaries',()=>{
  const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
  const root=path.join(__dirname,'../../assets/audio/meditation'),report=JSON.parse(fs.readFileSync(path.join(root,'analysis.json')));
- assert.equal(Object.keys(report.assets).length,4);let bytes=0;
+ assert.equal(Object.keys(report.assets).length,3);let bytes=0;
  for(const [name,entry] of Object.entries(report.assets)){
   const raw=fs.readFileSync(path.join(root,name));bytes+=raw.length;
   assert.equal(crypto.createHash('sha256').update(raw).digest('hex'),entry.sha256);assert.equal(raw.length,entry.bytes);

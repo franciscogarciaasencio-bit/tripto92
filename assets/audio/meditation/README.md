@@ -1,6 +1,6 @@
 # Original Ona ambience
 
-The four active environments in this directory are deterministic procedural DSP,
+The three active environments in this directory are deterministic procedural DSP,
 created for Ona without external recordings, models, royalties or attribution duties.
 The acoustic bell bank and matching interval tracks live in ../bells-v2/ and have
 separate CC0 source evidence. Choir remains the user-supplied recording outside both folders.
@@ -10,12 +10,11 @@ separate CC0 source evidence. Choir remains the user-supplied recording outside 
 - Ocean: evolving water/surf/foam with asymmetric swells and jittered arrivals.
 - Rain: steady bed with evolving fine patter and microtexture.
 - Storm: rain beneath long, low, distant thunder rolls; no crash transients.
-- Brown Noise: warm band-limited noise with restrained stereo width.
 
 These are three-minute circular masters, not short clips restarted by JavaScript.
-Ocean/Rain/Storm use 128 kbps stereo AAC-LC with priming metadata; Brown Noise uses
-lossless FLAC after AAC testing exposed a boundary mismatch. All are 24 kHz. The four
-unchanged assets total 17.73 MB. analysis.json records hashes, signal measurements,
+Ocean/Rain/Storm use 128 kbps stereo AAC-LC with priming metadata, 24 kHz, about 2.9 MB each.
+Brown Noise (lossless FLAC, 9 MB) was removed at the owner's request on 2026-10-17; its generator
+remains and the file is in Git history. analysis.json records hashes, signal measurements,
 decoded correlation and boundary steps. Its historical generator ID remains accurate.
 
 ## Reproduction
