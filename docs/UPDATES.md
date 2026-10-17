@@ -78,3 +78,16 @@ passed. EAS confirmed both platforms and the active channel mapping. Moves the i
 Prepare, removes the intention and Brown Noise, and includes clean-up, Consistency rounds and
 level-up moments. Native listening, gestures, completion animation and update arrival remain
 device checks. A new iPhone installation needs the separately built IPA before it can receive OTA.
+
+### 2026-10-17 — Journey opens on the calendar; Friends
+
+- Update group: `0f13c9ed-0388-41b5-9201-fa3ca9bbef35` —
+  [Expo dashboard](https://expo.dev/accounts/tripto92/projects/MeditationApp/updates/0f13c9ed-0388-41b5-9201-fa3ca9bbef35).
+- Source commit: `28b1943bdd38ede6eeb13bdb156da0b0c6f95ed4` (clean main).
+- Android and iOS, runtime `1.2.0`, channel/branch `preview`, EAS environment `preview`.
+
+Published after Node 24.21.0, npm ci, refreshed Expo Router route types, TypeScript/lint,
+1,033 passing tests and all-platform export. EAS confirmed the active preview channel maps to
+this group for both platforms. The Friends migration was run successfully by the owner in the
+Supabase SQL editor. Adding the friend's Google account as a test user is deferred by the owner;
+that account cannot sign in until it is added or Google sign-in is published.

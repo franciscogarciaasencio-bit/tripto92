@@ -1217,5 +1217,15 @@ reveals whether an address uses Ona. Weeks in a row lapse for friends exactly wh
 calendar would, from a shared "holds until" date instead of practice dates. Supabase migration
 20261017120000_ona_friends.sql (RLS, functions only, safe to re-run), tested on PGlite; the client is
 tested against it through a PostgREST-shaped fetch. Owner steps: run the SQL, add friends as Google test
-users (or publish the Google app), then the OTA update. Not verified on a device or against the live
-Supabase project; web screenshots used mocked responses.
+users (or publish the Google app), then the OTA update. At implementation time this was not verified
+against the live Supabase project; web screenshots used mocked responses. Live setup and publication
+are recorded below; device behaviour and the friend's Google test-user access remain pending.
+
+### Friends setup and release — 2026-10-17
+
+Owner ran the Friends SQL migration in the live Supabase SQL editor and confirmed success. Published
+OTA group `0f13c9ed-0388-41b5-9201-fa3ca9bbef35` for Android and iOS on runtime `1.2.0`, channel
+`preview` (source `28b1943`). The owner deferred adding the friend's Gmail as a Google test user until
+after receiving the APK. Android preview build 1.2.0 (5), build `d13034fa-6dba-4e73-abe9-e495bdac5e6c`,
+completed and passed signature, package, runtime, channel, ARM library and alignment checks. Device
+sign-in and mutual friend behavior remain to be checked after the test user is added.

@@ -61,6 +61,28 @@ artifacts/android/ona-preview-1.2.0-4.apk and verification-1.2.0-4.json. Install
 Ona app **without uninstalling** to retain practice data. Device installation/listening remain
 owner checks.
 
+### Verified preview 1.2.0 (5) — 2026-10-17
+
+- Build ID: `d13034fa-6dba-4e73-abe9-e495bdac5e6c`;
+  [build page](https://expo.dev/accounts/tripto92/projects/MeditationApp/builds/d13034fa-6dba-4e73-abe9-e495bdac5e6c).
+- [Download APK](https://expo.dev/artifacts/eas/NeWIxSSkrTD5ESKWcm5Gl_iKYzgdab9YAYWcXbuQueI.apk):
+  **68.48 MB** (68,482,972 bytes; decimal MB).
+- APK SHA-256: `dec0c1ffdf5efc676a4b1e290912a4dbd9916af89bac7474c213ebefae817308`.
+- Signing certificate SHA-256: `15fccec1f10e5788cbfc12612184df2bc997872d761715c25031c4e2bd48bce7`.
+
+Built from clean commit `28b1943bdd38ede6eeb13bdb156da0b0c6f95ed4` with the existing EAS-managed
+keystore. Verified package `com.meditation.ona`, version `1.2.0` / versionCode `5`, release Hermes,
+current runtime audio, ZIP alignment and ARM64 16 KB ELF alignment. Contains exactly 26 compressed
+native libraries each for `armeabi-v7a` and `arm64-v8a`; embedded EAS Update is enabled for runtime
+`1.2.0`, channel `preview`, check on launch and zero launch wait. Node 24.21.0, npm ci, TypeScript/lint,
+1,033 tests and all-platform export passed. The Friends migration was applied successfully to the live
+Supabase project by the owner. Google test-user access is pending the owner's later setup.
+
+Owner's copy: `C:\Users\fga31\Downloads\Ona-1.2.0-5.apk`. Ignored verification copy/report:
+artifacts/android/ona-preview-1.2.0-5.apk and verification-1.2.0-5.json. Install over the existing
+Ona app **without uninstalling** to retain practice data. Device installation/listening remain
+owner checks.
+
 ## Build and installation
 
 First verified release preview (Session 11): **1.0.0 (1)**, 205.29 MB, Android 7+
