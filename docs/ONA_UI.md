@@ -246,9 +246,19 @@ Signed out, the screen explains and offers Continue with Google. Pull to refresh
 "Well done", the time, then one Ripples number at a time: the practice's, then the total with "60 for
 your practice · +4 for Consistency". Each level step up swells the new "Level N" in a warm glow and one
 ring spreads from it. The Consistency bar fills in rounds (consistency-rounds.ts): the big bar fills once
-per milestone (12 of the 60 counted practices; a twice-a-day day counts two); when a round completes it
-holds full in a warm glow while its new small bar swells and glows, then empties gently and refills the
-remainder (ROUND_MOTION in use-premium-reward.ts); decay empties rounds in reverse. A practice under
+per milestone (a fifth of the eased bar, rules V7); a completed round is a new **Consistency level**
+(owner, 2026-10-17): the full bar holds while a band of light sweeps across it and a glow in the round's
+colour breathes around it, the new small segment pops in its colour, "Consistency level N" (or "Full
+Consistency") appears in the new colour and stays, then the bar empties gently and refills in the next
+colour (ROUND_MOTION in use-premium-reward.ts). Each round has its own colour (ROUND_COLORS: olive
+#76845A, sea #4C7471, dusk #3E4C76, clay #A0593B, ochre #A47A2E); the small segments keep the colour of
+the round they mark. Decay empties rounds in reverse.
+
+Tapping Consistency on Home opens /consistency (consistency-screen.tsx): the bar at 1.6×, "Level N of 5"
+and what each practice earns now (×N, the only place a multiplier is shown), why coming back is the hard
+part and what Ona rewards, how the bar grows (six weeks daily, three twice a day), the five levels in
+their colours with the multiplier where each begins, and time away. Practice details (history) show the
+Ripples "For the practice" and "From Consistency" when the receipt has a bonus. A practice under
 three minutes shows one quiet note instead ("Saved in your history").
 
 Continue then opens the calendar moment (streak-celebration.tsx) after every counted practice:

@@ -8,6 +8,7 @@ test('Practice details preserve captured dates, zones, active/paused duration an
   await save(meditations, practice);
   assert.deepEqual(await meditations.getPracticeDetails(practice.id), {
     session: practice, createdAt: practice.endedAt, awardedXpCenti: 8000,
+    split: null, // V1 receipts predate a separate Consistency bonus
   });
 });
 

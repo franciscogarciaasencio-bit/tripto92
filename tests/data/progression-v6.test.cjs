@@ -36,3 +36,30 @@ test('Opening a V5 practice activates V6 once; earlier short-run receipts stay, 
   assert.equal(awards(conn).length, 2, 'reopening revalidates the mixed V5/V6 ledger');
   await store.close();
 });
+
+test('Opening a V6 practice activates V7 once: V6 receipts stay, Consistency carries over, details split Ripples', async t => {
+  const file = disk(t);
+  let conn = connection(file), store = await openStore(conn, context(1), undefined, 'progression_v6');
+  for (let day = 1; day <= 3; day++) await practice(store, session({ day, hour: 9, minutes: 10 }));
+  const released = awards(conn);
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(4), undefined, 'progression_v7');
+  assert.equal(store.initialSnapshot.rulesVersion, 'progression_v7');
+  assert.deepEqual(awards(conn), released, 'historical receipts are never recomputed');
+  const carried = store.initialSnapshot.consistency;
+  assert.ok(carried.fraction > 0 && Math.abs(carried.indicatorFraction - (1 - (1 - carried.fraction) ** 2)) < 1e-9, 'the bar eases out');
+  const saved = await practice(store, session({ day: 4, hour: 9, minutes: 10 }));
+  const { split, awardedXpCenti } = await store.meditations.getPracticeDetails(session({ day: 4, hour: 9, minutes: 10 }).id);
+  assert.equal(split.practiceXpCenti, 16_000);
+  assert.ok(split.consistencyXpCenti > 0);
+  assert.equal(split.practiceXpCenti + split.consistencyXpCenti, awardedXpCenti);
+  const indicator = saved.completion.consistencyIndicator;
+  assert.ok(indicator.after > indicator.before);
+  assert.ok(Math.abs(indicator.after - saved.snapshot.consistency.indicatorFraction) < 1e-9, 'the completion bar ends where Home shows it');
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(5), undefined, 'progression_v7');
+  assert.equal(awards(conn).length, 4, 'reopening revalidates the mixed V6/V7 ledger');
+  const short = await store.meditations.getPracticeDetails(session({ day: 1, hour: 9, minutes: 10 }).id);
+  assert.equal(short.split.practiceXpCenti + short.split.consistencyXpCenti, short.awardedXpCenti, 'V6 receipts split too');
+  await store.close();
+});

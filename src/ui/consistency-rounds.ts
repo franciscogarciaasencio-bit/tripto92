@@ -13,3 +13,20 @@ export function consistencyRounds(fraction: number) {
   const completed = Math.min(CONSISTENCY_STEPS, Math.floor(value + 1e-9));
   return { completed, current: completed === CONSISTENCY_STEPS ? 1 : Math.max(0, value - completed) };
 }
+
+/**
+ * One colour per round (owner, 2026-10-17): each completed round gives the bar the next colour,
+ * muted like watercolour on sand. Olive, sea, dusk, clay, then ochre for the last and full rounds.
+ */
+export const ROUND_COLORS = ['#76845A', '#4C7471', '#3E4C76', '#A0593B', '#A47A2E'] as const;
+export const ROUND_NAMES = ['Olive', 'Sea', 'Dusk', 'Clay', 'Ochre'] as const;
+/** The colour of the round in progress (the fifth stays once full). */
+export function roundColor(completed: number) {
+  'worklet';
+  return ROUND_COLORS[Math.max(0, Math.min(CONSISTENCY_STEPS - 1, completed))]!;
+}
+/** Consistency level shown to people: the round being filled, 1–5 (5 also when full). */
+export function consistencyLevel(fraction: number) {
+  'worklet';
+  return Math.min(CONSISTENCY_STEPS, consistencyRounds(fraction).completed + 1);
+}

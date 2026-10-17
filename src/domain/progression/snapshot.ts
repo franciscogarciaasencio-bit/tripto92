@@ -1,5 +1,5 @@
 import { dateFromDay, dayNumber, precedingActiveDays, readingContext, type CalendarContext } from './calendar';
-import { consistencyRatio } from './earnings';
+import { consistencyDisplayFraction, consistencyMultiplier, consistencyRatio } from './earnings';
 import { freeze } from './numeric';
 import { qualifyingDates } from './occasions';
 import { rankForProgress } from './ranks';
@@ -17,10 +17,7 @@ export function getProgressSnapshot(state: ProgressionState, requested: Calendar
   const dates = qualifyingDates(projected);
   const preceding = precedingActiveDays(dates, asOf.localDate, rules.consistencyWindowDays);
   const continuous = rules.continuousConsistency ? progressionConsistency(projected, rules.continuousConsistency) : null;
-  const ratio = rules.continuousConsistency ? {
-    numerator: rules.continuousConsistency.scale * 10_000 + continuous!.score * rules.maximumConsistencyBonusBasisPoints,
-    denominator: rules.continuousConsistency.scale * 10_000,
-  } : consistencyRatio(preceding, rules);
+  const ratio = rules.continuousConsistency ? consistencyMultiplier(rules, continuous!.score) : consistencyRatio(preceding, rules);
   const currentRank = rankForProgress(projected.currentProgressionCenti, rules.ranks);
   const nextRank = rules.ranks.find((rank) => rank.thresholdCentiXp > currentRank.thresholdCentiXp) ?? null;
   const lastQualifyingDate = [...dates].sort().at(-1) ?? null;
@@ -40,7 +37,7 @@ export function getProgressSnapshot(state: ProgressionState, requested: Calendar
     totalMeditationSeconds: projected.totalMeditationSeconds,
     totalMeditationMinutes: projected.totalMeditationSeconds / 60,
     consistency: { fraction: continuous?.fraction ?? preceding / rules.consistencyWindowDays,
-      indicatorFraction: rules.continuousConsistency && isLinearConsistency(rules.continuousConsistency) ? continuous!.fraction : getConsistencyIndicator(projected.sessions.map(entry => entry.session), {
+      indicatorFraction: rules.continuousConsistency && isLinearConsistency(rules.continuousConsistency) ? consistencyDisplayFraction(rules, continuous!.fraction) : getConsistencyIndicator(projected.sessions.map(entry => entry.session), {
         ...asOf, localDate: dateFromDay(Math.max(dayNumber(asOf.localDate), dayNumber(projected.settledThroughDate) + 1)),
       }),
       precedingActiveDays: preceding, windowDays: rules.consistencyWindowDays, multiplier: ratio.numerator / ratio.denominator,

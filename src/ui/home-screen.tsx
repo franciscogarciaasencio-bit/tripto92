@@ -17,6 +17,7 @@ import { Notice, serifFont as serif } from './primitives';
 import { CoastalScene, CoastalTexture, coastalComposition, coastalInk as ink, coastalQuiet as quiet } from './coastal-scene';
 import { QuietPressable } from './quiet-pressable';
 import { ConsistencyBar } from './consistency-bar';
+import { consistencyLevel } from './consistency-rounds';
 import { getLevelCategoryPresentation } from './category-presentation';
 import { getForestStage } from '@/domain/forest/growth';
 
@@ -117,13 +118,16 @@ export function HomeScreen({ scrollGesture, scrollOffsetRef, rememberScroll = fa
           <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 9 * scale }]}>{categoryName}</Text>
           <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
         </QuietPressable>
-        <View style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale,
+        {/* Tapping Consistency explains why Ona rewards coming back (owner, 2026-10-17). */}
+        <QuietPressable accessibilityRole="button" accessibilityLabel={`Consistency, level ${consistencyLevel(consistency.indicatorFraction)} of 5`}
+          accessibilityHint="Why Ona rewards coming back" onPress={() => router.push('/consistency')}
+          style={{ width: '51%', borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: '#D7CCBA', paddingLeft: 29 * scale,
           alignSelf: 'flex-start', minHeight: 92 * scale }}>
           <View style={[styles.titleRow, { height: 32 * scale }]}>
             <Text style={{ fontFamily: serif, fontSize: 22 * scale, lineHeight: 28 * scale, color: ink }}>Consistency</Text>
           </View>
           <View style={{ marginTop: 10 * scale }}><ConsistencyBar fraction={consistency.indicatorFraction} scale={scale} /></View>
-        </View>
+        </QuietPressable>
       </View>}
       {/* A faint chevron in the gap above the tabs, until the pull into Journey has been used a few times. */}
       {scrollGesture && <JourneyPullHint visible={hint.visible} top={contentHeight - 9 * scale} scale={scale} onPress={openJourney} />}

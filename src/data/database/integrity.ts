@@ -1,7 +1,7 @@
 import type { ProgressionState } from '../../domain/progression';
 import { dayNumber, dateFromDay } from '../../domain/progression/calendar';
 import { protectedFloor } from '../../domain/progression/decay';
-import { consistencyRatio } from '../../domain/progression/earnings';
+import { consistencyMultiplier, consistencyRatio } from '../../domain/progression/earnings';
 import { isRewardEligible, sessionConsistency } from '../../domain/progression';
 import { multiplyRatio } from '../../domain/progression/numeric';
 import { rulesForVersion } from '../../domain/progression/rules';
@@ -104,10 +104,10 @@ export function validateIntegrity(state: ProgressionState): void {
           asOf: { timestamp: award.awardedAt, localDate: b.continuousConsistencyDate, timeZone: entry.session.timeZone },
           settledThroughDate: dateFromDay(dayNumber(b.continuousConsistencyDate) - 1) };
         const score = sessionConsistency(priorState, { ...priorState, sessions: [...priorSessions, entry] }, c).score;
-        capturedRatio = { numerator: c.scale * 10_000 + score * originalRules.maximumConsistencyBonusBasisPoints, denominator: c.scale * 10_000 };
+        capturedRatio = consistencyMultiplier(originalRules, score);
         const cumulativeBase = multiplyRatio(b.baseCentiXp, occasion.weightBasisPoints, 10_000);
         requireData(b.continuousConsistencyScore === score && b.incrementalBaseCentiXp === cumulativeBase - baseEarned &&
-          b.bonusCentiXp === multiplyRatio(b.incrementalBaseCentiXp, score * originalRules.maximumConsistencyBonusBasisPoints, c.scale * 10_000) &&
+          b.bonusCentiXp === multiplyRatio(b.incrementalBaseCentiXp, capturedRatio.numerator - capturedRatio.denominator, capturedRatio.denominator) &&
           award.xpCenti === b.incrementalBaseCentiXp + b.bonusCentiXp, 'Invalid continuous reward breakdown');
         baseEarned = cumulativeBase;
       }

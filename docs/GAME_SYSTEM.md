@@ -4,7 +4,7 @@ Ona supports a lasting meditation habit. Ripples and levels are game metaphors,
 not measurements of mental health, brain adaptation, meditation skill or proven habit
 formation. UI shows whole Ripples, never internal XP, credit requirements or multipliers.
 
-## Current rules: progression_v6 / ona_habit_levels_v1
+## Current rules: progression_v7 / ona_habit_levels_v1 (thresholds re-paced 2026-10-17)
 
 All rules use plain TypeScript, explicit absolute timestamps and captured calendar
 contexts. Import the public API from src/domain/progression/index.ts.
@@ -12,12 +12,35 @@ contexts. Import the public API from src/domain/progression/index.ts.
 | Code | Authority |
 | --- | --- |
 | meditation/session.ts, timer.ts | Validated sessions and pure running/paused/finished cursors |
-| progression/rules.ts | Frozen earning configurations V1–V6 |
+| progression/rules.ts | Frozen earning configurations V1–V7 |
 | earnings.ts, occasions.ts | Duration, weighting and incremental awards |
 | consistency.ts | Continuous Consistency and immutable calendar anchors |
 | habit.ts | Current effective progress, protected levels and reward plans |
 | journey.ts | Stable category IDs, current/historical level definitions and entry gates |
 | state.ts, snapshot.ts, decay.ts | Versioned transitions and compatibility projections |
+
+### V7 (owner, 2026-10-17): what changed
+
+Activated prospectively when the database opens (store.ts; default `progression_v7`). V1–V6 receipts
+stay exactly as earned. Simulated with the owner before building (tests/domain/progression-v7.test.cjs).
+
+- **Length** (`linear_logarithmic_v2`): 16 Ripples a minute up to 15 minutes, then +80 per doubling
+  up to 400 at 60 minutes, rounded to 5: 3 min 50 · 5 min 80 · 10 min 160 · 15 min 240 · 20 min 275 ·
+  30 min 320 · 45 min 365 · 60+ min 400. Under three minutes: nothing.
+- **Same day**: 100%, 75%, then **50%** (was 25%), then nothing; 90-minute occasions as before.
+- **Consistency**: full after **42** contributions (six weeks daily, three weeks twice a day; a second
+  contribution still needs six hours after the first ends). Bonus up to **+700%** (×8), eased out:
+  share = 1 − (1 − C)² (`consistencyCurve: 'ease_out_v1'`, exact millionths), so 1 contribution is
+  +33%, 7 are +214%, 21 are +525%. The bar uses the same curve. Decay unchanged (half in 4 days).
+  Activation carries the V6 fraction over in proportion.
+- **Levels** (journey.ts `HABIT_LEVELS`): 1–49 unchanged; from 50 each level costs progressively more
+  up to 100 (`steepXpCenti` 9,297,500 on a square curve), and 101–125 each cost what Level 100 did
+  (about 3,900 Ripples). Level 125 has **no** calendar gate any more. Nobody had reached Level 50.
+- Daily 10 minutes: Level 10 on day 5, 50 on day 19, 100 on day 105, 125 on day 181. 20 minutes twice
+  a day: Level 100 on day 37. The owner prefers adding levels after 125 to making these harder.
+- Each award keeps its split (`incrementalBaseCentiXp` + `bonusCentiXp`); practice details show it.
+
+The sections below describe the released V5/V6 behaviour that V7 builds on.
 
 ### Sessions and earnings
 
@@ -99,8 +122,8 @@ r = (L − 1) / 124
 threshold(L) = round(12000 + 1400000r + 2688000r^1.75) centi-Ripples
 ~~~
 
-Level 1 also requires qualifying practice. Level 125 requires both 365 distinct
-qualifying dates and 365 elapsed days. Intermediate levels follow effective Ripples
+Level 1 also requires qualifying practice. (Until 2026-10-17 Level 125 also required 365 distinct
+qualifying dates and 365 elapsed days; that gate was removed with V7.) Intermediate levels follow effective Ripples
 after the initial entry gate. Daily ten-minute V5 simulations reach Level 100 on
 day 272 and Level 125 on day 375. Level 100 is Ona's habit-building milestone;
 101–125 represent continued practice, not a scientific certification.

@@ -130,7 +130,7 @@ test('Short practice never restarts the effective-progress grace period, even be
   assert.equal(returning.receipt.consistencyAfter,0);
 });
 
-test('Current habit thresholds resolve all 125 boundaries and keep the first qualification and final year gates', () => {
+test('Current habit thresholds resolve all 125 boundaries; only the first qualification is a calendar gate', () => {
   const metrics={lifetimeXpCenti:0,credits:365,realDays:365,firstPracticeAt:at(1),asOf:at(367)};
   const project=effectiveXpCenti=>api.getLifetimeJourney({...metrics,effectiveXpCenti},null,{version:api.HABIT_JOURNEY_VERSION});
   for(const level of api.HABIT_LEVELS){
@@ -141,19 +141,18 @@ test('Current habit thresholds resolve all 125 boundaries and keep the first qua
   const result=api.recordHabitReward(api.createHabitCheckpoint(begin()),begin(),short);
   assert.equal(result.journey.level.number,0);assert.equal(result.journey.fraction,503/12000);
   assert.ok(result.receipt.baseProgress.segments[0].to>0);
-  assert.equal(api.getLifetimeJourney({...metrics,effectiveXpCenti:5_000_000,realDays:364},null,{version:api.HABIT_JOURNEY_VERSION}).level.number,124);
-  assert.equal(api.getLifetimeJourney({...metrics,effectiveXpCenti:5_000_000,asOf:at(365)},null,{version:api.HABIT_JOURNEY_VERSION}).level.number,124);
+  // Owner, 2026-10-17: Level 125 no longer waits for a year of practice dates; Ripples alone decide.
+  const top=api.HABIT_LEVELS[124].xpCenti;
+  assert.equal(api.getLifetimeJourney({...metrics,effectiveXpCenti:top,credits:1,realDays:1,asOf:at(2)},null,{version:api.HABIT_JOURNEY_VERSION}).level.number,125);
 });
 
-test('Daily ten-minute practice reaches the habit milestone at 265 dates and maximum at 368 dates', () => {
-  let state=begin(),checkpoint=api.createHabitCheckpoint(state),milestone=0,maximum=0;
+test('Released V4 daily ten-minute earnings are unchanged by the 2026-10-17 level thresholds', () => {
+  let state=begin(),checkpoint=api.createHabitCheckpoint(state);
   for(let day=1;day<=368;day++){
     const after=api.recordSession(state,session({day})),result=api.recordHabitReward(checkpoint,state,after);
     state=after;checkpoint=result.checkpoint;
-    if(!milestone&&result.journey.level.number>=100)milestone=day;
-    if(!maximum&&result.journey.level.number===125)maximum=day;
   }
-  assert.equal(milestone,265);assert.equal(maximum,368);
   assert.equal(state.lifetimeXpCenti,4103466);
-  assert.equal(checkpoint.highestLevel,125);
+  // Level 100 now needs far more Ripples than V4's rewards give in a year.
+  assert.ok(checkpoint.highestLevel>=50&&checkpoint.highestLevel<100,String(checkpoint.highestLevel));
 });

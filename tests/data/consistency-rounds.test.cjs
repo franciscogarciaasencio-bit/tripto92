@@ -22,3 +22,10 @@ test('Fading Consistency empties the rounds in reverse; odd values stay in range
   assert.deepEqual(consistencyRounds(7), { completed: 5, current: 1 });
   assert.deepEqual(consistencyRounds(NaN), { completed: 0, current: 0 });
 });
+
+test('Each round has its own colour and the level is the round being filled (5 also when full)', () => {
+  const { ROUND_COLORS, roundColor, consistencyLevel } = require(path.join(process.env.DATA_BUILD_DIR, '..', 'ui', 'consistency-rounds.js'));
+  assert.equal(new Set(ROUND_COLORS).size, 5);
+  assert.equal(roundColor(0), ROUND_COLORS[0]); assert.equal(roundColor(5), ROUND_COLORS[4]); assert.equal(roundColor(-1), ROUND_COLORS[0]);
+  assert.deepEqual([0, 0.19, 0.2, 0.5, 0.99, 1].map(consistencyLevel), [1, 1, 2, 3, 5, 5]);
+});

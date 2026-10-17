@@ -30,12 +30,12 @@ export function HowItWorks() {
     </QuietPressable>
     {expanded && <Animated.View entering={FadeIn.duration(UI_MOTION.reveal).reduceMotion(accessibility)}
       exiting={FadeOut.duration(120).reduceMotion(accessibility)} style={{ gap: 20 }}>
-        <Type>Every saved practice can leave Ripples, even a short pause. Sessions with at least three active minutes count toward consistency.</Type>
+        <Type>A practice of at least three active minutes earns Ripples: 16 for every minute up to fifteen minutes, then a little more for each longer stretch, up to 400 for an hour. Shorter practices stay in your history.</Type>
         <Type>Begin at Level 0 · Monkey Mind. Your Ripples and regular practice gradually open new levels, each revealed when you reach it. Longer sessions and a steady rhythm gently add to your rewards, automatically.</Type>
-        <Type role="secondary">Nearby sessions share their reward, so splitting a practice does not multiply your progress. Returning on different days matters more than rushing.</Type>
-        <Type role="secondary">Consistency is one bar with five small milestones beneath it. Daily practices of at least three minutes reach full in about two months. A second practice six hours after the first ends can bring that closer to a month. Missing days gently soften your rhythm; extra Ripples follow automatically.</Type>
+        <Type role="secondary">A second practice on the same day earns three quarters, a third half, and more earn nothing. Practices less than 90 minutes apart count as one. Returning on different days matters most.</Type>
+        <Type role="secondary">Consistency multiplies every practice, up to eight times its Ripples. It fills fastest at the start and reaches full in about six weeks of daily practice, or three weeks practising twice a day, six hours apart. Days without practice let it fade, and it returns as soon as you do.</Type>
         <Type role="secondary">Your earned Ripples and highest level stay in your history. After three complete inactive days, current level progress gradually eases back. Half your highest level always remains protected. Return at your own pace.</Type>
-        <Type role="secondary">Level 100 is Ona’s designed habit-building milestone. Levels 101–125 invite continued practice, with the final level requiring at least a year. These milestones do not measure meditation ability.</Type>
+        <Type role="secondary">Level 100 is Ona’s designed habit-building milestone. Levels 101–125 invite continued practice. These milestones do not measure meditation ability.</Type>
         <Type role="secondary">Reset All Practice Data in Settings permanently deletes your practice, history and journey. Your preferences stay.</Type>
     </Animated.View>}
   </Animated.View>;

@@ -1,7 +1,7 @@
 import { BASIS_POINTS, assertNonnegativeInteger, freeze } from './numeric';
 import { V1_RANKS } from './ranks';
 import type { ProgressionRules, ProgressionState } from './types';
-import { CONTINUOUS_CONSISTENCY, isLinearConsistency, LINEAR_CONSISTENCY_V1 } from './consistency';
+import { CONTINUOUS_CONSISTENCY, isLinearConsistency, LINEAR_CONSISTENCY_V1, LINEAR_CONSISTENCY_V2 } from './consistency';
 
 export const PROGRESSION_V1: ProgressionRules = freeze({
   version: 'progression_v1',
@@ -45,10 +45,23 @@ export const PROGRESSION_V6: ProgressionRules = freeze({
   ...PROGRESSION_V5, version: 'progression_v6', minimumEarningSeconds: 180,
 });
 
+/**
+ * Owner, 2026-10-17: practice pays in proportion up to 15 minutes (16 Ripples a minute; 3 minutes 50,
+ * 5 minutes 80, 10 minutes 160), then +80 per doubling to 400 at 60 minutes, rounded to 5. A third
+ * practice in a day counts half (was a quarter). Consistency fills in 42 contributions (six weeks
+ * daily, three weeks twice a day) and eases out, up to +700%. Prospective only: V1–V6 receipts stay.
+ */
+export const PROGRESSION_V7: ProgressionRules = freeze({
+  ...PROGRESSION_V6, version: 'progression_v7', earningsAlgorithm: 'linear_logarithmic_v2',
+  duration: { baseCentiXp: 24_000, referenceSeconds: 900, doublingCentiXp: 8_000, capSeconds: 3_600, roundingCentiXp: 500 },
+  occasionWeightsBasisPoints: [10_000, 7_500, 5_000], maximumConsistencyBonusBasisPoints: 70_000,
+  continuousConsistency: LINEAR_CONSISTENCY_V2, consistencyCurve: 'ease_out_v1',
+});
+
 /** Validate and detach caller-owned configuration. A version identifies an entire frozen ruleset. */
 export function captureRules(rules: ProgressionRules): ProgressionRules {
   if (!rules.version.trim()) throw new RangeError('rules version is required');
-  if ((rules.earningsAlgorithm !== 'logarithmic_v1' && rules.earningsAlgorithm !== 'linear_short_logarithmic_v1') || rules.decayAlgorithm !== 'capped_daily_v1') {
+  if (!['logarithmic_v1', 'linear_short_logarithmic_v1', 'linear_logarithmic_v2'].includes(rules.earningsAlgorithm) || rules.decayAlgorithm !== 'capped_daily_v1') {
     throw new RangeError('Unsupported progression algorithm');
   }
   for (const [name, value] of Object.entries({
@@ -73,6 +86,13 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     throw new RangeError('Duration cap/reward must support qualification minimum');
   }
   if (rules.practiceDayEligibility !== undefined && rules.practiceDayEligibility !== 'completed_minimum') throw new RangeError('Unsupported practice-day policy');
+  if (rules.duration.roundingCentiXp !== undefined) {
+    assertNonnegativeInteger(rules.duration.roundingCentiXp, 'roundingCentiXp');
+    if (rules.duration.roundingCentiXp === 0 || rules.earningsAlgorithm !== 'linear_logarithmic_v2') throw new RangeError('Invalid reward rounding');
+  }
+  if (rules.consistencyCurve !== undefined && (rules.consistencyCurve !== 'ease_out_v1' || !rules.continuousConsistency)) {
+    throw new RangeError('Unsupported consistency curve');
+  }
   if (rules.minimumEarningSeconds !== undefined) {
     assertNonnegativeInteger(rules.minimumEarningSeconds, 'minimumEarningSeconds');
     if (rules.minimumEarningSeconds === 0 || rules.minimumEarningSeconds > rules.minimumActiveSeconds) throw new RangeError('Invalid earning minimum');
@@ -120,12 +140,14 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
       referenceSeconds: rules.duration.referenceSeconds,
       doublingCentiXp: rules.duration.doublingCentiXp,
       capSeconds: rules.duration.capSeconds,
+      ...(rules.duration.roundingCentiXp !== undefined ? { roundingCentiXp: rules.duration.roundingCentiXp } : {}),
     },
     occasionSeparationSeconds: rules.occasionSeparationSeconds,
     occasionWeightsBasisPoints: [...rules.occasionWeightsBasisPoints],
     consistencyWindowDays: rules.consistencyWindowDays,
     maximumConsistencyBonusBasisPoints: rules.maximumConsistencyBonusBasisPoints,
     ...(rules.continuousConsistency ? { continuousConsistency: { ...rules.continuousConsistency } } : {}),
+    ...(rules.consistencyCurve ? { consistencyCurve: rules.consistencyCurve } : {}),
     inactivityGraceDays: rules.inactivityGraceDays,
     dailyDecayBasisPoints: rules.dailyDecayBasisPoints,
     dailyDecayCapCentiXp: rules.dailyDecayCapCentiXp,

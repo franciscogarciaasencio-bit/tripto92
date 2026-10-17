@@ -50,7 +50,12 @@ export function PracticeDetailScreen() {
           <Text accessibilityLabel={`${formatRipples(details.awardedXpCenti)} Ripples earned in this practice`}
             style={{ fontFamily: coastalSerif, fontSize: 28, lineHeight: 38, color: coastalInk }}>{formatRipples(details.awardedXpCenti)} Ripples</Text>
         </View>
-        <Type role="secondary" style={{ textAlign: 'center', marginTop: 8 }}>A saved part of your journey.</Type>
+        {/* Where its Ripples came from (owner, 2026-10-17): the practice itself, and what Consistency added.
+            Whole-number allocation, as on the completion screen, so the two parts add up to the total shown. */}
+        {details.split && details.split.consistencyXpCenti > 0 ? <View style={{ marginTop: 20 }}>
+          <ChoiceRow label="For the practice" value={`${formatRipples(details.split.practiceXpCenti)} Ripples`} />
+          <ChoiceRow label="From Consistency" value={`+${Math.round(details.awardedXpCenti / 100) - Math.round(details.split.practiceXpCenti / 100)} Ripples`} divider={false} />
+        </View> : <Type role="secondary" style={{ textAlign: 'center', marginTop: 8 }}>A saved part of your journey.</Type>}
         <View style={{ marginTop: 32 }}>
           <ChoiceRow label="Practice" value={details.session.status === 'completed' ? 'Complete' : 'Ended early'} />
           {details.session.pausedDurationSeconds > 0 && <ChoiceRow label="Paused time" value={formatTime(details.session.pausedDurationSeconds).padStart(5, '0')} />}

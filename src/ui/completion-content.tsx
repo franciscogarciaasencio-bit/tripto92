@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import type { PracticeCompletion } from '@/data';
 import { JOURNEY_LEVELS, HABIT_LEVELS, HABIT_JOURNEY_VERSION, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES, type LifetimeJourney, type ProgressSnapshot } from '@/domain/progression';
 import { coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
@@ -12,6 +12,7 @@ import { usePremiumReward } from './use-premium-reward';
 import { QuietPressable } from './quiet-pressable';
 import { UI_MOTION } from './motion';
 import { ConsistencyBar } from './consistency-bar';
+import { consistencyRounds, CONSISTENCY_STEPS, roundColor } from './consistency-rounds';
 import { getLevelCategoryPresentation } from './category-presentation';
 import { reachesNewStage, StageReveal, stageOf } from './stage-reveal';
 
@@ -62,6 +63,9 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
   const veiled = newStage && motion.stage !== 'done' && stageOf(displayLevel.number) > stageOf(beforeLevel ?? 0);
   // Under three active minutes nothing counts (rules V6): a quiet note instead of empty reward panels.
   const uncounted = completion.session.activeDurationSeconds < PRACTICE_CREDIT_RULES.minimumActiveSeconds && total === 0;
+  // Rounds completed by this practice: the new Consistency level (6 stands for the final, full round).
+  const roundsBefore = consistencyRounds(completion.consistencyIndicator.before).completed, roundsAfter = consistencyRounds(completion.consistencyIndicator.after).completed;
+  const reachedLevel = roundsAfter > roundsBefore ? roundsAfter + 1 : null;
   const panel = { backgroundColor: 'rgba(228,210,182,0.22)', borderRadius: 17 * scale };
   const earningsText = { fontFamily: coastalSerif, fontSize: 31 * scale, lineHeight: 42 * scale, color: coastalInk };
   const explanation = receipt?.explanation === 'short' ? 'Consistency grows with practices of at least 3 minutes.'
@@ -125,10 +129,15 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 * scale }}><HomeIcon name="wave" size={20 * scale} color={coastalInk} />
         <Text style={{ fontFamily: 'ManropeRegular', fontSize: 13 * scale, lineHeight: 20 * scale, color: coastalInk }}>Consistency</Text>
       </View>
-      <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} drain={motion.consistencyDrain} flourish={motion.consistencyFlourish} scale={scale} label="Consistency progress" /></View>
-      <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
-        {explanation ?? 'A gentle rhythm of returning.'}
-      </Text>
+      <View style={{ marginTop: 8 * scale }}><ConsistencyBar fraction={indicator} progress={motion.consistencyProgress} drain={motion.consistencyDrain} celebrate={motion.consistencyCelebrate} scale={scale} label="Consistency progress" /></View>
+      {/* A completed round is a new Consistency level: named in its colour as the bar celebrates, and kept afterwards. */}
+      {reachedLevel !== null && (motion.roundReached !== null || motion.stage === 'done') ? <Animated.Text key={`round-${reachedLevel}`} accessibilityLiveRegion="polite"
+        entering={reduced ? undefined : FadeInDown.duration(560).springify().damping(14)} style={{ fontFamily: coastalSerif, fontSize: 19 * scale, lineHeight: 25 * scale,
+          color: roundColor(Math.min(4, reachedLevel - 1)), marginTop: 9 * scale }}>
+        {reachedLevel > CONSISTENCY_STEPS ? 'Full Consistency' : `Consistency level ${reachedLevel}`}</Animated.Text>
+        : <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 17 * scale, color: coastalQuiet, marginTop: 9 * scale }}>
+          {explanation ?? 'A gentle rhythm of returning.'}
+        </Text>}
     </View>
     </>}
     <Notice>{error ? 'Your practice is saved. Returning could not be confirmed. Please retry.' : null}</Notice>

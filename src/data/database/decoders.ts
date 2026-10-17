@@ -1,5 +1,5 @@
 import { validateSession } from '../../domain/meditation/session';
-import { createProgressionState, PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, PROGRESSION_V6 } from '../../domain/progression';
+import { createProgressionState, PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, PROGRESSION_V6, PROGRESSION_V7 } from '../../domain/progression';
 import type { CalendarContext, MeditationSession, ProgressionAward, ProgressionRules, ProgressionState, RankDefinition, ConsistencyActivation } from '../../domain/progression';
 import { PersistenceError } from './errors';
 import { array, canonical, integer, json, localDate, object, requireData, text, timestamp, timeZone } from './validation';
@@ -113,7 +113,7 @@ export function decodeConsistencyActivation(value: unknown): ConsistencyActivati
 /** Explicit allowlist. New releases register new versions AND retain historical definitions. */
 export function createRulesRegistry(supported: readonly ProgressionRules[] = [PROGRESSION_V1]) {
   const registry = new Map<string, ProgressionRules>();
-  for (const rules of [PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, PROGRESSION_V6, ...supported]) {
+  for (const rules of [PROGRESSION_V1, PROGRESSION_V2, PROGRESSION_V3, PROGRESSION_V4, PROGRESSION_V5, PROGRESSION_V6, PROGRESSION_V7, ...supported]) {
     const captured = createProgressionState({ timestamp: 0, localDate: '1970-01-01', timeZone: 'UTC' }, rules).ruleSets[0]!;
     const existing = registry.get(captured.version);
     if (existing && canonical(existing) !== canonical(captured)) throw new Error('Conflicting registered rules version');

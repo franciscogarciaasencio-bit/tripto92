@@ -15,6 +15,11 @@ export interface HistoryQuery { readonly limit?: number; readonly offset?: numbe
 export interface PracticeDetails extends StoredMeditationSession {
   /** Original immutable reward, in centi-Ripples. Reading never recalculates or replays it. */
   readonly awardedXpCenti: number;
+  /**
+   * Its split, from the same receipt: Ripples for the practice itself and those its Consistency added.
+   * Null for receipts from before Consistency was a separate bonus (rules V1–V3).
+   */
+  readonly split: { readonly practiceXpCenti: number; readonly consistencyXpCenti: number } | null;
 }
 
 export function createMeditationRepository(database: Transactions, registry: RulesRegistry) {
@@ -36,7 +41,10 @@ export function createMeditationRepository(database: Transactions, registry: Rul
         const awardValue = (await sql.all('SELECT * FROM progression_awards WHERE session_id = ?', [sessionId]))[0];
         const award = awardValue ? decodeAwardRow(awardValue) : null;
         if (award) registry.get(award.rulesVersion);
-        return { session: row.session, createdAt: row.createdAt, awardedXpCenti: award?.xpCenti ?? 0 };
+        const practice = award?.breakdown.incrementalBaseCentiXp, consistency = award?.breakdown.bonusCentiXp;
+        const split = award && practice !== undefined && consistency !== undefined ? { practiceXpCenti: practice, consistencyXpCenti: consistency }
+          : award ? null : { practiceXpCenti: 0, consistencyXpCenti: 0 };
+        return { session: row.session, createdAt: row.createdAt, awardedXpCenti: award?.xpCenti ?? 0, split };
       });
     },
     async acknowledgeCompletion(id: string, acknowledgedAt: number) {

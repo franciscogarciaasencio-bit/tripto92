@@ -12,6 +12,11 @@ export const LINEAR_CONSISTENCY_V1: LinearContributionConsistency = freeze({
   algorithm: 'linear_contributions_v1', scale: 60_000_000, contributionUnits: 1_000_000,
   targetContributions: 60, inactiveRetentionMillionths: 840_896, halfLifeDays: 4,
 });
+/** V7 (owner, 2026-10-17): full after 42 contributions, six weeks daily or three weeks twice a day. */
+export const LINEAR_CONSISTENCY_V2: LinearContributionConsistency = freeze({
+  algorithm: 'linear_contributions_v1', scale: 42_000_000, contributionUnits: 1_000_000,
+  targetContributions: 42, inactiveRetentionMillionths: 840_896, halfLifeDays: 4,
+});
 const RETENTION_SCALE = 1_000_000;
 
 export function isLinearConsistency(config: ConsistencyConfiguration): config is LinearContributionConsistency {

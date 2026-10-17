@@ -1,4 +1,4 @@
-import { advanceProgression, appendability, getConsistencyIndicator, getLifetimeJourney, getJourneyProgressTransition, LEGACY_JOURNEY_VERSION, JOURNEY_VERSION, practiceCreditOutcome, practiceCredits, recordSession } from '../../domain/progression';
+import { advanceProgression, appendability, consistencyDisplayFraction, getConsistencyIndicator, getLifetimeJourney, getJourneyProgressTransition, LEGACY_JOURNEY_VERSION, JOURNEY_VERSION, practiceCreditOutcome, practiceCredits, recordSession } from '../../domain/progression';
 import type { MeditationSession, ProgressionState, JourneyProgressTransition, HabitRewardReceipt } from '../../domain/progression';
 import type { SqlConnection } from './connection';
 import { decodeSessionRow } from './decoders';
@@ -125,7 +125,9 @@ export async function loadCompletion(sql: SqlConnection, id: string): Promise<Pr
   const linear = rule.continuousConsistency !== undefined && object(rule.continuousConsistency).algorithm === 'linear_contributions_v1';
   requireData(!linear || habitReward !== null, 'Linear completion is missing its consistency receipt');
   const consistencyIndicator = linear
-    ? { before: habitReward!.consistencyBefore, after: habitReward!.consistencyAfter }
+    // The bar's fill: V7 eases the stored fractions out on the same curve as its bonus.
+    ? { before: consistencyDisplayFraction(rule as { consistencyCurve?: 'ease_out_v1' }, habitReward!.consistencyBefore),
+      after: consistencyDisplayFraction(rule as { consistencyCurve?: 'ease_out_v1' }, habitReward!.consistencyAfter) }
     : { before: getConsistencyIndicator(history.filter(value => value.id !== session.id), indicatorContext),
       after: getConsistencyIndicator(history, indicatorContext) };
   return { session, beforeProgressionCenti: before, afterProgressionCenti: after, awardedXpCenti: awarded,

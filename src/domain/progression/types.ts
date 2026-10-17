@@ -45,7 +45,7 @@ export interface ConsistencyActivation {
 
 export interface ProgressionRules {
   readonly version: string;
-  readonly earningsAlgorithm: 'logarithmic_v1' | 'linear_short_logarithmic_v1';
+  readonly earningsAlgorithm: 'logarithmic_v1' | 'linear_short_logarithmic_v1' | 'linear_logarithmic_v2';
   readonly decayAlgorithm: 'capped_daily_v1';
   readonly minimumActiveSeconds: number;
   /** V6+: practices shorter than this earn nothing at all (V3–V5 paid short runs linearly). */
@@ -57,12 +57,19 @@ export interface ProgressionRules {
     readonly referenceSeconds: number;
     readonly doublingCentiXp: CentiXp;
     readonly capSeconds: number;
+    /** V7+: rewards are rounded to this step (5 Ripples), so whole-minute choices show round numbers. */
+    readonly roundingCentiXp?: CentiXp;
   };
   readonly occasionSeparationSeconds: number;
   readonly occasionWeightsBasisPoints: readonly number[];
   readonly consistencyWindowDays: number;
   readonly maximumConsistencyBonusBasisPoints: number;
   readonly continuousConsistency?: ConsistencyConfiguration;
+  /**
+   * V7+: how the score maps to the bonus and the bar. Omitted (V4–V6): in proportion. 'ease_out_v1':
+   * 1 − (1 − score/scale)², so the first practices count the most (owner, 2026-10-17).
+   */
+  readonly consistencyCurve?: 'ease_out_v1';
   readonly inactivityGraceDays: number;
   readonly dailyDecayBasisPoints: number;
   readonly dailyDecayCapCentiXp: CentiXp;

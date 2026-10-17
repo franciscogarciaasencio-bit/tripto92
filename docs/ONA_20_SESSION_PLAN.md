@@ -1229,3 +1229,12 @@ OTA group `0f13c9ed-0388-41b5-9201-fa3ca9bbef35` for Android and iOS on runtime 
 after receiving the APK. Android preview build 1.2.0 (5), build `d13034fa-6dba-4e73-abe9-e495bdac5e6c`,
 completed and passed signature, package, runtime, channel, ARM library and alignment checks. Device
 sign-in and mutual friend behavior remain to be checked after the test user is added.
+
+### Rules V7, Consistency levels and colours — 2026-10-17
+
+Owner-simulated rework (GAME_SYSTEM.md "V7"): 16 Ripples a minute to 15 minutes then +80 per doubling
+to 400 (rounded to 5); third same-day practice 50%; Consistency full in 42 contributions, eased out to
++700%; levels 50–100 progressively costlier, 101–125 flat, no year gate for 125. Prospective activation;
+V1–V6 receipts unchanged. Consistency rounds are now levels with five colours and a celebration;
+Home's Consistency opens an explanation screen; practice details split practice and Consistency Ripples.
+Not yet seen on a device.
