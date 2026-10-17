@@ -27,5 +27,5 @@ export type { LevelDefinition } from './levels';
 export { JOURNEY_VERSION, LEGACY_JOURNEY_VERSION, LEGACY_JOURNEY_LEVELS, JOURNEY_PACING, JOURNEY_CATEGORIES, JOURNEY_LEVELS, JOURNEY_PRELUDE, PRACTICE_CREDIT_RULES,
   practiceCredits, practiceCreditOutcome, getLifetimeJourney, getJourneyFromState, getJourneyProgressTransition, journeyLabel } from './journey';
 export type { JourneyProgressTransition, JourneyProgressSegment } from './journey';
-export { HABIT_JOURNEY_VERSION, HABIT_LEVEL_PACING, HABIT_LEVELS } from './journey';
+export { HABIT_JOURNEY_VERSION, HABIT_LEVEL_PACING, HABIT_LEVELS, habitStageIndex } from './journey';
 export type { JourneyLevel, JourneyCategory, JourneyMetrics, LifetimeJourney, JourneyAchievement, JourneyProjectionOptions } from './journey';

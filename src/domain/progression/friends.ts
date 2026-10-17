@@ -1,5 +1,5 @@
 import { dateFromDay, dayNumber, type LocalDate } from './calendar';
-import { JOURNEY_CATEGORIES, type JourneyCategory } from './journey';
+import { habitStageIndex, JOURNEY_CATEGORIES, type JourneyCategory } from './journey';
 import { practiceStreaks } from './streaks';
 import type { MeditationSession } from '../meditation/session';
 
@@ -35,10 +35,10 @@ export function sharedWeeksInARow(shared: SharedStreak | null, today: LocalDate)
   return shared && today <= shared.until ? shared.weeks : 0;
 }
 
-/** The stage a shared level belongs to; level 0 is the starting point within the first stage. */
+/** The stage a shared level belongs to (current stages: a new one every five levels from Level 0). */
 export function stageOfLevel(level: number): JourneyCategory {
   if (!Number.isSafeInteger(level) || level < 0 || level > FRIEND_RULES.maximumLevel) throw new RangeError('level must be 0–125');
-  return JOURNEY_CATEGORIES.find((category) => level <= category.lastLevel)!;
+  return JOURNEY_CATEGORIES[habitStageIndex(level)]!;
 }
 
 /**
@@ -46,5 +46,6 @@ export function stageOfLevel(level: number): JourneyCategory {
  * shown only once you have reached it yourself. The first stage is everyone's starting point.
  */
 export function stageDiscovered(friendLevel: number, ownHighestLevel: number): boolean {
-  return stageOfLevel(friendLevel).firstLevel <= Math.max(1, ownHighestLevel);
+  stageOfLevel(friendLevel);
+  return habitStageIndex(friendLevel) <= habitStageIndex(Math.max(0, ownHighestLevel));
 }

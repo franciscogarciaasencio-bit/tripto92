@@ -116,7 +116,7 @@ export function HomeScreen({ scrollGesture, scrollOffsetRef, rememberScroll = fa
             <View style={{ height: '100%', width: `${journey.fraction * 100}%`, borderRadius: 3 * scale, backgroundColor: '#1C231B' }} />
           </View>
           <Text numberOfLines={2} style={[styles.caption, { fontSize: 13 * scale, lineHeight: 18 * scale, marginTop: 9 * scale }]}>{categoryName}</Text>
-          <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : `${journey.level.categoryStep} of 5`}</Text>
+          <Text style={[styles.caption, { fontSize: 12 * scale, lineHeight: 17 * scale }]}>{atPrelude ? 'Starting point' : journey.next ? `${journey.level.categoryStep} of 5` : 'Journey complete'}</Text>
         </QuietPressable>
         {/* Tapping Consistency explains why Ona rewards coming back (owner, 2026-10-17). */}
         <QuietPressable accessibilityRole="button" accessibilityLabel={`Consistency, ${consistencyRounds(consistency.indicatorFraction).completed} of 5 rounds full`}

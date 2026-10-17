@@ -1256,3 +1256,10 @@ minutes daily). All in-app text revised: rules explained without multipliers, ra
 interval-bell answer points to Prepare; "Consistency level N" words removed (the coloured bar says it).
 New stage, Level 100 and Level 125 open a milestone moment after "Well done" with a researched note
 (MILESTONES.md); the completion screen keeps a new stage veiled until then. Not yet seen on a device.
+
+### Round stage boundaries, longer guides, beginning reflection — 2026-10-17
+
+Stages now begin at Level 0, 5, 10 … 120 (the last holds 125). Milestone notes became guides of a few
+paragraphs: Levels 5 and 10 written in full for the owner's review (the rest still one paragraph). The
+introduction ends with "Remember how today feels": optional words kept on the phone and shown again
+with the Level 100 moment. Not yet seen on a device.

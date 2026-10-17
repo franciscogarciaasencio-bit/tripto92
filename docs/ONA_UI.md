@@ -89,6 +89,10 @@ opens Prepare without starting a timer.
 Transitions are cancellation-guarded, respect live Reduced Motion and announce/focus
 chapter headings for screen readers. Body content scrolls on short phones/large type;
 the decorative welcome wordmark/tagline limit scaling to preserve the halo composition.
+The last page (2026-10-17), "Remember how today feels", invites an optional few words about how days
+and mind feel now (or a mental note), kept on the phone only (beginning-reflection.ts, platform key
+store, never synced) and shown again at Level 100; it says Ona believes you will feel the difference,
+without promising it.
 Short phones use a compact wave-only chapter header so the essential journey text
 fits above the final action; the full coastal welcome remains available on all sizes.
 
@@ -264,13 +268,19 @@ Consistency rewards coming back generously, never a multiplier, a rate, a percen
 anything takes; Level 100 means the habit is established. The rules people act on stay: three active
 minutes count, a second practice six hours later counts again.
 
-**Milestones** (milestones.ts, milestone-moment.tsx): entering a new stage (Levels 6, 11, … 121), Level
+**Stages** (owner, 2026-10-17, "round numbers"): Level 0 begins the first stage and a new stage begins at
+every multiple of five (habitStageIndex in journey.ts); the last stage holds 120–125, so "Habit
+Established" is Levels 95–99 and Level 100 begins the next stage with the habit moment.
+
+**Milestones** (milestones.ts, milestone-moment.tsx): entering a new stage (Levels 5, 10, … 120), Level
 100 and Level 125 open a moment after "Well done" and before the calendar moment, the first time only
 (`milestoneOf`; the habit outranks a stage crossed at once). A new stage: the stage left behind shows
 with its name, then settles and fades as three rings spread like a drop on still water; the new stage
 blooms in its halo with a soft overshoot while a thin ring draws around it and specks of light rise;
-then "LEVEL N · A NEW STAGE", the name settling into place, its theme, and a note for this part of the
-way on a sand card; Continue last. One linear 6.2 s timeline drives everything (transform/opacity
+then "LEVEL N · A NEW STAGE", the name settling into place, its theme, and a guide for this part of the
+way (a title and a few paragraphs) on a sand card; Continue last. At Level 100 a second card, "WHEN YOU
+BEGAN", shows the words written in the introduction (or asks to remember the mental note) and "How does
+it feel now?". One linear 6.2 s timeline drives everything (transform/opacity
 only); a tap settles it at once; Reduced Motion shows the final moment. Levels 100 and 125 hold the
 current stage in a golden ring. The completion screen keeps a new stage veiled ("A new stage"), so its
 name and painting are first seen in the moment. Notes: one per stage, written from common

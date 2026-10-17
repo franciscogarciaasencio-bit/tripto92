@@ -70,8 +70,19 @@ const habitXp: readonly number[] = (() => {
   }
   return xp;
 })();
-export const HABIT_LEVELS: readonly JourneyLevel[] = freeze(JOURNEY_LEVELS.map((level, index) => ({
-  ...level, xpCenti: habitXp[index]!, credits: 1, realDays: 1, elapsedDays: 0 })));
+/**
+ * Current stages (owner, 2026-10-17: "it must be round numbers"): Level 0 begins the first stage and a
+ * new stage begins at every multiple of five (5, 10 … 120); the last stage also holds Level 125.
+ * Category IDs are unchanged; only which levels belong to them. Released journey versions keep theirs.
+ */
+export function habitStageIndex(level: number) {
+  return Math.min(JOURNEY_CATEGORIES.length - 1, Math.floor(Math.max(0, level) / 5));
+}
+export const HABIT_LEVELS: readonly JourneyLevel[] = freeze(JOURNEY_LEVELS.map((level, index) => {
+  const stage = habitStageIndex(level.number);
+  return { ...level, category: JOURNEY_CATEGORIES[stage]!, categoryStep: Math.min(5, level.number - stage * 5 + 1),
+    xpCenti: habitXp[index]!, credits: 1, realDays: 1, elapsedDays: 0 };
+}));
 
 /** Starting state outside the numbered table; stable 1–125 identities and categories remain unchanged. */
 export const JOURNEY_PRELUDE: JourneyLevel = freeze({ number: 0, category: JOURNEY_CATEGORIES[0]!, categoryStep: 0,

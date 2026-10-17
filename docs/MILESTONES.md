@@ -1,8 +1,11 @@
 # Milestone notes
 
-Owner request (2026-10-17): when a practice reaches a new stage (every five levels), the habit (Level
+Owner request (2026-10-17): when a practice reaches a new stage (Levels 5, 10, 15 … 120), the habit (Level
 100) or the end of the journey (Level 125), show a rewarding moment and a short note for that part of
-the way. The texts live in `src/ui/milestones.ts`; the moment in `src/ui/milestone-moment.tsx`. Notes
+the way. Later the same day: "it's not a snippet, it's a guide": each is a title and three or four
+paragraphs, grounded in how meditation guides describe each phase; the first guide (Level 5) says Ona
+will guide every step from here. Levels 5 and 10 are written in full and await the owner's review;
+the others are still one paragraph until approved. The texts live in `src/ui/milestones.ts`; the moment in `src/ui/milestone-moment.tsx`. Notes
 never name a stage (sealed stages stay a surprise) and never use numbers or promises.
 
 ## Arc
@@ -25,6 +28,14 @@ at first, then every few weeks):
    last level.
 
 ## Sources
+
+- First week, day by day (busy mind as the first thing noticed, resistance and "no time", small changes
+  outside practice, consistency over perfection, tying practice to an existing routine):
+  Declutter The Mind, "First Week of Meditation: What to Expect Day by Day".
+- Why people quit early (expecting a quick fix; early frustration), effects arriving gradually:
+  Mindworks, "How Long Does Meditation Take to Work?".
+- "There's no way to do it wrong"; many first-timers quit feeling they failed: Tricycle, "Meditation
+  101: Less is more".
 
 - Common beginner difficulties and responses (doubt, restlessness, irritation, sleepiness, wanting):
   Mindful.org, "Overcome These Five Obstacles to Your Mindfulness Practice".

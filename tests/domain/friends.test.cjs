@@ -47,12 +47,14 @@ test('Nothing shared, or a viewer a day behind in another time zone, never shows
   assert.equal(sharedWeeksInARow({ weeks: 4, until: '2026-10-20' }, '2026-10-17'), 4);
 });
 
-test('A shared level maps to its stage; level 0 is the starting point in the first stage', () => {
-  assert.equal(stageOfLevel(0).firstLevel, 1);
-  assert.equal(stageOfLevel(1).firstLevel, 1);
-  assert.equal(stageOfLevel(5).firstLevel, 1);
-  assert.equal(stageOfLevel(6).firstLevel, 6);
-  assert.equal(stageOfLevel(125).lastLevel, 125);
+test('A shared level maps to its stage: a new one every five levels from Level 0', () => {
+  const ids = api.JOURNEY_CATEGORIES.map((category) => category.id);
+  assert.equal(stageOfLevel(0).id, ids[0]);
+  assert.equal(stageOfLevel(4).id, ids[0]);
+  assert.equal(stageOfLevel(5).id, ids[1]);
+  assert.equal(stageOfLevel(9).id, ids[1]);
+  assert.equal(stageOfLevel(120).id, ids[24]);
+  assert.equal(stageOfLevel(125).id, ids[24]);
   for (const invalid of [-1, 126, 2.5, Number.NaN]) assert.throws(() => stageOfLevel(invalid), /level/);
   assert.equal(FRIEND_RULES.maximumLevel, 125);
 });
@@ -60,9 +62,9 @@ test('A shared level maps to its stage; level 0 is the starting point in the fir
 test('A friend’s stage shows only once you have reached that stage yourself', () => {
   assert.equal(stageDiscovered(0, 0), true, 'everyone starts in the first stage');
   assert.equal(stageDiscovered(4, 0), true);
-  assert.equal(stageDiscovered(6, 5), false, 'one level short of their stage');
-  assert.equal(stageDiscovered(9, 6), true, 'same stage, further along');
+  assert.equal(stageDiscovered(5, 4), false, 'one level short of their stage');
+  assert.equal(stageDiscovered(9, 5), true, 'same stage, further along');
   assert.equal(stageDiscovered(3, 40), true, 'stages behind you are known');
-  assert.equal(stageDiscovered(125, 124), true);
-  assert.equal(stageDiscovered(121, 120), false);
+  assert.equal(stageDiscovered(125, 120), true, 'the last stage holds Level 125');
+  assert.equal(stageDiscovered(120, 119), false);
 });

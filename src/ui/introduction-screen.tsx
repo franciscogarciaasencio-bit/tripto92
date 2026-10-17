@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { AccessibilityInfo, BackHandler, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, BackHandler, Platform, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -13,12 +13,14 @@ import { QuietPressable } from './quiet-pressable';
 import { Type } from './primitives';
 import { useReducedMotion } from './reduced-motion';
 import { BreathGuide } from './breath-guide';
+import { REFLECTION_MAX_LENGTH, useBeginningReflection } from '@/application/beginning-reflection';
 
 /**
  * A short first guide (owner, 2026-10-16): what Ona is for, how to sit, counting breaths, a minute
- * to try it with a breathing guide, and coming back. Shown once on first launch, then from Guide.
+ * to try it with a breathing guide, coming back, and (2026-10-17) noticing how today feels, to compare
+ * at Level 100. Shown once on first launch, then from Guide.
  */
-export const CHAPTERS = ['Welcome to Ona', 'Settle in', 'Count your breaths', 'Try it', 'Come back'] as const;
+export const CHAPTERS = ['Welcome to Ona', 'Settle in', 'Count your breaths', 'Try it', 'Come back', 'Remember today'] as const;
 const timing = { out: 100, in: 240 };
 const LAST = CHAPTERS.length - 1;
 
@@ -66,8 +68,12 @@ export function IntroductionScreen() {
     ++generation.current; changing.current = false; closed.current = false;
     return () => { closed.current = true; cancelAnimation(opacity); };
   }, [opacity]);
-  const goHome = () => { closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); };
-  const meditate = () => { closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); router.push('/prepare'); };
+  // The optional words about today, kept on this phone and shown again at Level 100.
+  const { reflection, save: saveReflection } = useBeginningReflection();
+  const [written, setWritten] = useState<string | null>(null);
+  const keepWords = () => { if (written !== null && written.trim() !== (reflection?.text ?? '')) void saveReflection(written); };
+  const goHome = () => { keepWords(); closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); };
+  const meditate = () => { keepWords(); closed.current = true; cancelAnimation(opacity); router.dismissTo('/'); router.push('/prepare'); };
   const reveal = useCallback((next: number, token: number) => {
     if (closed.current || generation.current !== token || pending.current !== next) return;
     pending.current = null;
@@ -133,7 +139,7 @@ export function IntroductionScreen() {
         </QuietPressable>
       </View>
     </View>
-    <ScrollView ref={scroll} style={{ flex: 1 }} bounces={false} contentContainerStyle={{ minHeight: Math.max(0, available), paddingBottom: 24 }}>
+    <ScrollView ref={scroll} style={{ flex: 1 }} bounces={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={{ minHeight: Math.max(0, available), paddingBottom: 24 }}>
       <Animated.View style={[content, { width: canvasWidth, alignSelf: 'center' }]}>
         <IntroductionScenery width={canvasWidth} welcome={chapter === 0} available={available} headingRef={headingRef} />
         <View style={{ paddingHorizontal: 28, paddingTop: chapter === 0 ? 6 : 20, alignItems: 'center' }}>
@@ -167,12 +173,21 @@ export function IntroductionScreen() {
             {heading('Breathe with\nthe circle.')}
             <View style={{ marginTop: 26 }}><BreathGuide size={Math.round(176 * scale)} /></View>
             <Text style={[styles.note, { marginTop: 18 }]}>The circle only suggests a pace.{`\n`}Your own breath is always fine.</Text>
-          </> : <>
+          </> : chapter === 4 ? <>
             <Text style={styles.eyebrow}>YOUR HABIT</Text>
             {heading('Come back,\na little at a time.')}
             <Text style={[styles.copy, { marginTop: 22 }]}>A practice of three minutes or more counts. Three days in a week make a consistent week.</Text>
             <Text style={[styles.copy, { marginTop: 14 }]}>Your calendar remembers every return. Levels and your forest grow with regular practice.</Text>
             <Text style={[styles.note, { marginTop: 18 }]}>Missed a day? Nothing is lost.{`\n`}Just come back.</Text>
+          </> : <>
+            <Text style={styles.eyebrow}>YOUR STARTING POINT</Text>
+            {heading('Remember how\ntoday feels.')}
+            <Text style={[styles.copy, { marginTop: 22 }]}>How do your days feel right now? Your mind, your mood, your sleep, how you react when things get busy. Take a moment to notice it.</Text>
+            <Text style={[styles.copy, { marginTop: 14 }]}>If you like, write a few words. It is optional: you can also keep a mental note, or write it somewhere of your own. What matters is that you remember.</Text>
+            <TextInput value={written ?? reflection?.text ?? ''} onChangeText={setWritten} onBlur={keepWords} multiline maxLength={REFLECTION_MAX_LENGTH}
+              placeholder="These days, my mind feels…" placeholderTextColor="rgba(20,20,20,0.4)" accessibilityLabel="How today feels, optional"
+              textAlignVertical="top" style={styles.reflection} />
+            <Text style={[styles.note, { marginTop: 16 }]}>When you reach Level 100, Ona will show you this again.{`\n`}Keep coming back: we believe you will feel the difference.</Text>
           </>}
         </View>
       </Animated.View>
@@ -197,6 +212,8 @@ const styles = StyleSheet.create({
   practice: { fontFamily: 'ManropeRegular', fontSize: 15, lineHeight: 24, textAlign: 'center', color: coastalInk },
   counted: { fontFamily: coastalSerif, fontSize: 18 },
   lost: { marginTop: 26, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#BDB19C', alignItems: 'center', maxWidth: 320 },
+  reflection: { marginTop: 20, alignSelf: 'stretch', minHeight: 112, maxHeight: 220, padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,250,240,0.6)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: '#BDB19C', fontFamily: 'ManropeRegular', fontSize: 15, lineHeight: 22, color: coastalInk },
   next: { minHeight: 56, backgroundColor: '#1C211A', borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   nextLabel: { fontFamily: 'ManropeMedium', fontSize: 16, lineHeight: 24, color: '#F7F0E3' },
 });

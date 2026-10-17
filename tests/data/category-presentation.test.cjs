@@ -26,16 +26,23 @@ test('Current category names resolve old records by immutable ID without rewriti
 
 test('Starting and habit-building milestone presentation is correct across retained level versions', () => {
   assert.equal(presentation.getJourneyPresentationLabel(api.JOURNEY_PRELUDE), 'Level 0 · Monkey Mind');
-  // Monkey Mind is both the starting point and Levels 1–5.
-  for (let level = 0; level < 5; level++) assert.match(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[level]), new RegExp(`^Level ${level + 1} · Monkey Mind · ${level + 1} of 5$`));
+  // Current stages (2026-10-17): Monkey Mind is Levels 0–4; a new stage begins at Level 5.
+  for (let level = 1; level < 5; level++) assert.match(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[level - 1]), new RegExp(`^Level ${level} · Monkey Mind · ${level + 1} of 5$`));
+  assert.doesNotMatch(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[4]), /Monkey Mind/);
+  assert.match(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[4]), / · 1 of 5$/);
   assert.equal(presentation.getLevelCategoryPresentation(api.JOURNEY_PRELUDE).name, 'Monkey Mind');
   assert.equal(presentation.getCategoryPresentation(api.JOURNEY_PRELUDE.category).name, 'Monkey Mind');
   assert.deepEqual(presentation.getCategoryIconPaths('monkey_mind', 0), presentation.getCategoryIconPaths('monkey_mind', 1));
-  for (const levels of [api.LEGACY_JOURNEY_LEVELS, api.JOURNEY_LEVELS, api.HABIT_LEVELS]) {
+  for (const levels of [api.LEGACY_JOURNEY_LEVELS, api.JOURNEY_LEVELS]) {
     const habit = presentation.getCategoryPresentation('habit_established').name;
     assert.equal(presentation.getJourneyPresentationLabel(levels[99]), `Level 100 · ${habit} · 5 of 5`);
     assert.match(presentation.getJourneyPresentationLabel(levels[124]), /^Level 125 · .+ · 5 of 5$/);
   }
+  // Current levels: the habit stage holds Levels 95–99, Level 100 begins the next; the last stage holds 120–125.
+  assert.equal(api.HABIT_LEVELS[94].category.id, 'habit_established');
+  assert.equal(api.HABIT_LEVELS[99].category.id, 'rooted_habit'); assert.equal(api.HABIT_LEVELS[99].categoryStep, 1);
+  assert.equal(api.HABIT_LEVELS[124].category.id, api.HABIT_LEVELS[119].category.id);
+  assert.match(presentation.getJourneyPresentationLabel(api.HABIT_LEVELS[124]), /^Level 125 · .+ · 5 of 5$/);
 });
 
 test('Unknown category identities fail explicitly instead of rendering an empty symbol', () => {

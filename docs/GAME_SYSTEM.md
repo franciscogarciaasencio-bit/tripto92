@@ -40,6 +40,9 @@ stay exactly as earned. Simulated with the owner before building (tests/domain/p
 - Daily 10 minutes: Level 10 on day 5, 50 on day 19, 100 on day 105, 125 on day 200. 20 minutes twice
   a day: Level 100 on day 37, 125 on day 69. The owner prefers adding levels after 125 to making these harder.
 - In-app text never shows these numbers (ONA_UI.md "Writing rule").
+- **Stages** (later the same day): Level 0 begins the first stage, and a new stage begins at every
+  multiple of five (`habitStageIndex`); the last stage holds 120–125. Category IDs are unchanged;
+  released journey versions keep their own mapping. Friends and milestones use the same boundaries.
 - Each award keeps its split (`incrementalBaseCentiXp` + `bonusCentiXp`); practice details show it.
 
 The sections below describe the released V5/V6 behaviour that V7 builds on.

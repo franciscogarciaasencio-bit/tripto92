@@ -10,6 +10,7 @@ import { getLevelCategoryPresentation } from './category-presentation';
 import { PaperBackdrop, coastalInk, coastalQuiet, coastalSerif } from './coastal-scene';
 import { ROUND_COLORS } from './consistency-rounds';
 import type { Milestone } from './milestones';
+import { useBeginningReflection } from '@/application/beginning-reflection';
 import { QuietPressable } from './quiet-pressable';
 import { useMotionPreference } from './reduced-motion';
 
@@ -87,6 +88,7 @@ export function MilestoneMoment({ milestone, busy, onContinue }: { milestone: Mi
   const settle = () => { if (settled) return; cancelAnimation(t); t.set(1); setSettled(true); };
 
   const stage = milestone.kind === 'stage';
+  const { reflection } = useBeginningReflection();
   const reached = useMemo(() => levelAt(milestone.level), [milestone.level]);
   const left = useMemo(() => levelAt(milestone.previousLevel), [milestone.previousLevel]);
   const now = getLevelCategoryPresentation(reached), before = getLevelCategoryPresentation(left);
@@ -140,7 +142,7 @@ export function MilestoneMoment({ milestone, busy, onContinue }: { milestone: Mi
             <CategoryIcon category={reached.category} level={reached.number} size={112 * scale} />
           </Animated.View>
         </View>
-        <View accessible accessibilityLiveRegion="polite" accessibilityLabel={`${kicker.toLowerCase()}. ${stage ? `${now.name}. ${now.theme}` : ''} ${milestone.note.title}. ${milestone.note.body}`}
+        <View accessible accessibilityLiveRegion="polite" accessibilityLabel={`${kicker.toLowerCase()}. ${stage ? `${now.name}. ${now.theme}` : ''} ${milestone.note.title}. ${milestone.note.paragraphs.join(' ')}`}
           style={{ alignItems: 'center', width: '100%', maxWidth: 420, marginTop: stage ? -6 * scale : 6 * scale }}>
           <Animated.Text style={[kickerStyle, styles.kicker, { fontSize: 11.5 * scale, lineHeight: 17 * scale, color: stage ? coastalQuiet : GOLD }]}>{kicker}</Animated.Text>
           <View style={{ alignSelf: 'stretch' }}>
@@ -149,10 +151,22 @@ export function MilestoneMoment({ milestone, busy, onContinue }: { milestone: Mi
             {stage && <Animated.Text accessible={false} style={[oldWords, styles.name, styles.leaving, { fontSize: 30 * scale, lineHeight: 46 * scale }]}>{before.name}</Animated.Text>}
           </View>
           <Animated.Text style={[themeStyle, styles.theme, { fontSize: 15 * scale, lineHeight: 22 * scale }]}>{stage ? now.theme : now.name}</Animated.Text>
-          <Animated.View style={[noteStyle, styles.note, { padding: 20 * scale, marginTop: 26 * scale, borderRadius: 20 * scale }]}>
-            <Text style={[styles.noteTitle, { fontSize: 21 * scale, lineHeight: 28 * scale }]}>{milestone.note.title}</Text>
-            <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 24 * scale }]}>{milestone.note.body}</Text>
+          <Animated.View style={[noteStyle, styles.note, { padding: 22 * scale, marginTop: 26 * scale, borderRadius: 20 * scale, gap: 12 * scale }]}>
+            <Text style={[styles.kicker, { fontSize: 10.5 * scale, lineHeight: 16 * scale, color: coastalQuiet, textAlign: 'left' }]}>
+              {stage ? 'A GUIDE FOR THIS STAGE' : 'A GUIDE FOR WHAT COMES NEXT'}</Text>
+            <Text style={[styles.noteTitle, { fontSize: 23 * scale, lineHeight: 30 * scale }]}>{milestone.note.title}</Text>
+            {milestone.note.paragraphs.map((paragraph) => <Text key={paragraph.slice(0, 24)} style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>{paragraph}</Text>)}
           </Animated.View>
+          {/* Level 100 (owner, 2026-10-17): what was noticed at the beginning, shown again to compare. */}
+          {milestone.kind === 'habit' && reflection !== undefined && <Animated.View style={[noteStyle, styles.reflection, { padding: 22 * scale, marginTop: 14 * scale, borderRadius: 20 * scale, gap: 10 * scale }]}>
+            <Text style={[styles.kicker, { fontSize: 10.5 * scale, lineHeight: 16 * scale, color: GOLD, textAlign: 'left' }]}>WHEN YOU BEGAN</Text>
+            {reflection ? <>
+              <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>You wrote:</Text>
+              <Text style={[styles.quote, { fontSize: 19 * scale, lineHeight: 28 * scale }]}>{`“${reflection.text}”`}</Text>
+            </> : <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>
+              When you began, Ona asked you to notice how your days and your mind felt. Take a moment to remember it.</Text>}
+            <Text style={[styles.noteTitle, { fontSize: 21 * scale, lineHeight: 28 * scale, marginTop: 4 * scale }]}>How does it feel now?</Text>
+          </Animated.View>}
         </View>
         <Animated.View style={[actionStyle, { width: '100%', maxWidth: 420, marginTop: 26 * scale }]} pointerEvents={settled ? 'auto' : 'none'}>
           <QuietPressable accessibilityRole="button" accessibilityLabel={busy ? 'Returning' : 'Continue'} accessibilityState={{ disabled: busy || !settled }}
@@ -176,4 +190,6 @@ const styles = StyleSheet.create({
   note: { width: '100%', backgroundColor: 'rgba(228,210,182,0.30)', gap: 8 },
   noteTitle: { fontFamily: coastalSerif, color: coastalInk },
   noteBody: { fontFamily: 'ManropeRegular', color: 'rgba(20,20,20,0.74)' },
+  reflection: { width: '100%', backgroundColor: 'rgba(226,201,143,0.22)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(164,122,46,0.45)' },
+  quote: { fontFamily: coastalSerif, color: coastalInk },
 });
