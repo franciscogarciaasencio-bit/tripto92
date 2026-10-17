@@ -62,6 +62,8 @@ export interface ProgressionRules {
   };
   readonly occasionSeparationSeconds: number;
   readonly occasionWeightsBasisPoints: readonly number[];
+  /** V8+: the weight of every occasion beyond the listed ones (omitted: they earn nothing). */
+  readonly laterOccasionWeightBasisPoints?: number;
   readonly consistencyWindowDays: number;
   readonly maximumConsistencyBonusBasisPoints: number;
   readonly continuousConsistency?: ConsistencyConfiguration;

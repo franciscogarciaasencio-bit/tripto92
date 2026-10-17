@@ -19,9 +19,19 @@ contexts. Import the public API from src/domain/progression/index.ts.
 | journey.ts | Stable category IDs, current/historical level definitions and entry gates |
 | state.ts, snapshot.ts, decay.ts | Versioned transitions and compatibility projections |
 
+### V8 (owner, 2026-10-17): no practice in a day earns nothing
+
+V8 is V7 with one change: `laterOccasionWeightBasisPoints: 2_500`. Separate practices in a day earn
+100%, 75%, 50%, then **25% for the fourth and every later one** (V7 gave the fourth and later nothing).
+`occasionWeight(rules, n)` reads it; occasions.ts and the integrity check use it. Activated
+prospectively like V7 (store.ts; default `progression_v8`); V1–V7 receipts stay exactly as earned,
+including any V7 fourth practice that earned 0. A practice starting within 90 minutes of the previous
+one still joins it as one occasion; only if that joint occasion is already past the 60-minute length
+cap can a practice add 0. tests/domain/progression-v8.test.cjs, tests/data/progression-v6.test.cjs.
+
 ### V7 (owner, 2026-10-17): what changed
 
-Activated prospectively when the database opens (store.ts; default `progression_v7`). V1–V6 receipts
+Activated prospectively when the database opens (store.ts; default `progression_v7` until V8). V1–V6 receipts
 stay exactly as earned. Simulated with the owner before building (tests/domain/progression-v7.test.cjs).
 
 - **Length** (`linear_logarithmic_v2`): 16 Ripples a minute up to 15 minutes, then +80 per doubling

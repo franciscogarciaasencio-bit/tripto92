@@ -1293,3 +1293,9 @@ Saved outside Git at `C:\Users\fga31\Downloads\Ona-1.2.0-6.apk`; full links and 
 are in ANDROID_BUILD.md. No APK, IPA or credentials were committed. Install over the existing app
 without uninstalling to keep practice data. Device audio, animation, Settings-save crash resolution
 and OTA arrival remain to be confirmed by the owner.
+
+### Rules V8 (no practice earns nothing), no bell previews — 2026-10-17
+
+Separate practices in a day: 100%, 75%, 50%, then 25% for every later one (V7 gave the fourth and later
+nothing). V8 activates prospectively; V1–V7 receipts unchanged. Settings no longer offers bell
+previews (bell volume only). Not yet seen on a device.

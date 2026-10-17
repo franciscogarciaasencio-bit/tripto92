@@ -197,8 +197,8 @@ horizon leaves the disc most open; the meditation screen puts a 30 pt "Ona" at t
 stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match: serif title row
 ("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
 captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
-Settings holds only what lives nowhere else: Bells (a small play button for the starting/interval bell
-and the ending bell, bell volume; since 2026-10-17 the bells cannot be switched off), Home ambience
+Settings holds only what lives nowhere else: Bells (bell volume only; since 2026-10-17 the bells cannot
+be switched off and there are no previews: the owner saw no reason to just listen to them), Home ambience
 volume, Account and Reset (the interval is chosen on Prepare). Sounds are Choir and Silence only. Gentle
 haptics and the in-app sound credits were removed at the owner's request (2026-10-15): nothing vibrates,
 and sound provenance lives in docs/AUDIO.md and the asset READMEs. Ambience choice is made on Prepare and its volume from the speaker during

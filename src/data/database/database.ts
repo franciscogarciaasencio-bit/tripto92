@@ -21,7 +21,7 @@ export async function initializeDatabase(asOf: CalendarContext, options: Databas
     run: async (sql, parameters = []) => { await database.runAsync(sql, [...parameters]); },
     all: (sql, parameters = []) => database.getAllAsync<unknown>(sql, [...parameters]),
     close: () => database.closeAsync(),
-  }, context, supportedRules, options.activateRulesVersion ?? 'progression_v7');
+  }, context, supportedRules, options.activateRulesVersion ?? 'progression_v8');
 }
 
 /** Permanently delete a closed ledger file (an account's copy on this phone). Never the guest file. */

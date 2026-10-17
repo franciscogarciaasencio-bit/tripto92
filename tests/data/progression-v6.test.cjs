@@ -63,3 +63,31 @@ test('Opening a V6 practice activates V7 once: V6 receipts stay, Consistency car
   assert.equal(short.split.practiceXpCenti + short.split.consistencyXpCenti, short.awardedXpCenti, 'V6 receipts split too');
   await store.close();
 });
+
+test('Opening a V7 ledger activates V8 once: V7 receipts stay (a fourth practice kept its 0), later fourths earn a quarter', async t => {
+  const file = disk(t);
+  let conn = connection(file), store = await openStore(conn, context(1), undefined, 'progression_v7');
+  for (const hour of [6, 9, 12, 15]) await practice(store, session({ day: 1, hour, minutes: 10 }));
+  const released = awards(conn);
+  assert.equal(released.length, 4);
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(2), undefined, 'progression_v8');
+  assert.equal(store.initialSnapshot.rulesVersion, 'progression_v8');
+  assert.deepEqual(awards(conn).slice(0, 4), released, 'historical receipts are never recomputed');
+  assert.ok(store.initialSnapshot.consistency.fraction > 0, 'Consistency carries over');
+  for (const hour of [6, 9, 12, 15]) await practice(store, session({ day: 2, hour, minutes: 10 }));
+  const fourth = await store.meditations.getPracticeDetails(session({ day: 2, hour: 15, minutes: 10 }).id);
+  assert.equal(fourth.split.practiceXpCenti, 4_000, 'a quarter of 160 Ripples');
+  assert.ok(fourth.awardedXpCenti > 4_000, 'plus its Consistency');
+  await store.close();
+  conn = connection(file); store = await openStore(conn, context(3), undefined, 'progression_v8');
+  assert.equal(awards(conn).length, 8, 'reopening revalidates the mixed V7/V8 ledger');
+  await store.close();
+});
+
+test('New installs start on V8 (the app opens its database with V8 as the release)', async t => {
+  assert.match(require('node:fs').readFileSync(require('node:path').join(__dirname, '../../src/data/database/database.ts'), 'utf8'), /activateRulesVersion \?\? 'progression_v8'/);
+  const store = await openStore(connection(disk(t)), context(1), undefined, 'progression_v8');
+  assert.equal(store.initialSnapshot.rulesVersion, 'progression_v8');
+  await store.close();
+});

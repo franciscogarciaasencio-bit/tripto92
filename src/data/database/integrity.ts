@@ -4,7 +4,7 @@ import { protectedFloor } from '../../domain/progression/decay';
 import { consistencyMultiplier, consistencyRatio } from '../../domain/progression/earnings';
 import { isRewardEligible, sessionConsistency } from '../../domain/progression';
 import { multiplyRatio } from '../../domain/progression/numeric';
-import { rulesForVersion } from '../../domain/progression/rules';
+import { occasionWeight, rulesForVersion } from '../../domain/progression/rules';
 import { canonical, integer, requireData } from './validation';
 
 /** Validate ledger relationships without running an earnings formula or rewriting a receipt. */
@@ -56,7 +56,7 @@ export function validateIntegrity(state: ProgressionState): void {
     dayCounts.set(occasion.rewardDate, ordinal);
     requireData(occasion.id === `occasion:${first.session.id}` && occasion.startedAt === first.session.startedAt &&
       occasion.rewardDate === first.session.localDate && occasion.rulesVersion === first.qualificationRulesVersion &&
-      occasion.ordinalInDay === ordinal && occasion.weightBasisPoints === (originalRules.occasionWeightsBasisPoints[ordinal - 1] ?? 0),
+      occasion.ordinalInDay === ordinal && occasion.weightBasisPoints === occasionWeight(originalRules, ordinal),
     'Invalid occasion origin or frequency metadata');
     const today = dayNumber(occasion.rewardDate);
     const consistencyDays = originalRules.practiceDayEligibility === 'completed_minimum'

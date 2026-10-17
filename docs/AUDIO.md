@@ -42,8 +42,9 @@ session-backend(.web).ts implement platform playback. assets.ts is the local cat
 No screen owns a player; sound never changes timer, rewards, persistence or wave phase.
 
 Ambience is chosen on Prepare before each practice; its volume (and a change of ambience) is
-adjusted live from the meditation speaker. Settings keeps only what lives nowhere else: previews
-of the two bells, bell volume and Home ambience volume (the interval length is chosen on Prepare). Haptics were removed (the stored `hapticsEnabled` field is kept for compatibility
+adjusted live from the meditation speaker. Settings keeps only what lives nowhere else: bell
+volume and Home ambience volume (bell previews were removed from Settings on 2026-10-17; the controller
+still supports previews, but no screen uses them) (the interval length is chosen on Prepare). Haptics were removed (the stored `hapticsEnabled` field is kept for compatibility
 and ignored). Done persists only those fields onto the current
 preferences; Back cancels edits. Previews use edited volumes, are exclusive/bounded, and stop on
 navigation/background; they cannot overlap a running meditation. Home's speaker is its mute.

@@ -3,7 +3,7 @@ import { precedingActiveDays } from './calendar';
 import { isRewardEligible } from './earnings';
 import { isLinearConsistency } from './consistency';
 import { safeAdd } from './numeric';
-import { rulesForVersion } from './rules';
+import { occasionWeight, rulesForVersion } from './rules';
 import type { PracticeOccasion, ProgressionState } from './types';
 
 export function qualifyingDates(state: ProgressionState): readonly string[] {
@@ -45,7 +45,7 @@ export function occasionForSession(state: ProgressionState, session: MeditationS
     activeDurationSeconds: session.activeDurationSeconds,
     rulesVersion: rules.version,
     ordinalInDay,
-    weightBasisPoints: rules.occasionWeightsBasisPoints[ordinalInDay - 1] ?? 0,
+    weightBasisPoints: occasionWeight(rules, ordinalInDay),
     precedingActiveDays: precedingActiveDays(qualifyingDates(state), session.localDate, rules.consistencyWindowDays),
     awardedCentiXp: 0,
   };

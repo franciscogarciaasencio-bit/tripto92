@@ -57,6 +57,18 @@ export const PROGRESSION_V7: ProgressionRules = freeze({
   occasionWeightsBasisPoints: [10_000, 7_500, 5_000], maximumConsistencyBonusBasisPoints: 70_000,
   continuousConsistency: LINEAR_CONSISTENCY_V2, consistencyCurve: 'ease_out_v1',
 });
+/**
+ * V8 (owner, 2026-10-17: "if you meditate for 3 minutes, why should it count zero?"): every separate
+ * practice in a day earns something. 100%, 75%, 50%, then 25% for the fourth and every later one.
+ * Everything else is V7.
+ */
+export const PROGRESSION_V8: ProgressionRules = freeze({
+  ...PROGRESSION_V7, version: 'progression_v8', laterOccasionWeightBasisPoints: 2_500,
+});
+/** The weight of the nth separate practice occasion of a day under these rules. */
+export function occasionWeight(rules: ProgressionRules, ordinalInDay: number): number {
+  return rules.occasionWeightsBasisPoints[ordinalInDay - 1] ?? rules.laterOccasionWeightBasisPoints ?? 0;
+}
 
 /** Validate and detach caller-owned configuration. A version identifies an entire frozen ruleset. */
 export function captureRules(rules: ProgressionRules): ProgressionRules {
@@ -115,6 +127,10 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
   rules.occasionWeightsBasisPoints.forEach((weight, index, weights) => {
     if (index > 0 && weight > weights[index - 1]!) throw new RangeError('Occasion weights must not increase');
   });
+  if (rules.laterOccasionWeightBasisPoints !== undefined) {
+    assertNonnegativeInteger(rules.laterOccasionWeightBasisPoints, 'basis points');
+    if (rules.laterOccasionWeightBasisPoints > rules.occasionWeightsBasisPoints.at(-1)!) throw new RangeError('Occasion weights must not increase');
+  }
   // Products used for the exact consistency ratio must themselves be safe integers.
   assertNonnegativeInteger(BASIS_POINTS * (BASIS_POINTS + rules.maximumConsistencyBonusBasisPoints) * rules.consistencyWindowDays, 'consistency ratio');
   if (!rules.ranks.length || rules.ranks[0]!.thresholdCentiXp !== 0) throw new RangeError('Ranks must begin at zero');
@@ -144,6 +160,7 @@ export function captureRules(rules: ProgressionRules): ProgressionRules {
     },
     occasionSeparationSeconds: rules.occasionSeparationSeconds,
     occasionWeightsBasisPoints: [...rules.occasionWeightsBasisPoints],
+    ...(rules.laterOccasionWeightBasisPoints !== undefined ? { laterOccasionWeightBasisPoints: rules.laterOccasionWeightBasisPoints } : {}),
     consistencyWindowDays: rules.consistencyWindowDays,
     maximumConsistencyBonusBasisPoints: rules.maximumConsistencyBonusBasisPoints,
     ...(rules.continuousConsistency ? { continuousConsistency: { ...rules.continuousConsistency } } : {}),
