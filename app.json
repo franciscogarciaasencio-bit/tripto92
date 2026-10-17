@@ -27,7 +27,7 @@
     },
     "android": {
       "package": "com.meditation.ona",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#F2E9DA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
