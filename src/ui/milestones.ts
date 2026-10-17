@@ -116,6 +116,30 @@ export const COMPLETE_NOTE: MilestoneNote = Object.freeze({ title: 'The whole jo
 ] });
 
 /**
+ * The first stage has no moment of its own (it is where everyone starts), so its guide lives in Journey,
+ * where every reached stage can be revisited with its guide (owner, 2026-10-17).
+ */
+export const FIRST_STAGE_NOTE: MilestoneNote = Object.freeze({ title: 'Where everyone begins', paragraphs: [
+  'Welcome to the first stage of your journey. If your mind feels restless the moment you sit down, jumping from one thought to the next, you are exactly where every meditator begins. Teachers have long compared the untrained mind to a monkey swinging from branch to branch. Nothing is wrong with yours.',
+  'The practice for now is simple. Sit comfortably, let the breath move on its own, and count each out-breath from one up to ten. When you notice that you have drifted away, and you will, many times, gently begin again at one. Noticing is not a failure: it is the moment of meditation.',
+  'Keep your practices short and easy to repeat, at a similar moment each day. What you are building now is not calm, but the habit of returning. With every new stage, Ona will open a guide like this one.',
+] });
+/** First and last level of a stage (1–25): Levels 0–4, 5–9 … 115–119, and 120–125 for the last. */
+export const stageLevels = (stage: number) => ({ first: (stage - 1) * 5, last: stage >= 25 ? 125 : stage * 5 - 1 });
+/** The stages reached so far, in order: the first through the stage of the highest level. */
+export const reachedStages = (highestLevel: number) => Array.from({ length: stageOf(highestLevel) }, (_, index) => index + 1);
+/**
+ * The guides that belong to a stage, as Journey shows them when the stage is revisited: the guide that
+ * opened it (the habit's for the stage that begins at Level 100) and, once reached, the journey's end.
+ */
+export function stageGuides(stage: number, highestLevel: number): readonly MilestoneNote[] {
+  if (stage <= 1) return [FIRST_STAGE_NOTE];
+  const { first } = stageLevels(stage);
+  const opening = first === 100 ? HABIT_NOTE : STAGE_NOTES[first];
+  return [...(opening ? [opening] : []), ...(stage === 25 && highestLevel >= 125 ? [COMPLETE_NOTE] : [])];
+}
+
+/**
  * The one milestone a practice reached, if any (the most significant when several were crossed at once):
  * the journey's end, then the habit, then a new stage. `highestBefore` keeps each one to the first time.
  */

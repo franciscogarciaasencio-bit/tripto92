@@ -33,6 +33,6 @@ function create(source: number, loop = false): ClipPlayer {
   };
 }
 export const sessionAudioBackend: SessionAudioBackend = {
-  clip(sound,loop) { return create(sound === 'start' || sound === 'end' || sound === 'interval' ? bellAsset(sound) : ambienceAsset(sound),loop); },
+  clip(sound,loop) { return create(sound === 'start' || sound === 'end' ? bellAsset(sound) : ambienceAsset(sound),loop); },
   timeline: seconds => create(intervalAsset(seconds), true), ending: () => create(endingTimelineAsset()),
 };

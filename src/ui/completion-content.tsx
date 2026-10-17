@@ -9,6 +9,7 @@ import { formatRipples } from './format-ripples';
 import { formatTime, Notice } from './primitives';
 import { useReducedMotion } from './reduced-motion';
 import { usePremiumReward } from './use-premium-reward';
+import { REWARD_MOTION } from './reward-sequence';
 import { QuietPressable } from './quiet-pressable';
 import { UI_MOTION } from './motion';
 import { ConsistencyBar } from './consistency-bar';
@@ -30,10 +31,11 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
     const previous = shownLevel.current; shownLevel.current = motion.level;
     if (reduced || motion.level <= previous) return;
     levelUp.set(0);
-    levelUp.set(withSequence(withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }),
-      withDelay(650, withTiming(0, { duration: 900, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }))));
+    // Unhurried (owner, 2026-10-17): a slow swell, a long hold in the glow, a slow release.
+    levelUp.set(withSequence(withTiming(1, { duration: 750, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }),
+      withDelay(1200, withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }))));
     levelRingProgress.set(0);
-    levelRingProgress.set(withDelay(120, withTiming(1, { duration: 1100, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.Never })));
+    levelRingProgress.set(withDelay(220, withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.Never })));
   }, [motion.level, reduced, levelUp, levelRingProgress]);
   const levelNumberStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.16 * levelUp.value }] }));
   const levelHalo = useAnimatedStyle(() => ({ backgroundColor: `rgba(216,190,142,${(0.38 * levelUp.value).toFixed(4)})` }));
@@ -84,7 +86,7 @@ export function CompletionContent({ completion, journey, snapshot, scale, busy, 
       <View accessible accessibilityLabel={`${formatRipples(showTotal ? total : base)} Ripples ${showTotal ? 'earned' : 'from practice'}`}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 * scale }}>
         <HomeIcon name="wave" size={36 * scale} color={coastalInk} />
-        <Animated.Text key={showTotal ? 'total' : 'base'} entering={reduced ? undefined : FadeIn.duration(320)} accessible={false} importantForAccessibility="no"
+        <Animated.Text key={showTotal ? 'total' : 'base'} entering={reduced ? undefined : FadeIn.duration(REWARD_MOTION.revealMilliseconds)} accessible={false} importantForAccessibility="no"
           numberOfLines={1} style={earningsText}>{`+${formatRipples(showTotal ? total : base)} Ripples`}</Animated.Text>
       </View>
       <Text accessibilityLiveRegion="polite" style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, lineHeight: 18 * scale, textAlign: 'center', color: coastalQuiet, marginTop: 2 * scale }}>

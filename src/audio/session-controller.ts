@@ -3,7 +3,8 @@ import type { TimerDraft } from '../domain/meditation/timer';
 import type { AudioClock, PlaybackStatus, SoundNotice } from './controller';
 import { MASTER_PLAYBACK_GAIN, type AmbienceSource } from './policy';
 import { BELL_DURATION_MS, BELL_RELEASE_MARGIN_MS } from './bell-timing';
-export type Bell = 'start' | 'end' | 'interval';
+/** The interval loops are built from the starting bell, so a preview of the interval is the starting bell. */
+export type Bell = 'start' | 'end';
 export type PreviewSound = AmbienceSource | Bell;
 export interface ClipPlayer {
   volume: number; readonly currentTime: number;
@@ -13,7 +14,7 @@ export interface ClipPlayer {
 }
 export interface SessionAudioBackend {
   clip(sound: PreviewSound, loop: boolean): ClipPlayer;
-  /** The interval master then silence, `seconds` long, looping: a bell every `seconds` of playback. */
+  /** The starting bell then silence, `seconds` long, looping: a bell every `seconds` of playback. */
   timeline(seconds: number): ClipPlayer;
   /** One hour of silence, then the End bell: rings at a fixed practice's end while JavaScript sleeps. */
   ending(): ClipPlayer;
@@ -32,7 +33,7 @@ export function loopDistance(a: number, b: number, period: number) {
   return Math.min(d, period - d);
 }
 /** The loop starts with a strike; at 0 active seconds it stays silent until that strike is over. */
-export const FIRST_STRIKE_SECONDS = BELL_DURATION_MS.interval / 1000;
+export const FIRST_STRIKE_SECONDS = BELL_DURATION_MS.start / 1000;
 export const ENDING_LEAD_SECONDS = 3_600;
 export function activeAudioSeconds(draft: TimerDraft, now: number): number {
   return (draft.activeMilliseconds + (draft.phase === 'running' ? Math.max(0, now-draft.changedAt) : 0))/1000;
@@ -95,7 +96,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
   function playClip(sound: PreviewSound, volume: number, isPreview: boolean) {
     releaseClip(); if (disposed || volume <= 0 || !input?.foreground || blocked) return;
     try {
-      const player = backend.clip(sound,isPreview && !['start','end','interval'].includes(sound));
+      const player = backend.clip(sound,isPreview && sound !== 'start' && sound !== 'end');
       clip = player; clipSound = sound; const token = clipRevision; player.volume = isPreview ? 0 : volume;
       if (!isPreview && sound === 'start' && input.preferences && !input.preferences.intervalSeconds &&
         (input.preferences.sessionSound === 'silence' || input.preferences.sessionVolume === 0)) player.background(true);
@@ -108,7 +109,7 @@ export function createSessionSoundController(backend: SessionAudioBackend, clock
           started = true; cancelLoad?.(); cancelLoad = null;
           if (isPreview) fade(player,volume,700,()=>{});
           // Start the fallback at actual playback, so loading cannot shorten the tail.
-          const bell = sound === 'start' || sound === 'end' || sound === 'interval' ? sound : null;
+          const bell = sound === 'start' || sound === 'end' ? sound : null;
           cancelPreview = clock.schedule(() => {
             if (clip !== player || token !== clipRevision) return;
             if (isPreview) fade(player,0,700,releaseClip); else releaseClip();

@@ -1,133 +1,133 @@
 {
   "collection": "ona_acoustic_bells_v2",
-  "sourceSha256": "a4066f77297c2ce493458a12efebad2f96342c71e74c41b655e4feb312647923",
+  "sourceSha256": "132749edc7f88fc2f54d2b657a0c8f2f7360de201a52c9bee5b722cd7f6269d8",
   "sampleRate": 24000,
-  "format": "mono 16-bit FLAC, interval master at 0 s then silence",
+  "format": "mono 16-bit FLAC, starting bell at 0 s then silence",
   "assets": {
     "interval-loop-1m.flac": {
       "minutes": 1,
       "seconds": 60,
-      "sha256": "e888cac7a37ed4990811dcb98f3092e674cb9e2bb8b9544f55b3df8dd3911848",
-      "bytes": 71397,
+      "sha256": "f48b15c779a34bd0e0565913ca384e4290bd9e88eaa6e2c3bf535ec83894b5ca",
+      "bytes": 130336,
       "samples": 1440000
     },
     "interval-loop-2m.flac": {
       "minutes": 2,
       "seconds": 120,
-      "sha256": "1e37b255948f92f847970c94fb6abe85cc33a77b0da5238c964f04ae4c5680d9",
-      "bytes": 78897,
+      "sha256": "ffdc848ec7822755a5b207ac2808227480ee535098b5fb6a9fbf1002834d568c",
+      "bytes": 137836,
       "samples": 2880000
     },
     "interval-loop-3m.flac": {
       "minutes": 3,
       "seconds": 180,
-      "sha256": "60c743b0b5b4dff0c39a9a9c2d97483f5e60ace076aeb8eaf01c8c86ae718216",
-      "bytes": 86397,
+      "sha256": "cc922bac9ef5e2c42fc254bc28bb1fcf50d181be5906e2aa7f3e8f6bf7564ae9",
+      "bytes": 145336,
       "samples": 4320000
     },
     "interval-loop-4m.flac": {
       "minutes": 4,
       "seconds": 240,
-      "sha256": "c5c0378406f6a721a4b96e5518d89ba2c0557bbfd7ffb0e5faf0f8e3f896e4ec",
-      "bytes": 94349,
+      "sha256": "8b138f8c597159c7faafc0096b78523f378699142f45414a9be3ca3a17185443",
+      "bytes": 153288,
       "samples": 5760000
     },
     "interval-loop-5m.flac": {
       "minutes": 5,
       "seconds": 300,
-      "sha256": "40cc97074c2344c8f834da9b5050edcf34ecc0637c224bc70e07059a99666be9",
-      "bytes": 102474,
+      "sha256": "2cec97cc33e2548f88b0742c4525760b5a16dd9a4c4b74944220614a2c8fe147",
+      "bytes": 161413,
       "samples": 7200000
     },
     "interval-loop-6m.flac": {
       "minutes": 6,
       "seconds": 360,
-      "sha256": "2d707a50e335db117ffde204df8cb879a9f689417a4dfb1494ba847c4c044847",
-      "bytes": 110599,
+      "sha256": "9e6b93ffa178b14b82c3d8d9795ae32884a30996e601dcff82b18032848df161",
+      "bytes": 169538,
       "samples": 8640000
     },
     "interval-loop-7m.flac": {
       "minutes": 7,
       "seconds": 420,
-      "sha256": "432eeec5fcf616a8eeb60f7ec16440cc526160a02c198635139f2eb6248ecada",
-      "bytes": 118724,
+      "sha256": "5fb3aa75e05a902b7e14f5bf7be39ea87b5f6011fe5caf73089c8838e66cde3c",
+      "bytes": 177663,
       "samples": 10080000
     },
     "interval-loop-8m.flac": {
       "minutes": 8,
       "seconds": 480,
-      "sha256": "915174a096af47e75ca6eace1fda90a0f482ef0cfb53f33c391c18c843e48207",
-      "bytes": 126849,
+      "sha256": "abbbe0971708df5bddb887d6ca00a8be663846aa2e75a4c45b82b1d2f24a02c1",
+      "bytes": 185788,
       "samples": 11520000
     },
     "interval-loop-9m.flac": {
       "minutes": 9,
       "seconds": 540,
-      "sha256": "5bcaf88c38da109dd2e759cbf8e899dceb20eb88cc2da778dce3b6ce7693144c",
-      "bytes": 134974,
+      "sha256": "f4a0d0d44292c8759a2729303bf2bc22acf7e0d21bcb319b8eeddf2223a7339b",
+      "bytes": 193913,
       "samples": 12960000
     },
     "interval-loop-10m.flac": {
       "minutes": 10,
       "seconds": 600,
-      "sha256": "85d126407dd3a8dc5069ebb673c315cf33edb90ce2ab4a996405df8d9b05efa1",
-      "bytes": 143099,
+      "sha256": "e684a237b53d55bcf93611382385a33f319f2896d8bbe7015393e4dd11181d05",
+      "bytes": 202038,
       "samples": 14400000
     },
     "interval-loop-12m.flac": {
       "minutes": 12,
       "seconds": 720,
-      "sha256": "aa5a548b08411af767c9a424296d37611a94fdd68b8032aba90e68a93f173f72",
-      "bytes": 159349,
+      "sha256": "e532d59e8496482295f10a68a6b1ab4ab55df19a76509d966457314eaf48cf80",
+      "bytes": 218288,
       "samples": 17280000
     },
     "interval-loop-15m.flac": {
       "minutes": 15,
       "seconds": 900,
-      "sha256": "b8656425a82e31b891ea82746ef8dc1802ea1d5808167d09801e2e968e32e88a",
-      "bytes": 183724,
+      "sha256": "5e30e89a426097720b761694be8d6c4bcca4d94977e1436aaf627354bd33fcd8",
+      "bytes": 242663,
       "samples": 21600000
     },
     "interval-loop-20m.flac": {
       "minutes": 20,
       "seconds": 1200,
-      "sha256": "897f734a1233200401c16b64e09b9bddfbe168398de0f62effa0b54bc8411c2d",
-      "bytes": 224349,
+      "sha256": "44d24efa7cfa283abbb9a58b0202106d62479083eceb425cd6bf1f4d916a030d",
+      "bytes": 283288,
       "samples": 28800000
     },
     "interval-loop-25m.flac": {
       "minutes": 25,
       "seconds": 1500,
-      "sha256": "0ae707859813accac031ce95a8d172eb55da599d162d30b4bd01476594e6106b",
-      "bytes": 264974,
+      "sha256": "5f2f3ba4ef03723781d9f20ab9491f3a2becff6f1746de746392b6a52eab04ca",
+      "bytes": 323913,
       "samples": 36000000
     },
     "interval-loop-30m.flac": {
       "minutes": 30,
       "seconds": 1800,
-      "sha256": "726a1d670ba55c29a1013a979053c6d07d46e0b1e4d8f58c0c3cff7de82a557e",
-      "bytes": 305599,
+      "sha256": "c2addbbd2153f2d5a24a15ebc442aba1d2e371800021d6c55e7bd05b22ed0ae7",
+      "bytes": 364538,
       "samples": 43200000
     },
     "interval-loop-40m.flac": {
       "minutes": 40,
       "seconds": 2400,
-      "sha256": "33cb751700c94bd9c0428d5c1e3715b4cf19ae37fbd3c301f9d129b3f1508c67",
-      "bytes": 386849,
+      "sha256": "c11de2dcb9d50f599269cb9662c0eb7eae8a01c06b8b17534467549c9f0f74ea",
+      "bytes": 445788,
       "samples": 57600000
     },
     "interval-loop-45m.flac": {
       "minutes": 45,
       "seconds": 2700,
-      "sha256": "e65444636314d03f9647cdd3cd2a5a278efecdb67f6a5df0b465d724677c4b0e",
-      "bytes": 427474,
+      "sha256": "7a646ab84722428648ec31b4725fb6819effffad24c067e7ba016d65c029f47a",
+      "bytes": 486413,
       "samples": 64800000
     },
     "interval-loop-60m.flac": {
       "minutes": 60,
       "seconds": 3600,
-      "sha256": "70e4099946df91f2e89d3b80bbd2d41b76258409297077eb2e3abbc7d0118bdc",
-      "bytes": 549349,
+      "sha256": "26121c5810daff716a5f1ff79a005a7962625b0d28a3dc0292bafed9b9166c82",
+      "bytes": 608288,
       "samples": 86400000
     }
   }

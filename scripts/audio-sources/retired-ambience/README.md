@@ -1,4 +1,10 @@
-# Original Ona ambience
+# Original Ona ambience (retired)
+
+**Removed from the app on 2026-10-17 (owner): Choir and Silence are now the only meditation sounds.**
+This report and analysis.json moved here from assets/audio/meditation so the provenance stays with
+the generator. The encoded files are in Git history, e.g.
+`git show 7378fe3:assets/audio/meditation/ocean.m4a > ocean.m4a` (likewise rain, storm).
+The text below is unchanged from when they shipped.
 
 The three active environments in this directory are deterministic procedural DSP,
 created for Ona without external recordings, models, royalties or attribution duties.

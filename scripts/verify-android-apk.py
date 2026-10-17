@@ -27,7 +27,7 @@ def digest(data):
 
 def expected_audio_hashes():
     targets = {}
-    for folder, report in [("meditation", "analysis.json"), ("bells-v2", "analysis.json"), ("bells-v2", "loops.json")]:
+    for folder, report in [("bells-v2", "analysis.json"), ("bells-v2", "loops.json")]:
         audio = json.loads((ROOT / "assets/audio" / folder / report).read_text(encoding="utf-8"))
         for name, entry in audio["assets"].items():
             targets[entry["sha256"]] = f"{folder}/{name}"

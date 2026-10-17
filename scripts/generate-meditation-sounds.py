@@ -1,4 +1,5 @@
-"""Original Ona DSP assets. Requires numpy and FFmpeg, only during development.
+"""Original Ona DSP assets (Ocean, Rain, Storm: retired from the app on 2026-10-17, owner; the
+provenance report is in scripts/audio-sources/retired-ambience). Requires numpy and FFmpeg, only during development.
 
 Seeded circular spectral noise + evolving envelopes; no recordings, samples or
 external models. Reproduce with --ffmpeg PATH. Lossless masters are reproducible

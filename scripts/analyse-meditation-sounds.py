@@ -1,5 +1,6 @@
-"""Recheck unchanged procedural ambience assets.
-Acoustic bells/timelines: master-acoustic-bells.py and build-bell-timelines.py.
+"""Recheck the retired procedural ambience assets (Ocean, Rain, Storm; removed from the app 2026-10-17).
+Their files are in Git history (commit 7378fe3); restore them beside this report to recheck.
+Acoustic bells and interval loops: master-acoustic-bells.py and build-bell-loops.py.
 Run with the same development-only numpy/FFmpeg used by the generator.
 """
 import argparse
@@ -8,7 +9,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / "assets/audio/meditation"
+ASSETS = ROOT / "scripts/audio-sources/retired-ambience"
 
 def main():
     parser=argparse.ArgumentParser()

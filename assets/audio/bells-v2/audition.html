@@ -33,7 +33,7 @@ async function prepare() {
 const response = await fetch('analysis.json');
 if (!response.ok) throw new Error('Cannot load analysis.json');
 const report = await response.json();
-for (const [title, file] of [['Starting', 'start.wav'], ['Ending', 'end.wav'], ['Interval', 'interval.wav']]) {
+for (const [title, file] of [['Starting', 'start.wav'], ['Ending', 'end.wav']]) {
   const entry = report.assets[file], id = entry.profile.source;
   const adjustment = entry.measurements.firstTwoSecondsRms / report.sources[id].firstTwoSecondsRms;
   const group = document.createElement('fieldset');

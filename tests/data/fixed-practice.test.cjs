@@ -137,7 +137,7 @@ test('Practice setup preferences: older documents mean open-ended with no intent
     await store.settings.savePreferences(next, 5);
     assert.deepEqual(await store.settings.loadPreferences(), next);
   } finally { await store.close(); }
-  assert.equal(sessionLine(null, false), 'Just be here');
+  assert.equal(sessionLine(null, false), 'You can turn your screen off');
   assert.equal(sessionLine('kindness', false), 'Be kind to yourself');
   assert.equal(sessionLine('kindness', true), 'Take your time');
   assert.equal(intentionLabel('gratitude'), 'Gratitude');

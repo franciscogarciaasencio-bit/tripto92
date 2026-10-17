@@ -17,10 +17,10 @@ import { REFLECTION_MAX_LENGTH, useBeginningReflection } from '@/application/beg
 
 /**
  * A short first guide (owner, 2026-10-16): what Ona is for, how to sit, counting breaths, a minute
- * to try it with a breathing guide, coming back, and (2026-10-17) noticing how today feels, to compare
+ * to try it with a breathing guide, coming back, and (2026-10-17) noticing how the mind usually feels, to compare
  * at Level 100. Shown once on first launch, then from Guide.
  */
-export const CHAPTERS = ['Welcome to Ona', 'Settle in', 'Count your breaths', 'Try it', 'Come back', 'Remember today'] as const;
+export const CHAPTERS = ['Welcome to Ona', 'Settle in', 'Count your breaths', 'Try it', 'Come back', 'Your starting point'] as const;
 const timing = { out: 100, in: 240 };
 const LAST = CHAPTERS.length - 1;
 
@@ -68,7 +68,7 @@ export function IntroductionScreen() {
     ++generation.current; changing.current = false; closed.current = false;
     return () => { closed.current = true; cancelAnimation(opacity); };
   }, [opacity]);
-  // The optional words about today, kept on this phone and shown again at Level 100.
+  // Optional words about how the mind usually feels (not just today), kept on this phone and shown again at Level 100.
   const { reflection, save: saveReflection } = useBeginningReflection();
   const [written, setWritten] = useState<string | null>(null);
   const keepWords = () => { if (written !== null && written.trim() !== (reflection?.text ?? '')) void saveReflection(written); };
@@ -181,13 +181,13 @@ export function IntroductionScreen() {
             <Text style={[styles.note, { marginTop: 18 }]}>Missed a day? Nothing is lost.{`\n`}Just come back.</Text>
           </> : <>
             <Text style={styles.eyebrow}>YOUR STARTING POINT</Text>
-            {heading('Remember how\ntoday feels.')}
-            <Text style={[styles.copy, { marginTop: 22 }]}>How do your days feel right now? Your mind, your mood, your sleep, how you react when things get busy. Take a moment to notice it.</Text>
-            <Text style={[styles.copy, { marginTop: 14 }]}>If you like, write a few words. It is optional: you can also keep a mental note, or write it somewhere of your own. What matters is that you remember.</Text>
+            {heading('How does your mind\nusually feel?')}
+            <Text style={[styles.copy, { marginTop: 22 }]}>Not just today: most days. Is your mind often busy or scattered, jumping from one thought to the next? Do you often feel anxious, restless or tense? How quickly do you get irritated, and how do you sleep?</Text>
+            <Text style={[styles.copy, { marginTop: 14 }]}>If you like, describe it in a few honest words. It is optional and stays on this phone; you can also simply keep a mental note.</Text>
             <TextInput value={written ?? reflection?.text ?? ''} onChangeText={setWritten} onBlur={keepWords} multiline maxLength={REFLECTION_MAX_LENGTH}
-              placeholder="These days, my mind feels…" placeholderTextColor="rgba(20,20,20,0.4)" accessibilityLabel="How today feels, optional"
+              placeholder="Most days, my mind feels…" placeholderTextColor="rgba(20,20,20,0.4)" accessibilityLabel="How your mind usually feels, optional"
               textAlignVertical="top" style={styles.reflection} />
-            <Text style={[styles.note, { marginTop: 16 }]}>When you reach Level 100, Ona will show you this again.{`\n`}Keep coming back: we believe you will feel the difference.</Text>
+            <Text style={[styles.note, { marginTop: 16 }]}>When you reach Level 100, Ona will show you these words again, so you can compare them with how your mind feels by then.{`\n`}Keep coming back: we believe you will feel the difference.</Text>
           </>}
         </View>
       </Animated.View>

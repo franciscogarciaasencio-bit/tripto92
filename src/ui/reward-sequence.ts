@@ -4,8 +4,13 @@ export interface RewardStep {
   readonly stage: RewardStage; readonly level: number; readonly from: number; readonly to: number;
   readonly duration: number; readonly crossingDuration: number;
 }
-export const REWARD_MOTION = { minimumFillMilliseconds: 500, distanceFillMilliseconds: 850,
-  consistencyMilliseconds: 1150, crossingMilliseconds: 160, revealMilliseconds: 320, stageBudgetMilliseconds: 3200 } as const;
+/**
+ * About twice the earlier pace (owner, 2026-10-17: the Ripples and level-up animations felt "way too fast…
+ * rushed"): each fill can be followed by eye, with a short rest between the practice, Consistency and bonus.
+ */
+export const REWARD_MOTION = { minimumFillMilliseconds: 1000, distanceFillMilliseconds: 1700,
+  consistencyMilliseconds: 2200, crossingMilliseconds: 360, revealMilliseconds: 600, stageBudgetMilliseconds: 6500,
+  restMilliseconds: 450 } as const;
 /** A historical receipt can animate only when its endpoints still describe the current display. */
 export function canAnimateReward(receipt: HabitRewardReceipt | null, journey: LifetimeJourney,
   consistency: number, finalIndicator: number, indicatorAfter: number): boolean {

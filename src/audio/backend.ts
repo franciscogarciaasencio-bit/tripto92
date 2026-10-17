@@ -10,11 +10,15 @@ export const audioBackend: AudioBackend = {
   }),
   create(source = 'ocean_music') {
     const player = createAudioPlayer(ambienceAsset(source), { updateInterval: 250 });
+    // The volume is remembered here and never read back from the player: on Android that read waits
+    // for the main thread, which can be busy with a screen transition (Settings → Save → Home) and
+    // stall or crash the app. Setting it is asynchronous and safe.
+    let volume = 0;
     try { player.volume = 0; player.loop = true; }
     catch (error) { player.remove(); throw error; }
     return {
-      get volume() { return player.volume; },
-      set volume(value) { player.volume = value; },
+      get volume() { return volume; },
+      set volume(value) { player.volume = value; volume = value; },
       play: () => player.play(), pause: () => player.pause(), remove: () => player.remove(),
       background(active) {
         // Android needs its media foreground service for playback beyond ~3 minutes.

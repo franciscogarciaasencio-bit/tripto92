@@ -9,6 +9,9 @@ const COPY: Record<Intention, { readonly label: string; readonly line: string }>
 };
 
 export const intentionLabel = (intention: Intention) => COPY[intention].label;
-/** The quiet line under the timer during a practice. */
+/**
+ * The quiet line under the timer during a practice. Without an intention it reassures that the phone
+ * can be put away (owner, 2026-10-17): time, ambience and bells carry on with the screen off.
+ */
 export const sessionLine = (intention: Intention | null, paused: boolean) =>
-  paused ? 'Take your time' : intention ? COPY[intention].line : 'Just be here';
+  paused ? 'Take your time' : intention ? COPY[intention].line : 'You can turn your screen off';

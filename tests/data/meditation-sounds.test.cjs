@@ -52,25 +52,36 @@ for (const channel of ['clip', 'timeline']) for (const failingMethod of ['backgr
  });
 }
 
-test('New sound defaults are calm; every environment, bell, interval and haptic preference survives restart',async t=>{
+test('Sound defaults: Choir and Home at 20%, bells at 60%, both bells on; every choice survives restart',async t=>{
  const file=disk(t);let store=await openStore(connection(file),context(1));
- assert.deepEqual(await store.settings.loadAudioPreferences(),defaults);assert.equal(defaults.sessionSound,'ocean');
+ const catalogue=require('node:fs').readFileSync(require('node:path').join(__dirname,'../../src/audio/assets.ts'),'utf8');
+ assert.deepEqual([...catalogue.matchAll(/name: '([^']+)'/g)].map(match=>match[1]),['Choir','Silence'],'Choir and Silence only (owner, 2026-10-17)');
+ assert.equal(defaults.sessionSound,'ocean_music');assert.equal(defaults.sessionVolume,.2);assert.equal(defaults.homeVolume,.2);assert.equal(defaults.bellVolume,.6);
  assert.ok(defaults.openingBellEnabled&&defaults.closingBellEnabled);assert.equal(defaults.intervalSeconds,null);
- for(const sessionSound of ['ocean','rain','storm','silence','ocean_music']){
-  const prefs={...defaults,sessionSound,sessionVolume:.2,bellVolume:.1,intervalSeconds:900,hapticsEnabled:true,closingBellEnabled:false};
+ for(const sessionSound of ['silence','ocean_music']){
+  const prefs={...defaults,sessionSound,sessionVolume:.25,bellVolume:.1,intervalSeconds:900,hapticsEnabled:true};
   await store.settings.saveAudioPreferences(prefs);await store.close();store=await openStore(connection(file),context(1));
   assert.deepEqual(await store.settings.loadAudioPreferences(),prefs);
  }await store.close();
 });
 
-test('Brown Noise was removed: a saved or synced choice of it opens as Ocean, never as an error',async t=>{
- assert.equal(decodeAudioPreferences({...defaults,sessionSound:'brown_noise'}).sessionSound,'ocean');
+test('Removed sounds: a saved or synced Ocean, Rain, Storm or Brown Noise opens as Choir, never as an error',async t=>{
+ for(const sessionSound of ['ocean','rain','storm','brown_noise'])
+  assert.equal(decodeAudioPreferences({...defaults,sessionSound}).sessionSound,'ocean_music',sessionSound);
  const catalogue=require('node:fs').readFileSync(require('node:path').join(__dirname,'../../src/audio/assets.ts'),'utf8');
- assert.ok(!catalogue.includes('brown'),'no Brown Noise in the sound catalogue or bundle');
+ for(const gone of ['brown','rain','storm','ocean.m4a','interval.wav'])assert.ok(!catalogue.includes(gone),`no ${gone} in the sound catalogue or bundle`);
+});
+
+test('The starting and ending bells cannot be switched off: a stored "off" decodes as on',async t=>{
+ const decoded=decodeAudioPreferences({...defaults,openingBellEnabled:false,closingBellEnabled:false});
+ assert.equal(decoded.openingBellEnabled,true);assert.equal(decoded.closingBellEnabled,true);
+ const file=disk(t),store=await openStore(connection(file),context(1));
+ await store.settings.saveAudioPreferences({...defaults,closingBellEnabled:false});
+ assert.equal((await store.settings.loadAudioPreferences()).closingBellEnabled,true);await store.close();
 });
 
 test('Stopping a preview fades softly, then releases exactly that player',()=>{
- const f=fixture();f.controller.preview('rain',.2);f.clock.advance(800);
+ const f=fixture();f.controller.preview('ocean_music',.2);f.clock.advance(800);
  const player=f.players[0];assert.equal(player.volume,.1);
  f.controller.stopPreview();f.clock.advance(80);
  assert.ok(player.volume>0&&player.volume<.1);assert.equal(player.removed,false);
@@ -79,7 +90,7 @@ test('Stopping a preview fades softly, then releases exactly that player',()=>{
 });
 
 test('A late preview fade cannot stop a newly started meditation bell',()=>{
- const f=fixture();f.controller.preview('rain',.2);f.clock.advance(800);
+ const f=fixture();f.controller.preview('ocean_music',.2);f.clock.advance(800);
  const old=f.players[0];f.controller.stopPreview();f.clock.advance(50);
  f.controller.begin(defaults);const bell=f.players.at(-1);f.clock.advance(300);
  assert.equal(old.removed,true);assert.equal(bell.sound,'start');assert.equal(bell.removed,false);
@@ -87,7 +98,7 @@ test('A late preview fade cannot stop a newly started meditation bell',()=>{
 });
 
 test('Backgrounding cancels a pending preview fade and releases immediately',()=>{
- const f=fixture();f.controller.preview('ocean',.2);f.clock.advance(800);f.controller.stopPreview();
+ const f=fixture();f.controller.preview('ocean_music',.2);f.clock.advance(800);f.controller.stopPreview();
  f.controller.update({...f.input,foreground:false});
  assert.equal(f.players[0].removed,true);assert.equal(f.jobs.size,0);f.controller.dispose();
 });
@@ -100,7 +111,7 @@ test('V9 migrates legacy choices/mutes/volumes transactionally, preserving sessi
  // Reconstruct the released V8 schema, removing only later, empty migration additions.
  conn.raw.exec(DROP_SYNC_MIGRATION+'DROP TABLE progression_consistency_activations; DELETE FROM schema_migrations WHERE version>=9');await conn.close();
  store=await openStore(connection(file),state.asOf);
- assert.deepEqual(await store.settings.loadAudioPreferences(),{...old,version:2,bellVolume:.18,intervalSeconds:null,hapticsEnabled:false});
+ assert.deepEqual(await store.settings.loadAudioPreferences(),{...old,version:2,bellVolume:.18,intervalSeconds:null,hapticsEnabled:false,closingBellEnabled:true},'V9 kept the old values; the bells are now always on');
  assert.deepEqual(await store.meditations.loadProgressionState(),state);await store.close();
 });
 for(const invalid of [{bellVolume:-.1},{bellVolume:Infinity},{intervalSeconds:90},{intervalSeconds:3660},{intervalSeconds:'300'},{hapticsEnabled:1},{openingBellEnabled:null},{sessionSound:['ocean']}])
@@ -113,7 +124,7 @@ test('Silence keeps interval bells/background ownership independent of ambience 
  const f=fixture(),draft=startOpenEndedTimer('quiet',f.start,'UTC');
  f.controller.update({...f.input,draft,preferences:{...defaults,sessionSound:'silence',intervalSeconds:300}});
  assert.equal(f.players[0].locked,true);assert.equal(f.players[0].volume,0,'the loop opens with a strike that stays silent at 0 s');
- f.clock.advance(BELL_DURATION_MS.interval+60);assert.equal(f.players[0].volume,.09);f.controller.dispose();
+ f.clock.advance(BELL_DURATION_MS.start+60);assert.equal(f.players[0].volume,.3,'60% bells (the default) through the playback gain');f.controller.dispose();
 });
 
 test('Live starting bell is single; finish resonance survives the completion/Home transition; no rewards are touched',async()=>{
@@ -156,7 +167,7 @@ test('Recovery seeks past missed intervals rather than catching up with a burst 
  const f=fixture(),draft=startOpenEndedTimer('session',f.start,'UTC');
  f.controller.update({...f.input,draft,now:f.start+1825000,preferences:{...defaults,intervalSeconds:600}});await flush();
  assert.deepEqual(f.players[0].seeks,[25],'1825 s into a 600 s loop');assert.equal(f.players[0].sound,600);assert.equal(f.players[0].loop,true);
- assert.equal(f.players[0].volume,.09,'past the first strike, every later strike is audible');assert.equal(f.players.length,1);f.controller.dispose();
+ assert.equal(f.players[0].volume,.3,'past the first strike, every later strike is audible');assert.equal(f.players.length,1);f.controller.dispose();
 });
 
 test('Changing interval preference releases the old timeline; a late seek cannot revive it',async()=>{
@@ -176,12 +187,13 @@ test('Media interruption fails closed, never silently resumes, and explicit retr
 });
 
 test('Previews are exclusive, fade in/out, stop on navigation/background, and cannot play over an active practice',()=>{
- const f=fixture();f.controller.preview('ocean',.2);f.clock.advance(700);assert.equal(f.players[0].volume,.1);
- f.controller.preview('rain',.2);assert.equal(f.players[0].removed,true);assert.equal(f.players[1].sound,'rain');
- f.clock.advance(12700);assert.equal(f.players[1].removed,true);assert.equal(f.previews.at(-1),null);
+ const f=fixture();f.controller.preview('ocean_music',.2);f.clock.advance(700);assert.equal(f.players[0].volume,.1);
+ f.controller.preview('start',.2);assert.equal(f.players[0].removed,true);assert.equal(f.players[1].sound,'start');
+ f.controller.preview('ocean_music',.2);assert.equal(f.players[1].removed,true);
+ f.clock.advance(12700);assert.equal(f.players[2].removed,true,'an ambience preview ends by itself');assert.equal(f.previews.at(-1),null);
  f.controller.preview('end',.18);f.controller.update({...f.input,foreground:false});assert.equal(f.players.at(-1).removed,true);
  const draft=startOpenEndedTimer('session',f.start,'UTC');f.controller.update({...f.input,draft});
- const count=f.players.length;f.controller.preview('storm',.2);assert.equal(f.players.length,count);f.controller.dispose();
+ const count=f.players.length;f.controller.preview('ocean_music',.2);assert.equal(f.players.length,count);f.controller.dispose();
 });
 
 test('Bell mute and preference changes never restart or double-play a sound; nothing vibrates',()=>{
@@ -207,28 +219,26 @@ test('Late-loading bells are dropped, and removing preview/session owners cancel
  f.controller.dispose();assert.equal(f.jobs.size,0);
 });
 
-test('Every retained ambience matches its original output; encoded loops retain headroom and clean boundaries',()=>{
- const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
- const root=path.join(__dirname,'../../assets/audio/meditation'),report=JSON.parse(fs.readFileSync(path.join(root,'analysis.json')));
- assert.equal(Object.keys(report.assets).length,3);let bytes=0;
- for(const [name,entry] of Object.entries(report.assets)){
-  const raw=fs.readFileSync(path.join(root,name));bytes+=raw.length;
-  assert.equal(crypto.createHash('sha256').update(raw).digest('hex'),entry.sha256);assert.equal(raw.length,entry.bytes);
-  if(entry.decoded){assert.equal(entry.decoded.seconds,180);assert.ok(entry.decoded.peak<.5);assert.ok(Math.abs(entry.decoded.dc)<1e-4);
-   assert.ok(entry.decoded.seamStep<entry.decoded.ordinaryStep99);assert.ok(entry.decoded.correlationWithMaster>.99);}
- }assert.ok(bytes<20_000_000,'Unchanged ambience bank remains below 20 MB');
+test('The whole bundled sound collection (Choir, two bells, interval loops, ending timeline) stays under 10 MB',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const audio=path.join(__dirname,'../../assets/audio');
+ assert.ok(!fs.existsSync(path.join(audio,'meditation')),'Ocean, Rain and Storm are no longer bundled (owner, 2026-10-17)');
+ let bytes=fs.statSync(path.join(audio,'meditation-choir.m4a')).size+fs.statSync(path.join(audio,'bells-v2/ending-timeline.m4a')).size;
  for(const manifest of ['analysis.json','loops.json']){
-  const bells=JSON.parse(fs.readFileSync(path.join(root,'../bells-v2',manifest)));
-  for(const name of Object.keys(bells.assets)) bytes+=fs.statSync(path.join(root,'../bells-v2',name)).size;
+  const bells=JSON.parse(fs.readFileSync(path.join(audio,'bells-v2',manifest)));
+  for(const name of Object.keys(bells.assets)) bytes+=fs.statSync(path.join(audio,'bells-v2',name)).size;
  }
- assert.ok(bytes<45_000_000,'Complete meditation collection remains below the original 45 MB budget');
+ const shipped=fs.readdirSync(path.join(audio,'bells-v2')).filter(name=>/\.(wav|flac|m4a)$/.test(name)).reduce((sum,name)=>sum+fs.statSync(path.join(audio,'bells-v2',name)).size,0)
+  +fs.statSync(path.join(audio,'meditation-choir.m4a')).size;
+ assert.equal(bytes,shipped,'every bundled sound file is accounted for by a manifest');
+ assert.ok(bytes<10_000_000,`about 9.4 MB, was about 17 MB (${bytes})`);
 });
 
 test('Live PCM durations match cleanup watchdogs; every bell is a new acoustic master',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const report=JSON.parse(fs.readFileSync(path.join(__dirname,'../../assets/audio/bells-v2/analysis.json')));
  const catalogue=fs.readFileSync(path.join(__dirname,'../../src/audio/assets.ts'),'utf8');
- for(const name of ['start','end','interval']){
+ for(const name of ['start','end']){
   const wav=fs.readFileSync(path.join(__dirname,`../../assets/audio/bells-v2/${name}.wav`));
   assert.equal(wav.subarray(0,4).toString(),'RIFF');assert.equal(wav.readUInt32LE(24),24000);
   const samples=[];for(let i=44;i<wav.length;i+=2)samples.push(wav.readInt16LE(i)/32768);
@@ -270,8 +280,8 @@ test('A synchronous initial playing status does not leave a stale load watchdog'
 test('End previews preserve the complete resonance and switching previews cancels the old cleanup',()=>{
  const f=fixture();f.controller.preview('end',.18);f.clock.advance(25000);
  const end=f.players[0];assert.equal(end.removed,false);
- f.controller.preview('interval',.18);assert.equal(end.removed,true);
- const interval=f.players[1];f.clock.advance(BELL_DURATION_MS.interval+BELL_RELEASE_MARGIN_MS+700);
+ f.controller.preview('start',.18);assert.equal(end.removed,true);
+ const interval=f.players[1];f.clock.advance(BELL_DURATION_MS.start+BELL_RELEASE_MARGIN_MS+700);
  assert.equal(interval.removed,true);assert.equal(f.jobs.size,0);f.controller.dispose();
 });
 
@@ -293,7 +303,7 @@ test('A one-minute loop realigns by loop distance, never by absolute time',async
  assert.deepEqual(track.seeks,[10],'60 s later the loop is back at 10 s: no reseek');f.controller.dispose();
 });
 
-test('Ending off means no closing clip; entry-only Silence still configures native background resonance',()=>{
+test('An unsaved ending-off object (decoding never yields one now) plays no closing clip; entry-only Silence still configures native background resonance',()=>{
  const f=fixture(),draft=startOpenEndedTimer('quiet',f.start,'UTC'),prefs={...defaults,sessionSound:'silence',closingBellEnabled:false};
  f.controller.update({...f.input,draft,preferences:prefs});f.controller.begin(prefs);assert.equal(f.players[0].locked,true);
  const intent=audioIntent({ready:true,foreground:false,phase:'running',completionPending:false,starting:false,preferences:prefs});

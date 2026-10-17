@@ -21,8 +21,7 @@ directs small batches in chat; each batch is logged at the end of this file. Sta
 - On hold by the owner: forest work, until the owner improves the images.
 - Open: physical checks of the latest batch (interval loops on a locked phone, pull gesture feel,
   round/level moments), cloud history compaction (SYNC.md) and store publishing before a wider release,
-  the owner-supplied interval gong's licence (AUDIO.md), and the Android crash log if the completion
-  crash returns.
+  and the Android crash log if the completion crash or the Settings-save crash returns.
 
 Read AGENTS.md first. Never claim device/listening results the owner has not reported.
 
@@ -1263,3 +1262,16 @@ Stages now begin at Level 0, 5, 10 … 120 (the last holds 125). Milestone notes
 paragraphs: Levels 5 and 10 written in full for the owner's review (the rest still one paragraph). The
 introduction ends with "Remember how today feels": optional words kept on the phone and shown again
 with the Level 100 moment. Not yet seen on a device.
+
+### Choir and Silence only, interval = starting bell, slower rewards, stages to revisit — 2026-10-17
+
+Ocean, Rain and Storm removed from the app (saved choices play Choir; generator and provenance kept,
+files in Git history); the interval loops are rebuilt from the starting bell and interval.wav (the
+owner's gong, licence unconfirmed) is gone, so bundled audio fell from about 17 MB to 9.4 MB. Bells can
+no longer be switched off (Settings keeps previews and volume); new installs default to ambience 20%
+and bells 60%. Native player volumes are no longer read back from expo-audio (likely cause of the
+Android crash on Settings → Save with a changed Home volume; not yet confirmed on a device). Reward and
+level-up animations about half as fast; the meditation line says "You can turn your screen off"; the
+introduction asks how the mind usually feels (shown again at Level 100 and on that Journey stage);
+Journey pages through every reached stage with its guide. android.versionCode 6 for the next APK.
+Not yet seen on a device.

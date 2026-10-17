@@ -60,8 +60,9 @@ export default function Session() {
           <Text style={{ fontFamily: 'ManropeRegular', color: coastalQuiet, fontSize: 12 * scale, lineHeight: 20 * scale, letterSpacing: 4 * scale }}>{paused ? 'PAUSED' : 'MEDITATING'}</Text>
           <SessionTime draft={draft} scale={scale} active={focused} />
           <View style={{ width: 5 * scale, height: 5 * scale, borderRadius: 5, backgroundColor: '#BDAE94', marginTop: 5 * scale }} />
-          <Text style={{ fontFamily: 'ManropeRegular', fontSize: 12 * scale, letterSpacing: 2 * scale, lineHeight: 20 * scale,
-            color: coastalQuiet, marginTop: 10 * scale }}>{sessionLine(null, paused)}</Text>
+          {/* In the wordmark's serif, small and quiet: an invitation to put the phone away, not an instruction. */}
+          <Text maxFontSizeMultiplier={1.4} style={{ fontFamily: coastalSerif, fontSize: 16 * scale, letterSpacing: .2 * scale, lineHeight: 22 * scale,
+            color: coastalQuiet, marginTop: 12 * scale, textAlign: 'center' }}>{sessionLine(null, paused)}</Text>
         </>}
       </View>
       <View style={{ position: 'absolute', bottom: controlsBottom, left: 24 * scale, right: 24 * scale, alignItems: 'center', gap: 4 }}>

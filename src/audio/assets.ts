@@ -1,24 +1,19 @@
 import type { AmbienceSource } from './policy';
-export type BellSound = 'start' | 'end' | 'interval';
+/** The interval bell is the starting bell (owner, 2026-10-17); only the ending bell sounds different. */
+export type BellSound = 'start' | 'end';
+/** Choir and Silence only (owner, 2026-10-17: Ocean, Rain and Storm were removed from the app). */
 export const AMBIENCES = [
-  { id: 'ocean', name: 'Ocean', description: 'A quiet shore, slowly washing waves.' },
-  { id: 'rain', name: 'Rain', description: 'Soft rainfall, steady and close.' },
-  { id: 'storm', name: 'Storm', description: 'Rain with distant, gentle thunder.' },
-  { id: 'silence', name: 'Silence', description: 'No ambience. Your bells remain optional.' },
   { id: 'ocean_music', name: 'Choir', description: 'The original Ona soundtrack.' },
+  { id: 'silence', name: 'Silence', description: 'No ambience. Your bells remain.' },
 ] as const;
 export const ambienceAsset = (source: AmbienceSource): number => ({
   ocean_music: require('../../assets/audio/meditation-choir.m4a'),
-  ocean: require('../../assets/audio/meditation/ocean.m4a'),
-  rain: require('../../assets/audio/meditation/rain.m4a'),
-  storm: require('../../assets/audio/meditation/storm.m4a'),
 })[source];
 export const bellAsset = (sound: BellSound): number => ({
   start: require('../../assets/audio/bells-v2/start.wav'),
   end: require('../../assets/audio/bells-v2/end.wav'),
-  interval: require('../../assets/audio/bells-v2/interval.wav'),
 })[sound];
-/** The interval master then silence, one looped track per offered length (scripts/build-bell-loops.py). */
+/** The starting bell then silence, one looped track per offered length (scripts/build-bell-loops.py). */
 const INTERVAL_LOOPS: Readonly<Record<number, number>> = {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   60: require('../../assets/audio/bells-v2/interval-loop-1m.flac'),

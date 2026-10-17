@@ -1,4 +1,6 @@
-"""Build the looped interval tracks: the interval master, then silence, one file per offered length.
+"""Build the looped interval tracks: the starting bell, then silence, one file per offered length.
+
+Since 2026-10-17 (owner) the interval bell is the starting bell itself; only the ending bell differs.
 
 Since 2026-10-16 (owner: "intervals configurable at the length the user wants") the interval bell is
 one short loop per length instead of three six-hour timelines. Native playback loops the file, so the
@@ -40,21 +42,21 @@ def main():
     parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
     analysis = json.loads((BANK / "analysis.json").read_text(encoding="utf-8"))
-    source = BANK / "interval.wav"
+    source = BANK / "start.wav"
     source_hash = hash_file(source)
     if source_hash != analysis["assets"][source.name]["sha256"]:
-        raise ValueError("Interval master hash mismatch")
+        raise ValueError("Starting bell hash mismatch")
     with wave.open(str(source), "rb") as file:
         if (file.getnchannels(), file.getsampwidth(), file.getframerate()) != (1, 2, RATE):
-            raise ValueError("Unexpected interval PCM format")
+            raise ValueError("Unexpected starting bell PCM format")
         master = np.frombuffer(file.readframes(file.getnframes()), dtype="<i2")
     prior = json.loads((BANK / "loops.json").read_text(encoding="utf-8")) if args.verify_only else None
     report = {"collection": "ona_acoustic_bells_v2", "sourceSha256": source_hash, "sampleRate": RATE,
-              "format": "mono 16-bit FLAC, interval master at 0 s then silence", "assets": {}}
+              "format": "mono 16-bit FLAC, starting bell at 0 s then silence", "assets": {}}
     for minutes in MINUTES:
         period = minutes * 60
         if len(master) >= period * RATE:
-            raise ValueError("The interval master is longer than the shortest loop")
+            raise ValueError("The starting bell is longer than the shortest loop")
         path = BANK / f"interval-loop-{minutes}m.flac"
         expected = np.zeros(period * RATE, dtype="<i2")
         expected[:len(master)] = master

@@ -1,4 +1,4 @@
-"""Reproduce the acoustic bell bank. Regenerate interval timelines after changing it.
+"""Reproduce the acoustic bell bank. Rebuild the interval loops (build-bell-loops.py) after changing start.wav.
 
 Requires development-only NumPy and FFmpeg; no downloads or runtime dependency.
 Profiles are intentionally gentle: preserve pitch/natural decay, soften the strike,
@@ -27,14 +27,10 @@ PROFILES = {
     "end": {"source": "1110", "trimSeconds": .088, "attackMs": 120,
             "tailSeconds": 2, "shelfHz": 1300, "shelfDb": -10,
             "firstTwoSecondsRms": .034},
-    # The owner's gong (2026-10-15): keep its strike and colour, only the pre-strike lead trimmed.
-    # Until then: {"source": "2554", "trimSeconds": 0, "attackMs": 85, "tailSeconds": 1.4,
-    # "shelfHz": 1500, "shelfDb": -9, "firstTwoSecondsRms": .022}.
-    # 2026-10-16: the owner found it too quiet to hear mid-practice (opening RMS .022, about
-    # -35.5 LUFS); now a little above the starting bell so it carries over ambience.
-    "interval": {"source": "gong-4", "trimSeconds": .045, "attackMs": 30,
-                 "tailSeconds": 1.4, "shelfHz": 2000, "shelfDb": -3,
-                 "firstTwoSecondsRms": .045},
+    # RETIRED 2026-10-17 (owner: the interval bell is now the starting bell; interval.wav was removed
+    # and the loops are built from start.wav). Its last profile, for history:
+    # "interval": {"source": "gong-4", "trimSeconds": .045, "attackMs": 30, "tailSeconds": 1.4,
+    # "shelfHz": 2000, "shelfDb": -3, "firstTwoSecondsRms": .045}.
 }
 
 

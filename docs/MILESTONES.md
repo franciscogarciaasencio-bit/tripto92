@@ -52,3 +52,9 @@ at first, then every few weeks):
   reported a particularly unpleasant meditation-related experience, hence the gentle safety line.
 
 These numbers inform the arc only; the app never shows them.
+
+## Revisiting guides (2026-10-17)
+
+Every reached stage stays visitable on Journey's level view with the guide that opened it
+(`stageGuides` in src/ui/milestones.ts). The first stage, which has no moment of its own, has its own
+guide there ("Where everyone begins": the restless beginner's mind, counting breaths and returning).

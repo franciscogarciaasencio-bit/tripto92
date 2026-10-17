@@ -157,15 +157,15 @@ export function MilestoneMoment({ milestone, busy, onContinue }: { milestone: Mi
             <Text style={[styles.noteTitle, { fontSize: 23 * scale, lineHeight: 30 * scale }]}>{milestone.note.title}</Text>
             {milestone.note.paragraphs.map((paragraph) => <Text key={paragraph.slice(0, 24)} style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>{paragraph}</Text>)}
           </Animated.View>
-          {/* Level 100 (owner, 2026-10-17): what was noticed at the beginning, shown again to compare. */}
+          {/* Level 100 (owner, 2026-10-17): how the mind usually felt at the beginning, shown again to compare mental states. */}
           {milestone.kind === 'habit' && reflection !== undefined && <Animated.View style={[noteStyle, styles.reflection, { padding: 22 * scale, marginTop: 14 * scale, borderRadius: 20 * scale, gap: 10 * scale }]}>
             <Text style={[styles.kicker, { fontSize: 10.5 * scale, lineHeight: 16 * scale, color: GOLD, textAlign: 'left' }]}>WHEN YOU BEGAN</Text>
             {reflection ? <>
-              <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>You wrote:</Text>
+              <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>Before your practice began, you described your mind like this:</Text>
               <Text style={[styles.quote, { fontSize: 19 * scale, lineHeight: 28 * scale }]}>{`“${reflection.text}”`}</Text>
             </> : <Text style={[styles.noteBody, { fontSize: 15.5 * scale, lineHeight: 25 * scale }]}>
-              When you began, Ona asked you to notice how your days and your mind felt. Take a moment to remember it.</Text>}
-            <Text style={[styles.noteTitle, { fontSize: 21 * scale, lineHeight: 28 * scale, marginTop: 4 * scale }]}>How does it feel now?</Text>
+              When you began, Ona asked you to notice how your mind usually felt: how busy or scattered, how anxious or restless. Take a moment to remember it.</Text>}
+            <Text style={[styles.noteTitle, { fontSize: 21 * scale, lineHeight: 28 * scale, marginTop: 4 * scale }]}>And how does your mind usually feel now?</Text>
           </Animated.View>}
         </View>
         <Animated.View style={[actionStyle, { width: '100%', maxWidth: 420, marginTop: 26 * scale }]} pointerEvents={settled ? 'auto' : 'none'}>

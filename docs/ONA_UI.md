@@ -89,9 +89,9 @@ opens Prepare without starting a timer.
 Transitions are cancellation-guarded, respect live Reduced Motion and announce/focus
 chapter headings for screen readers. Body content scrolls on short phones/large type;
 the decorative welcome wordmark/tagline limit scaling to preserve the halo composition.
-The last page (2026-10-17), "Remember how today feels", invites an optional few words about how days
-and mind feel now (or a mental note), kept on the phone only (beginning-reflection.ts, platform key
-store, never synced) and shown again at Level 100; it says Ona believes you will feel the difference,
+The last page (2026-10-17), "How does your mind usually feel?" (renamed from "Remember how today feels" the same day: the owner meant the usual state of mind, not that day), invites an optional few words about how
+the mind usually feels — scattered, anxious, restless, tense — (or a mental note), kept on the phone only (beginning-reflection.ts, platform key
+store, never synced) and shown again at Level 100 so the two states of mind can be compared; it says Ona believes you will feel the difference,
 without promising it.
 Short phones use a compact wave-only chapter header so the essential journey text
 fits above the final action; the full coastal welcome remains available on all sizes.
@@ -197,8 +197,9 @@ horizon leaves the disc most open; the meditation screen puts a 30 pt "Ona" at t
 stack (MEDITATING, time, dot, line) inside the sun. Home's two columns now match: serif title row
 ("Level n" with a small 30 pt stage symbol, "Consistency"), the bar directly beneath each title, then
 captions (stage name, "n of 5"). The stage symbol is smaller on Journey too (96 pt in the ring).
-Settings holds only what lives nowhere else: Bells (starting/ending on/off with a small play button
-each, bell volume), Home ambience volume, Account and Reset (the interval bell is chosen on Prepare). Gentle
+Settings holds only what lives nowhere else: Bells (a small play button for the starting/interval bell
+and the ending bell, bell volume; since 2026-10-17 the bells cannot be switched off), Home ambience
+volume, Account and Reset (the interval is chosen on Prepare). Sounds are Choir and Silence only. Gentle
 haptics and the in-app sound credits were removed at the owner's request (2026-10-15): nothing vibrates,
 and sound provenance lives in docs/AUDIO.md and the asset READMEs. Ambience choice is made on Prepare and its volume from the speaker during
 a practice; Home's speaker mutes Home. Saving writes only those fields onto the current preferences.
@@ -350,3 +351,18 @@ Browser screenshots are actual React Native web renders, not native-device proof
 After significant UI changes, verify real iPhone/Android safe areas, text scaling,
 navigation, background/reopen, frame pacing and accessibility. Audio device limits are
 documented separately in [AUDIO.md](AUDIO.md).
+
+### Journey stages to revisit, slower rewards, screen-off line — 2026-10-17
+
+- Journey's level view is a horizontal pager of every stage reached (owner: "if I'm level 20, I still
+  want to see [the first stage]"): it opens on the stage you are in, earlier stages wait to the left.
+  Each page shows the stage symbol (ring full and "Completed" for past stages, Levels a–b), small dots
+  (tap to jump) with "Swipe to revisit earlier stages", and below it the guide that opened that stage
+  (milestones.ts `stageGuides`; the first stage has its own "Where everyone begins"; the stage that
+  begins at Level 100 shows the habit guide and the beginning reflection; the last adds the journey's
+  end once reached). Stages ahead stay undiscovered.
+- Completion rewards move at about half the earlier pace (owner: "way too fast… rushed"): REWARD_MOTION
+  fills, a short rest between practice, Consistency and bonus, a slower Consistency round celebration
+  (ROUND_MOTION) and a slower level-up swell, hold and ring.
+- The meditation screen's quiet line under the time reads "You can turn your screen off", in the
+  wordmark's serif (16 pt, the quiet ink), instead of "Just be here".

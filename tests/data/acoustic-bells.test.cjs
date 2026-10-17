@@ -56,7 +56,7 @@ test('Four publisher recordings and the owner-supplied gong remain byte-identica
   }
 });
 
-test('Owner-supplied sources say who supplied them, when, and that their licence still needs recording', () => {
+test('Owner-supplied sources say who supplied them, when, and that their licence still needs recording; none ships', () => {
   for (const source of Object.values(provenance.ownerSupplied)) {
     assert.equal(source.suppliedBy, "Ona's owner");
     assert.match(source.suppliedOn, /^\d{4}-\d{2}-\d{2}$/);
@@ -65,11 +65,13 @@ test('Owner-supplied sources say who supplied them, when, and that their licence
     assert.ok(source.rightsReview.includes('before a public release'));
     assert.ok(source.selection.length > 20);
   }
-  assert.equal(analysis.assets['interval.wav'].profile.source, 'gong-4');
-  assert.ok(analysis.sources['gong-4']);
+  // The owner's gong was the interval bell until 2026-10-17; the interval is now the starting bell,
+  // so no bundled bell depends on a source whose licence is unconfirmed.
+  for (const entry of Object.values(analysis.assets)) assert.ok(!(entry.profile.source in provenance.ownerSupplied));
+  assert.deepEqual(Object.keys(analysis.assets), ['start.wav', 'end.wav']);
 });
 
-for (const role of ['start', 'end', 'interval']) {
+for (const role of ['start', 'end']) {
   test(`${role} acoustic master has verified PCM, headroom, soft endpoints and accurate measurements`, () => {
     const { bytes, samples } = pcm(`${role}.wav`);
     const entry = analysis.assets[`${role}.wav`];
@@ -89,13 +91,10 @@ for (const role of ['start', 'end', 'interval']) {
   });
 }
 
-test('Interval carries over ambience (owner: too quiet before); end and start are matched without a loud ending strike', () => {
+test('End and start are matched without a loud ending strike', () => {
   const start = pcm('start.wav').samples;
   const end = pcm('end.wav').samples;
-  const interval = pcm('interval.wav').samples;
   const openingRms = samples => rms(samples.slice(0, 48000));
-  assert.ok(openingRms(interval) >= openingRms(start), 'the interval strike is at least as present as the starting bell');
-  assert.ok(openingRms(interval) < openingRms(start) * 1.5, 'and never startling');
   assert.ok(openingRms(end) <= openingRms(start));
   assert.ok(openingRms(end) > openingRms(start) * .9);
 });
@@ -111,12 +110,12 @@ test('Full source decays survive mastering; end retains audible signal well into
   assert.ok(rms(end.slice(24 * 24000, 25 * 24000)) < .001);
 });
 
-test('Every offered interval length has a sample-exact loop: the interval master at 0 s, then silence', () => {
+test('Every offered interval length has a sample-exact loop: the starting bell at 0 s, then silence', () => {
   const loops = JSON.parse(readFileSync(path.join(bank, 'loops.json'), 'utf8'));
   const catalogue = readFileSync(path.join(root, 'src/audio/assets.ts'), 'utf8');
   const preferences = readFileSync(path.join(root, 'src/data/audio-preferences.ts'), 'utf8');
   const offered = preferences.match(/INTERVAL_MINUTES = \[([^\]]+)\]/)[1].split(',').map(Number);
-  assert.equal(loops.sourceSha256, analysis.assets['interval.wav'].sha256);
+  assert.equal(loops.sourceSha256, analysis.assets['start.wav'].sha256, 'the interval bell is the starting bell (owner, 2026-10-17)');
   assert.deepEqual(Object.values(loops.assets).map(entry => entry.minutes), offered);
   let total = 0;
   for (const [name, entry] of Object.entries(loops.assets)) {

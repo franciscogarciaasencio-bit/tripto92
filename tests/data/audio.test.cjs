@@ -137,10 +137,10 @@ test('Buffering is not mistaken for an interruption and cleanup removes fades/li
 });
 test('Pure app policy keeps Home out of background/completion/paused sessions and supports real Silence', () => {
   const input = { ready: true, foreground: true, phase: null, completionPending: false, starting: false, preferences: defaults };
-  assert.deepEqual(audioIntent(input), home(.075));
+  assert.deepEqual(audioIntent(input), home(.1), 'Home Choir at the 20% default (owner, 2026-10-17), halved by the playback gain');
   for (const change of [{ ready: false }, { starting: true }, { completionPending: true }, { phase: 'paused' }, { phase: 'finished' }, { preferences: null }]) assert.equal(audioIntent({ ...input, ...change }).kind, 'silent');
   assert.deepEqual(audioIntent({ ...input, foreground: false }), silent(true));
-  assert.deepEqual(audioIntent({ ...input, foreground: false, phase: 'running' }), { ...meditation(.075), source: 'ocean', background: true });
+  assert.deepEqual(audioIntent({ ...input, foreground: false, phase: 'running' }), { ...meditation(.1), background: true });
   assert.equal(audioIntent({ ...input, preferences: { ...defaults, homeEnabled: false } }).kind, 'silent');
   assert.equal(audioIntent({ ...input, phase: 'running', preferences: { ...defaults, sessionSound: 'silence' } }).kind, 'silent');
   assert.equal(audioIntent({ ...input, phase: 'running', preferences: { ...defaults, sessionVolume: 0 } }).kind, 'silent');
@@ -169,8 +169,8 @@ test('Saved user-selected volumes round-trip unchanged while reopened playback u
     const loaded = await store.settings.loadAudioPreferences(); assert.deepEqual(loaded, preferences);
     const input = { ready: true, foreground: true, phase: null, completionPending: false, starting: false, preferences: loaded };
     assert.deepEqual(audioIntent(input), home(.3));
-    assert.deepEqual(audioIntent({ ...input, phase: 'running' }), { ...meditation(.4), source: 'ocean' });
-    assert.deepEqual(audioIntent({ ...input, phase: 'running', foreground: false }), { ...meditation(.4), source: 'ocean', background: true });
+    assert.deepEqual(audioIntent({ ...input, phase: 'running' }), meditation(.4));
+    assert.deepEqual(audioIntent({ ...input, phase: 'running', foreground: false }), { ...meditation(.4), background: true });
   } finally { await store.close(); }
 });
 test('Audio defaults and independently saved volumes/choices survive close/reopen without changing legacy preferences or XP', async (t) => {

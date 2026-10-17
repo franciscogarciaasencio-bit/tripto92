@@ -6,5 +6,5 @@ export const UI_MOTION = {
   expand: 220,
   reveal: 180,
   completionEntrance: 280,
-  rewardHold: 420,
+  rewardHold: 900,
 } as const;

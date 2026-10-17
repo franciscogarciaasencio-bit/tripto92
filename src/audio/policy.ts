@@ -16,8 +16,7 @@ export function audioIntent(input: {
   const prefs = input.preferences;
   if (!input.ready || !prefs || input.starting || input.completionPending) return { kind: 'silent', immediate: !input.foreground };
   if (input.phase === 'running') return prefs.sessionSound !== 'silence' && prefs.sessionVolume > 0
-    ? { kind: 'session', volume: prefs.sessionVolume * MASTER_PLAYBACK_GAIN,
-      ...(prefs.sessionSound === 'ocean_music' ? {} : { source: prefs.sessionSound }), ...(!input.foreground ? { background: true as const } : {}) }
+    ? { kind: 'session', volume: prefs.sessionVolume * MASTER_PLAYBACK_GAIN, ...(!input.foreground ? { background: true as const } : {}) }
     : { kind: 'silent', immediate: !input.foreground,
       ...((prefs.intervalSeconds || prefs.openingBellEnabled) && prefs.bellVolume > 0 ? { background: true as const } : {}) };
   if (input.phase !== null || !input.foreground || !prefs.homeEnabled || prefs.homeVolume === 0) {

@@ -62,13 +62,13 @@ export function PrepareScreen() {
   // Large system text: fewer, wider columns so words stay whole instead of shrinking.
   const { fontScale, width } = useWindowDimensions();
   const roomy = fontScale * (375 / Math.min(width, 375)) > 1.3;
-  const words = roomy ? 2 : 3, numbers = roomy ? 3 : 4;
+  const numbers = roomy ? 3 : 4;
 
   return <Screen scroll={false} style={{ paddingBottom: 0 }}>
     <Header title="Your practice" back={back} />
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 20, paddingTop: 20, paddingBottom: 24 }}>
       <Section title="Sound">
-        {AMBIENCES.map((entry) => <Option columns={words} key={entry.id} label={entry.name} selected={sound === entry.id} onPress={() => setSound(entry.id)} />)}
+        {AMBIENCES.map((entry) => <Option columns={AMBIENCES.length} key={entry.id} label={entry.name} selected={sound === entry.id} onPress={() => setSound(entry.id)} />)}
       </Section>
       <Section title="Length" note="minutes">
         <Option columns={numbers} label="Open" accessibilityLabel="Open-ended: stop when you choose" selected={minutes === null} onPress={() => setMinutes(null)} />
@@ -84,7 +84,7 @@ export function PrepareScreen() {
       </View>
       <Type role="secondary">{minutes === null
         ? 'Open-ended is recommended: stop when you choose. Every practice of three active minutes counts.'
-        : `${sounds.closingBellEnabled ? 'A bell ends' : 'Ona quietly ends'} the practice after ${minutes} minutes of meditation. Pauses don’t count, and finishing earlier still counts.`}</Type>
+        : `A bell ends the practice after ${minutes} minutes of meditation. Pauses don’t count, and finishing earlier still counts.`}</Type>
     </ScrollView>
     <View style={{ alignItems: 'center', gap: 6, paddingTop: 12, paddingBottom: 24, borderTopWidth: 1, borderColor: colors.line }}>
       <Notice>{app.error ? 'Your practice could not begin. Please try again.' : null}</Notice>

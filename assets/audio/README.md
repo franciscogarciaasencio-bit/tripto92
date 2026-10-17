@@ -14,9 +14,13 @@ royalties, permission or mandatory attribution, including commercial use.
   `ffmpeg -i meditation-choir.wav -c:a aac -b:a 192k -ar 48000 -movflags +faststart meditation-choir.m4a`.
   Decoded against the original: correlation 0.99994, 39 dB SNR, no gain change. The recording fades
   in from and out to silence, so the encoder's few milliseconds of padding cannot click at the loop.
-- Home uses Choir; saved ocean_music meditation choices still select it.
+- Home uses Choir. Since 2026-10-17 Choir and Silence are the only meditation sounds (owner); the
+  procedural Ocean, Rain and Storm ambiences were removed. Their generator is kept, their provenance
+  is in scripts/audio-sources/retired-ambience, and the files are in Git history (for example
+  `git show 7378fe3:assets/audio/meditation/ocean.m4a > ocean.m4a`). A saved
+  choice of one of them plays Choir.
 
-Original ambience lives in meditation/; acoustic CC0 bells and matching interval tracks
-live in bells-v2/. See their READMEs and docs/AUDIO.md for reproduction/provenance.
+Acoustic CC0 bells and the interval tracks (built from the starting bell) live in bells-v2/.
+See its README and docs/AUDIO.md for reproduction/provenance.
 The retired original progression swell's source remains in
 scripts/generate-progression-cue.py, generating an ignored development master only.
